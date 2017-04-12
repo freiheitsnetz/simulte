@@ -39,8 +39,8 @@ void LteMaxDatarate::prepareSchedule() {
         return;
 
     // We now have all <band, id> combinations sorted by expected datarate.
-    EV << NOW << " RBs sorted according to their throughputs: " << std::endl;
-    EV << sorter->toString() << std::endl;
+    EV << NOW << " LteMaxDatarate::prepareSchedule RBs sorted according to their throughputs: " << std::endl;
+    EV << NOW << " LteMaxDatarate::prepareSchedule " << sorter->toString() << std::endl;
 
     // Now initiate phase 1 of the algorithm:
     // Go through all bands
@@ -90,7 +90,7 @@ MaxDatarateSorter* LteMaxDatarate::sortBandsByDatarate(SchedulingMemory* memory)
     try {
         numBands = mOracle->getNumberOfBands();
     } catch (const cRuntimeError& e) {
-        EV << NOW << " Oracle not yet ready. Skipping scheduling round." << std::endl;
+        EV << NOW << " LteMaxDatarate::prepareSchedule Oracle not yet ready. Skipping scheduling round." << std::endl;
         return nullptr;
     }
 
@@ -103,7 +103,7 @@ MaxDatarateSorter* LteMaxDatarate::sortBandsByDatarate(SchedulingMemory* memory)
         // Make sure the current node has not been dynamically removed.
         if (getBinder()->getOmnetId(nodeId) == 0){
             activeConnectionTempSet_.erase(currentConnection);
-            EV << NOW << "\t\t has been dynamically removed. Skipping..." << std::endl;
+            EV << NOW << " LteMaxDatarate::prepareSchedule\t\t has been dynamically removed. Skipping..." << std::endl;
             continue;
         }
 
@@ -116,7 +116,7 @@ MaxDatarateSorter* LteMaxDatarate::sortBandsByDatarate(SchedulingMemory* memory)
         else
             dir = DL;
 
-        EV << "\tNode " << nodeId << " wants to transmit in " << dirToA(dir) << " direction." << std::endl;
+        EV << " LteMaxDatarate::prepareSchedule\tNode " << nodeId << " wants to transmit in " << dirToA(dir) << " direction." << std::endl;
 
         // Save it to memory.
         memory->put(nodeId, dir);
@@ -132,7 +132,7 @@ MaxDatarateSorter* LteMaxDatarate::sortBandsByDatarate(SchedulingMemory* memory)
             case Direction::UL: {
                 destinationId = mOracle->getEnodeBId();
                 SINRs = mOracle->getSINR(nodeId, destinationId, NOW, maxTransmitPower);
-                EV << NOW << " From node " << nodeId << " to eNodeB " << mOracle->getEnodeBId() << " (Uplink)" << std::endl;
+                EV << NOW << " LteMaxDatarate::prepareSchedule From node " << nodeId << " to eNodeB " << mOracle->getEnodeBId() << " (Uplink)" << std::endl;
                 break;
             }
             // Downlink: eNB->node
@@ -140,14 +140,14 @@ MaxDatarateSorter* LteMaxDatarate::sortBandsByDatarate(SchedulingMemory* memory)
                 destinationId = nodeId;
                 nodeId = mOracle->getEnodeBId();
                 SINRs = mOracle->getSINR(nodeId, destinationId , NOW, maxTransmitPower);
-                EV << NOW << " From eNodeB " << mOracle->getEnodeBId() << " to node " << nodeId << " (Downlink)" << std::endl;
+                EV << NOW << " LteMaxDatarate::prepareSchedule From eNodeB " << mOracle->getEnodeBId() << " to node " << nodeId << " (Downlink)" << std::endl;
                 break;
             }
             // Direct: node->node
             case Direction::D2D: {
                 destinationId = determineD2DEndpoint(nodeId);
                 SINRs = mOracle->getSINR(nodeId, destinationId, NOW, maxTransmitPower);
-                EV << NOW << " From node " << nodeId << " to node " << destinationId << " (Direct Link)" << std::endl;
+                EV << NOW << " LteMaxDatarate::prepareSchedule From node " << nodeId << " to node " << destinationId << " (Direct Link)" << std::endl;
                 break;
             }
             default: {
@@ -177,14 +177,14 @@ std::vector<Band> LteMaxDatarate::phase1_cellular(MaxDatarateSorter* sorter, Sch
     for (Band band = 0; band < sorter->size(); band++) {
         std::vector<IdRatePair> list = sorter->at_nonD2D(band);
         if (list.size() <= 0) {
-            EV << NOW << " Skipping band " << band << " because no cellular users are interested in it." << std::endl;
+            EV << NOW << " LteMaxDatarate::phase1_cellular Skipping band " << band << " because no cellular users are interested in it." << std::endl;
             continue;
         }
         // Assign band to best candidate.
         IdRatePair& bestCandidate = list.at(0);
 
         EV << NOW << " LteMaxDatarate::phase1_cellular granting " << bestCandidate.from << " -"
-           << dirToA(bestCandidate.dir) << "-> " << bestCandidate.to;
+                << dirToA(bestCandidate.dir) << "-> " << bestCandidate.to << " on band " << band << std::endl;
 
         SchedulingResult grantAnswer = schedule(bestCandidate.connectionId, band);
 
@@ -224,7 +224,7 @@ std::vector<Band> LteMaxDatarate::phase1_cellular(MaxDatarateSorter* sorter, Sch
             std::vector<double> consecutiveSINRs = mOracle->getSINR(bestCandidate.from, bestCandidate.to, NOW, halvedTxPower);
             double associatedSinr = consecutiveSINRs.at(consecutiveBand);
             double estimatedThroughput = mOracle->getChannelCapacity(associatedSinr);
-            EV << NOW << " Determined throughput for consecutive band " << consecutiveBand << " at halved transmit power of "
+            EV << NOW << " LteMaxDatarate::prepareSchedule Determined throughput for consecutive band " << consecutiveBand << " at halved transmit power of "
                << halvedTxPower << ": " << estimatedThroughput << std::endl;
 
             // Is this better than the next best candidate?
@@ -232,8 +232,12 @@ std::vector<Band> LteMaxDatarate::phase1_cellular(MaxDatarateSorter* sorter, Sch
             IdRatePair& bestConsecutiveCandidate = consecutiveList.at(0);
 
             if (bestConsecutiveCandidate.rate < estimatedThroughput) {
-                EV << NOW << " Consecutive throughput at halved txPower is still better than the best candidate: "
+                EV << NOW << " LteMaxDatarate::phase1_cellular Consecutive throughput at halved txPower is still better than the best candidate: "
                    << bestConsecutiveCandidate.rate << " < " << estimatedThroughput << std::endl;
+
+                EV << NOW << " LteMaxDatarate::phase1_cellular granting " << bestCandidate.from << " -"
+                   << dirToA(bestCandidate.dir) << "-> " << bestCandidate.to << " on consecutive band " << band << std::endl;
+
                 // Assign this band also.
                 grantAnswer = schedule(bestCandidate.connectionId, consecutiveBand);
 
@@ -291,14 +295,14 @@ void LteMaxDatarate::phase1_d2d(MaxDatarateSorter* sorter, SchedulingMemory* mem
         }
         std::vector<IdRatePair> list = sorter->at(band, Direction::D2D);
         if (list.size() <= 0) {
-            EV << NOW << " Skipping band " << band << " because no D2D users are interested in it." << std::endl;
+            EV << NOW << " LteMaxDatarate::prepareSchedule Skipping band " << band << " because no D2D users are interested in it." << std::endl;
             continue;
         }
         // Assign band to best candidate.
         IdRatePair& bestCandidate = list.at(0);
 
         EV << NOW << " LteMaxDatarate::phase1_d2d granting " << bestCandidate.from << " -"
-           << dirToA(bestCandidate.dir) << "-> " << bestCandidate.to;
+           << dirToA(bestCandidate.dir) << "-> " << bestCandidate.to << " on band " << band << std::endl;
 
         SchedulingResult grantAnswer = schedule(bestCandidate.connectionId, band);
 
@@ -343,7 +347,7 @@ void LteMaxDatarate::phase1_d2d(MaxDatarateSorter* sorter, SchedulingMemory* mem
             std::vector<double> consecutiveSINRs = mOracle->getSINR(bestCandidate.from, bestCandidate.to, NOW, halvedTxPower);
             double associatedSinr = consecutiveSINRs.at(consecutiveBand);
             double estimatedThroughput = mOracle->getChannelCapacity(associatedSinr);
-            EV << NOW << " Determined throughput for consecutive band " << consecutiveBand << " at halved transmit power of "
+            EV << NOW << " LteMaxDatarate::prepareSchedule Determined throughput for consecutive band " << consecutiveBand << " at halved transmit power of "
                << halvedTxPower << ": " << estimatedThroughput << std::endl;
 
             // Is this better than the next best candidate?
@@ -351,8 +355,11 @@ void LteMaxDatarate::phase1_d2d(MaxDatarateSorter* sorter, SchedulingMemory* mem
             IdRatePair& bestConsecutiveCandidate = consecutiveList.at(0);
 
             if (bestConsecutiveCandidate.rate < estimatedThroughput) {
-                EV << NOW << " Consecutive throughput at halved txPower is still better than the best candidate: "
+                EV << NOW << " LteMaxDatarate::prepareSchedule Consecutive throughput at halved txPower is still better than the best candidate: "
                    << bestConsecutiveCandidate.rate << " < " << estimatedThroughput << std::endl;
+
+                EV << NOW << " LteMaxDatarate::phase1_d2d granting " << bestCandidate.from << " -"
+                   << dirToA(bestCandidate.dir) << "-> " << bestCandidate.to << " on consecutive band " << band << std::endl;
                 // Assign this band also.
                 grantAnswer = schedule(bestCandidate.connectionId, consecutiveBand);
 
@@ -388,7 +395,7 @@ void LteMaxDatarate::phase1_d2d(MaxDatarateSorter* sorter, SchedulingMemory* mem
 
             // Current candidate transmitting at halved power has worse throughput than next candidate.
             } else {
-                EV << NOW << " Consecutive throughput at halved txPower is not better than the best candidate: "
+                EV << NOW << " LteMaxDatarate::prepareSchedule Consecutive throughput at halved txPower is not better than the best candidate: "
                    << bestConsecutiveCandidate.rate << " >= " << estimatedThroughput << std::endl;
                 // Remove current candidate as it shouldn't be assigned any more resource blocks in this scheduling round.
                 sorter->remove(bestCandidate.from);
@@ -410,10 +417,10 @@ void LteMaxDatarate::phase2(MaxDatarateSorter* sorter, SchedulingMemory* memory)
         if (dir == Direction::D2D) {
             if (memory->getNumberAssignedBands(nodeId) == 0) {
                 // Found an unassigned pair.
-                EV << NOW << " Node " << nodeId << " has not been assigned a band yet." << endl;
+                EV << NOW << " LteMaxDatarate::prepareSchedule Node " << nodeId << " has not been assigned a band yet." << endl;
                 // Reassign that band that has the best datarate for this node.
                 Band bestBand = sorter->getBestBand(nodeId);
-                EV << "Reassigning band " << bestBand << " to node " << nodeId << endl;
+                EV  << NOW << " LteMaxDatarate::prepareSchedule Reassigning band " << bestBand << " to node " << nodeId << endl;
                 SchedulingResult grantAnswer = schedule(currentConnection, bestBand);
                 memory->put(nodeId, bestBand);
 
@@ -489,7 +496,7 @@ MacNodeId LteMaxDatarate::determineD2DEndpoint(MacNodeId srcNode) const {
     // Go through all possible destinations.
     for (std::map<MacNodeId, LteD2DMode>::const_iterator iterator = destinationModeMap.begin();
             iterator != destinationModeMap.end(); iterator++) {
-        EV << "\tChecking candidate node " << (*iterator).first << "... ";
+        EV << NOW << " LteMaxDatarate::prepareSchedule\tChecking candidate node " << (*iterator).first << "... ";
         // Check if it wanted to run in Direct Mode.
         if ((*iterator).second == LteD2DMode::DM) {
             // If yes, then consider this the endpoint.
