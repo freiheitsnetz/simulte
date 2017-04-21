@@ -423,10 +423,18 @@ void LteMaxDatarate::phase2(MaxDatarateSorter* sorter, SchedulingMemory* memory)
                 // Found an unassigned pair.
                 EV << NOW << " LteMaxDatarate::prepareSchedule Node " << nodeId << " has not been assigned a band yet." << endl;
                 // Reassign that band that has the best datarate for this node.
-                Band bestBand = sorter->getBestBand(nodeId);
+                Band bestBand;
+                try {
+                    bestBand = sorter->getBestBand(nodeId);
+                } catch (const std::exception& e) {
+                    // An exception is thrown if no bands are available.
+                    continue;
+                }
                 EV  << NOW << " LteMaxDatarate::prepareSchedule Reassigning band " << bestBand << " to node " << nodeId << endl;
                 SchedulingResult grantAnswer = schedule(currentConnection, bestBand);
                 memory->put(nodeId, bestBand, true);
+                // Mark the band as reassigned so it won't be double-reassigned.
+                sorter->markBand(bestBand, true);
 
                 EV << NOW << " LteMaxDatarate::phase2 grant answer is "
                    << (grantAnswer == SchedulingResult::TERMINATE ? "TERMINATE" :
