@@ -19,16 +19,21 @@
 
 using namespace std;
 
-void SchedulingMemory::put(const MacNodeId id, const Band band) {
+SchedulingMemory::SchedulingMemory() {}
+
+SchedulingMemory::SchedulingMemory(const SchedulingMemory &other)
+  : _memory(other._memory) {}
+
+void SchedulingMemory::put(const MacNodeId id, const Band band, const bool isReassigned) {
   // Is there an item for 'id' already?
   try {
     MemoryItem &item = get(id);
-    item.putBand(band);
+    item.putBand(band, isReassigned);
   // If not, create it.
   } catch (const exception& e) {
     _memory.push_back(MemoryItem(id));
     MemoryItem &item = _memory.at(_memory.size() - 1);
-    item.putBand(band);
+    item.putBand(band, isReassigned);
   }
 }
 
@@ -52,6 +57,9 @@ std::size_t SchedulingMemory::getNumberAssignedBands(const MacNodeId &id) const 
 
 const std::vector<Band>& SchedulingMemory::getBands(const MacNodeId &id) const {
   return get(id).getBands();
+}
+const std::vector<bool>& SchedulingMemory::getReassignments(const MacNodeId &id) const {
+  return get(id).getReassignments();
 }
 
 void SchedulingMemory::put(const MacNodeId id, const Direction dir) {

@@ -42,6 +42,7 @@ OmniscientEntity::OmniscientEntity()
     : mBinder(getBinder()),
       mSnapshotMsg(new cMessage("OmniscientEnity::snapshot")),
       mConfigMsg(new cMessage("OmniscientEntity::config")),
+      mSaveAllocationHistoryMsg(new cMessage("OmniscientEntity::saveAllocationHistory")),
       mUpdateInterval(0.01) // Will be properly set to provided .NED value in initialize()
     {
     OmniscientEntity::SINGLETON = this;
@@ -56,6 +57,8 @@ OmniscientEntity::~OmniscientEntity() {
         delete mConfigMsg;
     if (!mSnapshotMsg->isScheduled())
         delete mSnapshotMsg;
+    if (!mSaveAllocationHistoryMsg->isScheduled())
+        delete mSaveAllocationHistoryMsg;
 }
 
 double OmniscientEntity::getChannelCapacity(const double sinr) const {
@@ -278,6 +281,18 @@ int OmniscientEntity::getNumberOfBands() const {
     return mAmc->getSystemNumBands();
 }
 
+void OmniscientEntity::recordSchedulingRound(const SchedulingMemory& memory) {
+    if (!mShouldRecordBandAllocation) {
+        EV << NOW << " OmniscientEntity::recordSchedulingRound skipping." << endl;
+        return;
+    }
+    EV << NOW << " OmniscientEntity::recordSchedulingRound" << endl;
+    if (mBandAllocationTimepoints.size() > 0 && mBandAllocationTimepoints.at(mBandAllocationTimepoints.size() - 1) == NOW)
+        return; // For some reason an empty memory object is often passed for every moment in time. So discard it if we already have one for 'NOW'.
+    mBandAllocationTimepoints.push_back(NOW);
+    mBandAllocationMemories.push_back(SchedulingMemory(memory));
+}
+
 void OmniscientEntity::initialize() {
     EV << "OmniscientEntity::initialize" << std::endl;
     // This entity is being initialized before a lot of other entities, like the eNodeBs and UEs, are deployed.
@@ -285,6 +300,8 @@ void OmniscientEntity::initialize() {
     mConfigTimepoint = par("configTimepoint").doubleValue();
     mUpdateInterval = par("updateInterval").doubleValue();
     mBandwidth = par("resourceBlockBandwidth").doubleValue();
+    mShouldRecordBandAllocation = par("recordBandAllocation").boolValue();
+    EV << "Record = " << (mShouldRecordBandAllocation ? "true" : "false") << endl;
     cConfigOption simTimeConfig("sim-time-limit", true, cConfigOption::Type::CFG_DOUBLE, "s", "300", "");
     double maxSimTime = getEnvir()->getConfig()->getAsDouble(&simTimeConfig);
 
@@ -292,6 +309,9 @@ void OmniscientEntity::initialize() {
     scheduleAt(mConfigTimepoint, mConfigMsg);
     // Schedule first update.
     scheduleAt(mConfigTimepoint + mUpdateInterval, mSnapshotMsg);
+
+    // Schedule saving allocation history to file at end of simulation.
+    scheduleAt(maxSimTime, mSaveAllocationHistoryMsg);
 }
 
 /**
@@ -342,7 +362,6 @@ void OmniscientEntity::configure() {
 
     // Get a pointer to the channel model.
     mChannelModel = check_and_cast<LteRealisticChannelModel*>(ueInfo->at(0)->phy->getChannelModel());
-//    mChannelModel = ueInfo->at(0)->realChan; // Doesn't work for non-D2D simulations.
     if (mChannelModel != nullptr)
         EV << "\tFound channel model." << std::endl;
     else
@@ -355,90 +374,7 @@ void OmniscientEntity::configure() {
     else
         EV << "\tConstructed feedback computer." << endl;
 
-    EV << "Testing Computations..." << std::endl;
-    std::vector<double> tx1Vec, tx2Vec, rx1Vec, rx2Vec;
-    MacNodeId tx1 = ueInfo->at(0)->id, tx2 = ueInfo->at(1)->id,
-                rx1 = ueInfo->at(2)->id, rx2 = ueInfo->at(3)->id;
-    double txPower_d2d = getTransmissionPower(tx1, Direction::D2D),
-           txPower_cellular = getTransmissionPower(tx1, Direction::UL);
-    tx1Vec.push_back(getMean(getSINR(tx1, mENodeBId, NOW, txPower_cellular)));
-    tx1Vec.push_back(getMean(getSINR(tx1, tx2, NOW, txPower_d2d)));
-    tx1Vec.push_back(getMean(getSINR(tx1, rx1, NOW, txPower_d2d)));
-    tx1Vec.push_back(getMean(getSINR(tx1, rx2, NOW, txPower_d2d)));
-
-    tx2Vec.push_back(getMean(getSINR(tx2, mENodeBId, NOW, txPower_cellular)));
-    tx2Vec.push_back(getMean(getSINR(tx2, tx1, NOW, txPower_d2d)));
-    tx2Vec.push_back(getMean(getSINR(tx2, rx1, NOW, txPower_d2d)));
-    tx2Vec.push_back(getMean(getSINR(tx2, rx2, NOW, txPower_d2d)));
-
-    rx1Vec.push_back(getMean(getSINR(rx1, mENodeBId, NOW, txPower_cellular)));
-    rx1Vec.push_back(getMean(getSINR(rx1, tx1, NOW, txPower_d2d)));
-    rx1Vec.push_back(getMean(getSINR(rx1, tx2, NOW, txPower_d2d)));
-    rx1Vec.push_back(getMean(getSINR(rx1, rx2, NOW, txPower_d2d)));
-
-    rx2Vec.push_back(getMean(getSINR(rx2, mENodeBId, NOW, txPower_cellular)));
-    rx2Vec.push_back(getMean(getSINR(rx2, tx1, NOW, txPower_d2d)));
-    rx2Vec.push_back(getMean(getSINR(rx2, tx2, NOW, txPower_d2d)));
-    rx2Vec.push_back(getMean(getSINR(rx2, rx1, NOW, txPower_d2d)));
-
-    EV << "CALCTEST Tx1->eNB=" << tx1Vec.at(0) << std::endl;
-    EV << "CALCTEST Tx1->Tx2=" << tx1Vec.at(1) << std::endl;
-    EV << "CALCTEST Tx1->Rx1=" << tx1Vec.at(2) << std::endl;
-    EV << "CALCTEST Tx1->Rx2=" << tx1Vec.at(3) << std::endl;
-
-    EV << "CALCTEST Tx2->eNB=" << tx2Vec.at(0) << std::endl;
-    EV << "CALCTEST Tx2->Tx1=" << tx2Vec.at(1) << std::endl;
-    EV << "CALCTEST Tx2->Rx1=" << tx2Vec.at(2) << std::endl;
-    EV << "CALCTEST Tx2->Rx2=" << tx2Vec.at(3) << std::endl;
-
-    EV << "CALCTEST Rx1->eNB=" << rx1Vec.at(0) << std::endl;
-    EV << "CALCTEST Rx1->Tx1=" << rx1Vec.at(1) << std::endl;
-    EV << "CALCTEST Rx1->Tx2=" << rx1Vec.at(2) << std::endl;
-    EV << "CALCTEST Rx1->Rx2=" << rx1Vec.at(3) << std::endl;
-
-    EV << "CALCTEST Rx2->eNB=" << rx2Vec.at(0) << std::endl;
-    EV << "CALCTEST Rx2->Tx1=" << rx2Vec.at(1) << std::endl;
-    EV << "CALCTEST Rx2->Tx2=" << rx2Vec.at(2) << std::endl;
-    EV << "CALCTEST Rx2->Rx1=" << rx2Vec.at(3) << std::endl;
-//    for (size_t i = 0; i < ueInfo->size(); i++) {
-//        MacNodeId from = ueInfo->at(i)->id;
-////        for (size_t j = 0; j < ueInfo->size(); j++) {
-////            if (i == j)
-////                continue;
-////            MacNodeId to = ueInfo->at(j)->id;
-////            double txPower_d2d = getTransmissionPower(from, Direction::D2D);
-////            double sinr_d2d = getMean(getSINR(from, to, NOW, txPower_d2d, Direction::D2D));
-////            EV << "CALCTEST: SINR(UE[" << i << ", id=" << ueInfo->at(i)->id << "]-D2D->" << "UE[" << j << ", id=" << ueInfo->at(j)->id << ") = " << sinr_d2d << std::endl;
-////            EV << "CALCTEST: d(UE[" << i << ", id=" << ueInfo->at(i)->id << "], UE[" << j << ", id=" << ueInfo->at(j)->id << "]) = " << euclideanDistance(getPosition(from), getPosition(to)) << std::endl;
-////        }
-//        double txPower_cellular = getTransmissionPower(from, Direction::UL);
-//        double sinr_cellular = getMean(getSINR(from, mENodeBId, NOW, txPower_cellular, Direction::UL));
-//        EV << "CALCTEST: SINR(UE[" << i << ", id=" << ueInfo->at(i)->id << "]-UL->" << "eNB[0, id=" << mENodeBId << "]) = " << sinr_cellular << std::endl;
-//        EV << "CALCTEST: d(UE[" << i << ", id=" << ueInfo->at(i)->id << "], eNB[0, id=" << mENodeBId << "]) = " << euclideanDistance(getPosition(from), getPosition(mENodeBId)) << std::endl;
-//    }
-
-    // Test the different interfaces.
-//        MacNodeId from = ueInfo->at(0)->id,
-//                  to = ueInfo->at(1)->id;
-//        EV << "Testing CQI(UE" << from << ", UE" << to << ")" << std::endl;
-//        Cqi cqi_computed_d2d = getCqi(from, to, NOW, TxMode::SINGLE_ANTENNA_PORT0),
-//            cqi_reported_d2d = getReportedCqi(from, to, 0, Direction::D2D, Remote::MACRO, TxMode::SINGLE_ANTENNA_PORT0),
-//            cqi_computed_cellular_UL = getCqi(from, mENodeBId, NOW, TxMode::SINGLE_ANTENNA_PORT0),
-//            cqi_reported_cellular_UL = getReportedCqi(from, mENodeBId, 0, Direction::UL, Remote::MACRO, TxMode::SINGLE_ANTENNA_PORT0),
-//            cqi_computed_cellular_DL = getCqi(mENodeBId, to, NOW, TxMode::SINGLE_ANTENNA_PORT0),
-//            cqi_reported_cellular_DL = getReportedCqi(mENodeBId, to, 0, Direction::DL, Remote::MACRO, TxMode::SINGLE_ANTENNA_PORT0);
-//        EV << "CQI_computed_d2d=" << cqi_computed_d2d << " CQI_reported_d2d=" << cqi_reported_d2d << std::endl;
-//        EV << "CQI_computed_cellular_UL=" << cqi_computed_cellular_UL << " CQI_reported_cellular_UL=" << cqi_reported_cellular_UL << std::endl;
-//        EV << "CQI_computed_cellular_DL=" << cqi_computed_cellular_DL << " CQI_reported_cellular_DL=" << cqi_reported_cellular_DL << std::endl;
-//        if (cqi_computed_d2d != cqi_reported_d2d || cqi_computed_cellular_UL != cqi_reported_cellular_UL || cqi_computed_cellular_DL != cqi_reported_cellular_DL)
-//            throw cRuntimeError(std::string("OmniscientEntity::configure didn't find the same values for reported and calculated CQI!").c_str());
-//        double sinr_d2d = getMean(getSINR(from, to, NOW));
-//        double sinr_ul = getMean(getSINR(from, mENodeBId, NOW));
-//        double sinr_dl = getMean(getSINR(mENodeBId, from, NOW));
-//        EV << "SINR_d2d=" << sinr_d2d << std::endl;
-//        EV << "SINR_UL=" << sinr_ul << std::endl;
-//        EV << "SINR_DL=" << sinr_dl << std::endl;
-}
+    }
 
 void OmniscientEntity::handleMessage(cMessage *msg) {
     EV << "OmniscientEntity::handleMessage" << std::endl;
@@ -446,6 +382,8 @@ void OmniscientEntity::handleMessage(cMessage *msg) {
         snapshot();
     else if (msg == mConfigMsg)
         configure();
+    else if (msg == mSaveAllocationHistoryMsg)
+        printSchedulingHistory(par("historyFilename").stringValue());
 }
 
 void OmniscientEntity::snapshot() {
@@ -548,3 +486,39 @@ std::string OmniscientEntity::vectorToString(const std::vector<double>& vec, con
     return description;
 }
 
+void OmniscientEntity::printSchedulingHistory(const std::string& filename) const {
+    if (!mShouldRecordBandAllocation) {
+        EV << NOW << " OmniscientEntity::printSchedulingHistory skipping." << std::endl;
+        return;
+    }
+    EV << NOW << " OmniscientEntity::printSchedulingHistory" << std::endl;
+    std::ofstream outfile;
+    outfile.open (filename);
+    std::vector<UeInfo*>* ueInfo = getUeInfo();
+    outfile << "\t";
+    for (size_t j = 0; j < ueInfo->size(); j++) {
+        MacNodeId id = ueInfo->at(j)->id;
+        outfile << "\t" << id;
+    }
+    outfile << "\n";
+    for (size_t i = 0; i < mBandAllocationTimepoints.size(); i++) {
+        const SimTime& timepoint = mBandAllocationTimepoints.at(i);
+        outfile << timepoint.dbl();
+        const SchedulingMemory& memory = mBandAllocationMemories.at(i);
+        for (size_t j = 0; j < ueInfo->size(); j++) {
+            const MacNodeId id = ueInfo->at(j)->id;
+            try {
+                const std::vector<Band>& bands = memory.getBands(id);
+                const std::vector<bool>& reassignments = memory.getReassignments(id);
+                for (size_t k = 0; k < bands.size(); k++)
+                    outfile << (k == 0 ? "\t" : "") << bands.at(k) << (reassignments.at(k) ? "r" : "") << (k < bands.size() - 1 ? "," : "");
+            } catch (const std::exception& e) {
+                // No bands allocated for this timepoint.
+                outfile << "\tX";
+                continue;
+            }
+        }
+        outfile << "\n";
+    }
+    outfile.close();
+}

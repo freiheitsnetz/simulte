@@ -80,6 +80,10 @@ void LteMaxDatarate::prepareSchedule() {
     // If there are any, they are reassigned that band that yields the highest datarate for them.
     phase2(sorter, memory);
 
+    // Notify the omniscient entity of this scheduling round.
+    // If it is configured to record the decisions then it'll do so. Otherwise this doesn't do anything.
+    mOracle->recordSchedulingRound(*memory);
+
     // Scheduling is done. Delete the pointers, new ones will be instantiated in the next scheduling round.
     delete sorter;
     delete memory;
@@ -195,7 +199,7 @@ std::vector<Band> LteMaxDatarate::phase1_cellular(MaxDatarateSorter* sorter, Sch
                "OK") << std::endl;
 
         // Save decision to memory.
-        memory->put(bestCandidate.from, band);
+        memory->put(bestCandidate.from, band, false);
         bandsAssigned.push_back(band);
 
         // Exit immediately if the terminate flag is set.
@@ -252,7 +256,7 @@ std::vector<Band> LteMaxDatarate::phase1_cellular(MaxDatarateSorter* sorter, Sch
                 // Update txPower so that next consecutive check halves txPower again.
                 bestCandidate.txPower = halvedTxPower;
 
-                memory->put(bestCandidate.from, consecutiveBand);
+                memory->put(bestCandidate.from, consecutiveBand, false);
                 bandsAssigned.push_back(consecutiveBand);
 
                 // Exit immediately if the terminate flag is set.
@@ -313,7 +317,7 @@ void LteMaxDatarate::phase1_d2d(MaxDatarateSorter* sorter, SchedulingMemory* mem
                "OK") << std::endl;
 
         // Save decision to memory.
-        memory->put(bestCandidate.from, band);
+        memory->put(bestCandidate.from, band, false);
         alreadyAssignedBands.push_back(band);
 
         // Exit immediately if the terminate flag is set.
@@ -374,7 +378,7 @@ void LteMaxDatarate::phase1_d2d(MaxDatarateSorter* sorter, SchedulingMemory* mem
                 // Update txPower so that next consecutive check halves txPower again.
                 bestCandidate.txPower = halvedTxPower;
 
-                memory->put(bestCandidate.from, consecutiveBand);
+                memory->put(bestCandidate.from, consecutiveBand, false);
                 alreadyAssignedBands.push_back(consecutiveBand);
 
                 // Exit immediately if the terminate flag is set.
@@ -422,7 +426,7 @@ void LteMaxDatarate::phase2(MaxDatarateSorter* sorter, SchedulingMemory* memory)
                 Band bestBand = sorter->getBestBand(nodeId);
                 EV  << NOW << " LteMaxDatarate::prepareSchedule Reassigning band " << bestBand << " to node " << nodeId << endl;
                 SchedulingResult grantAnswer = schedule(currentConnection, bestBand);
-                memory->put(nodeId, bestBand);
+                memory->put(nodeId, bestBand, true);
 
                 EV << NOW << " LteMaxDatarate::phase2 grant answer is "
                    << (grantAnswer == SchedulingResult::TERMINATE ? "TERMINATE" :

@@ -24,6 +24,8 @@
 // For feedback computation <-> CQI computation.
 #include <LteFeedbackComputationRealistic.h>
 
+#include <SchedulingMemory.h>
+
 class ExposedFeedbackComputer;
 
 /**
@@ -134,6 +136,13 @@ public:
 
     int getNumberOfBands() const;
 
+    /**
+     * If configured to record band assignments,
+     * the scheduler can record the scheduling decision made in a round and it'll be collected
+     * here and finally printed to a file.
+     */
+    void recordSchedulingRound(const SchedulingMemory& memory);
+
 protected:
 
     void initialize() override;
@@ -170,13 +179,16 @@ protected:
      */
     std::string vectorToString(const std::vector<double>& vec, const std::string& name) const;
 
+    void printSchedulingHistory(const std::string& filename) const;
+
 private:
 
     static OmniscientEntity* SINGLETON;
 
     LteBinder   *mBinder = nullptr;
     cMessage    *mSnapshotMsg = nullptr,
-                *mConfigMsg = nullptr;
+                *mConfigMsg = nullptr,
+                *mSaveAllocationHistoryMsg = nullptr;
     double      mUpdateInterval,
                 mConfigTimepoint,
                 mBandwidth;
@@ -187,7 +199,9 @@ private:
     LteDeployer *mDeployer = nullptr;
     Coord mENodeBPosition;
     const std::map<MacNodeId, std::map<MacNodeId, LteD2DMode>>* mModeSelectionMap = nullptr;
-
+    bool mShouldRecordBandAllocation;
+    std::vector<SimTime> mBandAllocationTimepoints;
+    std::vector<SchedulingMemory> mBandAllocationMemories;
 
     /**
      * The OmniscientEntity's memory holds information values that update periodically.

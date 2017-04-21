@@ -28,6 +28,8 @@ simple OmniscientEntity {
         double updateInterval = default(0.05); 
         // 180kHz is LTE's bandwidth per resource block as per its specification.
         double resourceBlockBandwidth @unit(kHz) = default(180kHz);
+        bool recordBandAllocation = default(false);
+        string historyFilename = default("scheduling_history")
     @display("i=block/table");
     @class(OmniscientEntity);    
 }
