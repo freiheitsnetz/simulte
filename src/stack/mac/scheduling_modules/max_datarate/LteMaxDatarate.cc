@@ -26,7 +26,7 @@ void LteMaxDatarate::prepareSchedule() {
 
     // We need to remember for each node in which direction it wants to transmit and which bands are assigned to it.
     // For that, this pointer is passed around the various functions, and updated by each one accordingly.
-    SchedulingMemory* memory = new SchedulingMemory();
+    memory = new SchedulingMemory();
 
     // For all connections, we want all resource blocks sorted by their estimated maximum datarate.
     // The sorter holds each connection's info: from, to, direction, datarate and keeps entries
@@ -59,7 +59,7 @@ void LteMaxDatarate::prepareSchedule() {
         // then we have to stop scheduling altogether.
         EV << NOW << " LteMaxDatarate::prepareSchedule has seen the 'terminate' flag being set by phase1_cellular. Stopping scheduling round." << std::endl;
         delete sorter;
-        delete memory;
+//        delete memory;
         return;
     }
     // Now assign any remaining bands to D2D users.
@@ -70,7 +70,7 @@ void LteMaxDatarate::prepareSchedule() {
         // then we have to stop scheduling altogether.
         EV << NOW << " LteMaxDatarate::prepareSchedule has seen the 'terminate' flag being set by phase1_d2d. Stopping scheduling round." << std::endl;
         delete sorter;
-        delete memory;
+//        delete memory;
         return;
     }
 
@@ -86,7 +86,7 @@ void LteMaxDatarate::prepareSchedule() {
 
     // Scheduling is done. Delete the pointers, new ones will be instantiated in the next scheduling round.
     delete sorter;
-    delete memory;
+//    delete memory;
 }
 
 MaxDatarateSorter* LteMaxDatarate::sortBandsByDatarate(SchedulingMemory* memory) {
@@ -190,36 +190,36 @@ std::vector<Band> LteMaxDatarate::phase1_cellular(MaxDatarateSorter* sorter, Sch
         EV << NOW << " LteMaxDatarate::phase1_cellular granting " << bestCandidate.from << " -"
                 << dirToA(bestCandidate.dir) << "-> " << bestCandidate.to << " on band " << band << std::endl;
 
-        SchedulingResult grantAnswer = schedule(bestCandidate.connectionId, band);
-
-        EV << NOW << " LteMaxDatarate::phase1_cellular grant answer is "
-           << (grantAnswer == SchedulingResult::TERMINATE ? "TERMINATE" :
-               grantAnswer == SchedulingResult::INACTIVE ? "INACTIVE" :
-               grantAnswer == SchedulingResult::INELIGIBLE ? "INELIGIBLE" :
-               "OK") << std::endl;
+//        SchedulingResult grantAnswer = schedule(bestCandidate.connectionId, band);
+//
+//        EV << NOW << " LteMaxDatarate::phase1_cellular grant answer is "
+//           << (grantAnswer == SchedulingResult::TERMINATE ? "TERMINATE" :
+//               grantAnswer == SchedulingResult::INACTIVE ? "INACTIVE" :
+//               grantAnswer == SchedulingResult::INELIGIBLE ? "INELIGIBLE" :
+//               "OK") << std::endl;
 
         // Save decision to memory.
         memory->put(bestCandidate.from, band, false);
         bandsAssigned.push_back(band);
 
-        // Exit immediately if the terminate flag is set.
-        if (grantAnswer == SchedulingResult::TERMINATE) {
-            // The 'terminate' flag is set if a codeword is already allocated
-            // or if the OFDM space has ended. The way I understand it is that nothing further
-            // can be scheduled in this scheduling round.
-            throw cRuntimeError("LteMaxDatarate::phase1_cellular has seen 'terminate' flag being set.");
-        }
-
-        // Set the connection as inactive if indicated by the grant.
-        if (grantAnswer == SchedulingResult::INACTIVE) {
-            EV << NOW << " LteMaxDatarate::phase1_cellular setting " << bestCandidate.from << " to inactive" << std::endl;
-            activeConnectionTempSet_.erase(bestCandidate.from);
-            // A connection is set as inactive if the node's queue length is 0.
-            // This means nothing needs to be scheduled to this node anymore,
-            // so remove it from our container so it's not considered anymore.
-            sorter->remove(bestCandidate.from);
-            continue;
-        }
+//        // Exit immediately if the terminate flag is set.
+//        if (grantAnswer == SchedulingResult::TERMINATE) {
+//            // The 'terminate' flag is set if a codeword is already allocated
+//            // or if the OFDM space has ended. The way I understand it is that nothing further
+//            // can be scheduled in this scheduling round.
+//            throw cRuntimeError("LteMaxDatarate::phase1_cellular has seen 'terminate' flag being set.");
+//        }
+//
+//        // Set the connection as inactive if indicated by the grant.
+//        if (grantAnswer == SchedulingResult::INACTIVE) {
+//            EV << NOW << " LteMaxDatarate::phase1_cellular setting " << bestCandidate.from << " to inactive" << std::endl;
+//            activeConnectionTempSet_.erase(bestCandidate.from);
+//            // A connection is set as inactive if the node's queue length is 0.
+//            // This means nothing needs to be scheduled to this node anymore,
+//            // so remove it from our container so it's not considered anymore.
+//            sorter->remove(bestCandidate.from);
+//            continue;
+//        }
 
         // Now check if the same candidate should be assigned consecutive resource blocks.
         for (Band consecutiveBand = band + 1; consecutiveBand < sorter->size(); consecutiveBand++) {
@@ -242,14 +242,14 @@ std::vector<Band> LteMaxDatarate::phase1_cellular(MaxDatarateSorter* sorter, Sch
                 EV << NOW << " LteMaxDatarate::phase1_cellular granting " << bestCandidate.from << " -"
                    << dirToA(bestCandidate.dir) << "-> " << bestCandidate.to << " on consecutive band " << band << std::endl;
 
-                // Assign this band also.
-                grantAnswer = schedule(bestCandidate.connectionId, consecutiveBand);
-
-                EV << NOW << " LteMaxDatarate::phase1_cellular grant answer is "
-                   << (grantAnswer == SchedulingResult::TERMINATE ? "TERMINATE" :
-                       grantAnswer == SchedulingResult::INACTIVE ? "INACTIVE" :
-                       grantAnswer == SchedulingResult::INELIGIBLE ? "INELIGIBLE" :
-                       "OK") << std::endl;
+//                // Assign this band also.
+//                grantAnswer = schedule(bestCandidate.connectionId, consecutiveBand);
+//
+//                EV << NOW << " LteMaxDatarate::phase1_cellular grant answer is "
+//                   << (grantAnswer == SchedulingResult::TERMINATE ? "TERMINATE" :
+//                       grantAnswer == SchedulingResult::INACTIVE ? "INACTIVE" :
+//                       grantAnswer == SchedulingResult::INELIGIBLE ? "INELIGIBLE" :
+//                       "OK") << std::endl;
 
                 // Increment outer loop's 'band' so that 'consecutiveBand' is not double-assigned.
                 band++;
@@ -259,21 +259,21 @@ std::vector<Band> LteMaxDatarate::phase1_cellular(MaxDatarateSorter* sorter, Sch
                 memory->put(bestCandidate.from, consecutiveBand, false);
                 bandsAssigned.push_back(consecutiveBand);
 
-                // Exit immediately if the terminate flag is set.
-                if (grantAnswer == SchedulingResult::TERMINATE) {
-                    throw cRuntimeError("LteMaxDatarate::phase1_cellular has seen 'terminate' flag being set.");
-                }
-
-                // Set the connection as inactive if indicated by the grant.
-                if (grantAnswer == SchedulingResult::INACTIVE) {
-                    EV << NOW << " LteMaxDatarate::phase1_cellular setting " << bestCandidate.from << " to inactive" << std::endl;
-                    activeConnectionTempSet_.erase(bestCandidate.from);
-                    // A connection is set as inactive if the node's queue length is 0.
-                    // This means nothing needs to be scheduled to this node anymore,
-                    // so remove it from our container so it's not considered anymore.
-                    sorter->remove(bestCandidate.from);
-                    continue;
-                }
+//                // Exit immediately if the terminate flag is set.
+//                if (grantAnswer == SchedulingResult::TERMINATE) {
+//                    throw cRuntimeError("LteMaxDatarate::phase1_cellular has seen 'terminate' flag being set.");
+//                }
+//
+//                // Set the connection as inactive if indicated by the grant.
+//                if (grantAnswer == SchedulingResult::INACTIVE) {
+//                    EV << NOW << " LteMaxDatarate::phase1_cellular setting " << bestCandidate.from << " to inactive" << std::endl;
+//                    activeConnectionTempSet_.erase(bestCandidate.from);
+//                    // A connection is set as inactive if the node's queue length is 0.
+//                    // This means nothing needs to be scheduled to this node anymore,
+//                    // so remove it from our container so it's not considered anymore.
+//                    sorter->remove(bestCandidate.from);
+//                    continue;
+//                }
 
             // Current candidate transmitting at halved power has worse throughput than next candidate.
             } else {
@@ -308,40 +308,40 @@ void LteMaxDatarate::phase1_d2d(MaxDatarateSorter* sorter, SchedulingMemory* mem
         EV << NOW << " LteMaxDatarate::phase1_d2d granting " << bestCandidate.from << " -"
            << dirToA(bestCandidate.dir) << "-> " << bestCandidate.to << " on band " << band << std::endl;
 
-        SchedulingResult grantAnswer = schedule(bestCandidate.connectionId, band);
-
-        EV << NOW << " LteMaxDatarate::phase1_d2d grant answer is "
-           << (grantAnswer == SchedulingResult::TERMINATE ? "TERMINATE" :
-               grantAnswer == SchedulingResult::INACTIVE ? "INACTIVE" :
-               grantAnswer == SchedulingResult::INELIGIBLE ? "INELIGIBLE" :
-               "OK") << std::endl;
+//        SchedulingResult grantAnswer = schedule(bestCandidate.connectionId, band);
+//
+//        EV << NOW << " LteMaxDatarate::phase1_d2d grant answer is "
+//           << (grantAnswer == SchedulingResult::TERMINATE ? "TERMINATE" :
+//               grantAnswer == SchedulingResult::INACTIVE ? "INACTIVE" :
+//               grantAnswer == SchedulingResult::INELIGIBLE ? "INELIGIBLE" :
+//               "OK") << std::endl;
 
         // Save decision to memory.
         memory->put(bestCandidate.from, band, false);
         alreadyAssignedBands.push_back(band);
 
-        // Exit immediately if the terminate flag is set.
-        if (grantAnswer == SchedulingResult::TERMINATE) {
-            // The 'terminate' flag is set if a codeword is already allocated
-            // or if the OFDM space has ended. The way I understand it is that nothing further
-            // can be scheduled in this scheduling round.
-            throw cRuntimeError("LteMaxDatarate::phase1_d2d has seen 'terminate' flag being set.");
-        }
-
-        // Set the connection as inactive if indicated by the grant.
-        if (grantAnswer == SchedulingResult::INACTIVE) {
-            EV << NOW << " LteMaxDatarate::phase1_d2d setting " << bestCandidate.from << " to inactive" << std::endl;
-            activeConnectionTempSet_.erase(bestCandidate.from);
-            // A connection is set as inactive if the node's queue length is 0.
-            // This means nothing needs to be scheduled to this node anymore,
-            // so remove it from our container so it's not considered anymore.
-            sorter->remove(bestCandidate.from);
-            continue;
-        }
+//        // Exit immediately if the terminate flag is set.
+//        if (grantAnswer == SchedulingResult::TERMINATE) {
+//            // The 'terminate' flag is set if a codeword is already allocated
+//            // or if the OFDM space has ended. The way I understand it is that nothing further
+//            // can be scheduled in this scheduling round.
+//            throw cRuntimeError("LteMaxDatarate::phase1_d2d has seen 'terminate' flag being set.");
+//        }
+//
+//        // Set the connection as inactive if indicated by the grant.
+//        if (grantAnswer == SchedulingResult::INACTIVE) {
+//            EV << NOW << " LteMaxDatarate::phase1_d2d setting " << bestCandidate.from << " to inactive" << std::endl;
+//            activeConnectionTempSet_.erase(bestCandidate.from);
+//            // A connection is set as inactive if the node's queue length is 0.
+//            // This means nothing needs to be scheduled to this node anymore,
+//            // so remove it from our container so it's not considered anymore.
+//            sorter->remove(bestCandidate.from);
+//            continue;
+//        }
 
         // Now check if the same candidate should be assigned consecutive resource blocks.
         for (Band consecutiveBand = band + 1; consecutiveBand < sorter->size(); consecutiveBand++) {
-            if (alreadyAssignedBands.size() > 0 && std::find(alreadyAssignedBands.begin(), alreadyAssignedBands.end(), band) != alreadyAssignedBands.end()) {
+            if (alreadyAssignedBands.size() > 0 && std::find(alreadyAssignedBands.begin(), alreadyAssignedBands.end(), consecutiveBand) != alreadyAssignedBands.end()) {
                 // Band already assigned to a cellular user.
                 EV << NOW << " LteMaxDatarate::phase1_d2d skipping consecutive band " << consecutiveBand << " because it's already assigned to a cellular user." << std::endl;
                 continue;
@@ -365,13 +365,13 @@ void LteMaxDatarate::phase1_d2d(MaxDatarateSorter* sorter, SchedulingMemory* mem
                 EV << NOW << " LteMaxDatarate::phase1_d2d granting " << bestCandidate.from << " -"
                    << dirToA(bestCandidate.dir) << "-> " << bestCandidate.to << " on consecutive band " << band << std::endl;
                 // Assign this band also.
-                grantAnswer = schedule(bestCandidate.connectionId, consecutiveBand);
-
-                EV << NOW << " LteMaxDatarate::phase1_d2d grant answer is "
-                   << (grantAnswer == SchedulingResult::TERMINATE ? "TERMINATE" :
-                       grantAnswer == SchedulingResult::INACTIVE ? "INACTIVE" :
-                       grantAnswer == SchedulingResult::INELIGIBLE ? "INELIGIBLE" :
-                       "OK") << std::endl;
+//                grantAnswer = schedule(bestCandidate.connectionId, consecutiveBand);
+//
+//                EV << NOW << " LteMaxDatarate::phase1_d2d grant answer is "
+//                   << (grantAnswer == SchedulingResult::TERMINATE ? "TERMINATE" :
+//                       grantAnswer == SchedulingResult::INACTIVE ? "INACTIVE" :
+//                       grantAnswer == SchedulingResult::INELIGIBLE ? "INELIGIBLE" :
+//                       "OK") << std::endl;
 
                 // Increment outer loop's 'band' so that 'consecutiveBand' is not double-assigned.
                 band++;
@@ -381,21 +381,21 @@ void LteMaxDatarate::phase1_d2d(MaxDatarateSorter* sorter, SchedulingMemory* mem
                 memory->put(bestCandidate.from, consecutiveBand, false);
                 alreadyAssignedBands.push_back(consecutiveBand);
 
-                // Exit immediately if the terminate flag is set.
-                if (grantAnswer == SchedulingResult::TERMINATE) {
-                    throw cRuntimeError("LteMaxDatarate::phase1_d2d has seen 'terminate' flag being set.");
-                }
-
-                // Set the connection as inactive if indicated by the grant.
-                if (grantAnswer == SchedulingResult::INACTIVE) {
-                    EV << NOW << " LteMaxDatarate::phase1_d2d setting " << bestCandidate.from << " to inactive" << std::endl;
-                    activeConnectionTempSet_.erase(bestCandidate.from);
-                    // A connection is set as inactive if the node's queue length is 0.
-                    // This means nothing needs to be scheduled to this node anymore,
-                    // so remove it from our container so it's not considered anymore.
-                    sorter->remove(bestCandidate.from);
-                    continue;
-                }
+//                // Exit immediately if the terminate flag is set.
+//                if (grantAnswer == SchedulingResult::TERMINATE) {
+//                    throw cRuntimeError("LteMaxDatarate::phase1_d2d has seen 'terminate' flag being set.");
+//                }
+//
+//                // Set the connection as inactive if indicated by the grant.
+//                if (grantAnswer == SchedulingResult::INACTIVE) {
+//                    EV << NOW << " LteMaxDatarate::phase1_d2d setting " << bestCandidate.from << " to inactive" << std::endl;
+//                    activeConnectionTempSet_.erase(bestCandidate.from);
+//                    // A connection is set as inactive if the node's queue length is 0.
+//                    // This means nothing needs to be scheduled to this node anymore,
+//                    // so remove it from our container so it's not considered anymore.
+//                    sorter->remove(bestCandidate.from);
+//                    continue;
+//                }
 
             // Current candidate transmitting at halved power has worse throughput than next candidate.
             } else {
@@ -431,33 +431,33 @@ void LteMaxDatarate::phase2(MaxDatarateSorter* sorter, SchedulingMemory* memory)
                     continue;
                 }
                 EV  << NOW << " LteMaxDatarate::prepareSchedule Reassigning band " << bestBand << " to node " << nodeId << endl;
-                SchedulingResult grantAnswer = schedule(currentConnection, bestBand);
+//                SchedulingResult grantAnswer = schedule(currentConnection, bestBand);
                 memory->put(nodeId, bestBand, true);
                 // Mark the band as reassigned so it won't be double-reassigned.
                 sorter->markBand(bestBand, true);
 
-                EV << NOW << " LteMaxDatarate::phase2 grant answer is "
-                   << (grantAnswer == SchedulingResult::TERMINATE ? "TERMINATE" :
-                       grantAnswer == SchedulingResult::INACTIVE ? "INACTIVE" :
-                       grantAnswer == SchedulingResult::INELIGIBLE ? "INELIGIBLE" :
-                       "OK") << std::endl;
-
-                // Exit immediately if the terminate flag is set.
-                if (grantAnswer == SchedulingResult::TERMINATE) {
-                    EV << NOW << " LteMaxDatarate::phase2 exiting due to terminate flag being set." << std::endl;
-                    return;
-                }
-
-                // Set the connection as inactive if indicated by the grant.
-                if (grantAnswer == SchedulingResult::INACTIVE) {
-                    EV << NOW << " LteMaxDatarate::phase2 setting " << nodeId << " to inactive" << std::endl;
-                    activeConnectionTempSet_.erase(nodeId);
-                    // A connection is set as inactive if the node's queue length is 0.
-                    // This means nothing needs to be scheduled to this node anymore,
-                    // so remove it from our container so it's not considered anymore.
-                    sorter->remove(nodeId);
-                    continue;
-                }
+//                EV << NOW << " LteMaxDatarate::phase2 grant answer is "
+//                   << (grantAnswer == SchedulingResult::TERMINATE ? "TERMINATE" :
+//                       grantAnswer == SchedulingResult::INACTIVE ? "INACTIVE" :
+//                       grantAnswer == SchedulingResult::INELIGIBLE ? "INELIGIBLE" :
+//                       "OK") << std::endl;
+//
+//                // Exit immediately if the terminate flag is set.
+//                if (grantAnswer == SchedulingResult::TERMINATE) {
+//                    EV << NOW << " LteMaxDatarate::phase2 exiting due to terminate flag being set." << std::endl;
+//                    return;
+//                }
+//
+//                // Set the connection as inactive if indicated by the grant.
+//                if (grantAnswer == SchedulingResult::INACTIVE) {
+//                    EV << NOW << " LteMaxDatarate::phase2 setting " << nodeId << " to inactive" << std::endl;
+//                    activeConnectionTempSet_.erase(nodeId);
+//                    // A connection is set as inactive if the node's queue length is 0.
+//                    // This means nothing needs to be scheduled to this node anymore,
+//                    // so remove it from our container so it's not considered anymore.
+//                    sorter->remove(nodeId);
+//                    continue;
+//                }
                 numberOfReassignedBands++;
             }
         }
@@ -465,14 +465,17 @@ void LteMaxDatarate::phase2(MaxDatarateSorter* sorter, SchedulingMemory* memory)
     EV << NOW << " LteMaxDatarate::phase2 has reassigned " << numberOfReassignedBands << " bands." << std::endl;
 }
 
-LteMaxDatarate::SchedulingResult LteMaxDatarate::schedule(MacCid connectionId, Band band) {
+LteMaxDatarate::SchedulingResult LteMaxDatarate::schedule(MacCid connectionId, std::vector<Band> bands) {
     bool terminate = false;
     bool active = true;
     bool eligible = true;
-    // The BandLimit should make sure that only the current band is scheduled.
-    BandLimit bandLimit(band);
+
     std::vector<BandLimit> bandLimitVec;
-    bandLimitVec.push_back(bandLimit);
+    for (std::size_t i = 0; i < bands.size(); i++) {
+        Band band = bands.at(i);
+        BandLimit bandLimit(band);
+        bandLimitVec.push_back(bandLimit);
+    }
     // requestGrant(...) might alter the three bool values, so we can check them afterwards.
     unsigned int granted = requestGrant(connectionId, 4294967295U, terminate, active, eligible, &bandLimitVec);
     EV << " " << granted << "bytes granted." << std::endl;
@@ -489,6 +492,14 @@ LteMaxDatarate::SchedulingResult LteMaxDatarate::schedule(MacCid connectionId, B
 void LteMaxDatarate::commitSchedule() {
     EV_STATICCONTEXT;
     EV << NOW << " LteMaxDatarate::commitSchedule" << std::endl;
+    for (ActiveSet::iterator iterator = activeConnectionTempSet_.begin(); iterator != activeConnectionTempSet_.end (); ++iterator) {
+        MacCid currentConnection = *iterator;
+        MacNodeId nodeId = MacCidToNodeId(currentConnection);
+        std::vector<Band> bandsToAssign = memory->getBands(nodeId);
+        if (bandsToAssign.size() > 0)
+            schedule(currentConnection, bandsToAssign);
+    }
+    delete memory;
     activeConnectionSet_ = activeConnectionTempSet_;
 }
 

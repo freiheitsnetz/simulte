@@ -55,6 +55,7 @@ public:
 
 protected:
     OmniscientEntity* mOracle = nullptr;
+    SchedulingMemory* memory = nullptr;
 
     MaxDatarateSorter* sortBandsByDatarate(SchedulingMemory* memory);
 
@@ -80,7 +81,7 @@ protected:
     /**
      * Helper method that requests a grant for the specified connection.
      */
-    LteMaxDatarate::SchedulingResult schedule(MacCid connectionId, Band band);
+    LteMaxDatarate::SchedulingResult schedule(MacCid connectionId, std::vector<Band> bands);
 };
 
 #endif /* STACK_MAC_SCHEDULING_MODULES_LTEMAXDATARATE_H_ */
