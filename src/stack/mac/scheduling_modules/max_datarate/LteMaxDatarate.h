@@ -81,7 +81,7 @@ protected:
     /**
      * Helper method that requests a grant for the specified connection.
      */
-    LteMaxDatarate::SchedulingResult schedule(MacCid connectionId, std::vector<Band> bands);
+    LteMaxDatarate::SchedulingResult schedule(MacCid connectionId, Band band);
 };
 
 #endif /* STACK_MAC_SCHEDULING_MODULES_LTEMAXDATARATE_H_ */
