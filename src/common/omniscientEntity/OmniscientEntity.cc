@@ -301,6 +301,7 @@ void OmniscientEntity::initialize() {
     mUpdateInterval = par("updateInterval").doubleValue();
     mBandwidth = par("resourceBlockBandwidth").doubleValue();
     mShouldRecordBandAllocation = par("recordBandAllocation").boolValue();
+    mConsiderTerminateFlagInSchedulingFunction = par("considerTerminateFlag").boolValue();
     EV << "Record = " << (mShouldRecordBandAllocation ? "true" : "false") << endl;
     cConfigOption simTimeConfig("sim-time-limit", true, cConfigOption::Type::CFG_DOUBLE, "s", "300", "");
     double maxSimTime = getEnvir()->getConfig()->getAsDouble(&simTimeConfig);

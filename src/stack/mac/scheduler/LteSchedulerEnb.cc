@@ -277,7 +277,8 @@ unsigned int LteSchedulerEnb::scheduleGrant(MacCid cid, unsigned int bytes,
     // TODO This is just a BAD patch
     // check how a codeword may be reused (as in the if above) in case of non-empty OFDM space
     // otherwise check why an UE is stopped being scheduled while its buffer is not empty
-    if (cwAlredyAllocated > 0)
+    OmniscientEntity* oracle = OmniscientEntity::get();
+    if (cwAlredyAllocated > 0 && oracle != nullptr && oracle->shouldConsiderAlreadyAllocatedCodeword())
     {
         terminate = true;
         return 0;

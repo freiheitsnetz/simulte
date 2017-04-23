@@ -143,6 +143,10 @@ public:
      */
     void recordSchedulingRound(const SchedulingMemory& memory);
 
+    bool shouldConsiderAlreadyAllocatedCodeword() const {
+        return mConsiderTerminateFlagInSchedulingFunction;
+    }
+
 protected:
 
     void initialize() override;
@@ -202,6 +206,7 @@ private:
     bool mShouldRecordBandAllocation;
     std::vector<SimTime> mBandAllocationTimepoints;
     std::vector<SchedulingMemory> mBandAllocationMemories;
+    bool mConsiderTerminateFlagInSchedulingFunction;
 
     /**
      * The OmniscientEntity's memory holds information values that update periodically.

@@ -29,7 +29,11 @@ simple OmniscientEntity {
         // 180kHz is LTE's bandwidth per resource block as per its specification.
         double resourceBlockBandwidth @unit(kHz) = default(180kHz);
         bool recordBandAllocation = default(false);
-        string historyFilename = default("scheduling_history")
+        string historyFilename = default("scheduling_history");
+        // The LteSchedulerEnb::scheduleGrant sets TERMINATE=true and returns if
+        // a codeword is already assigned. This means band reassignment is not supported right now.
+        // If this is set to 'false', then this checking is disabled in the function.
+        bool considerTerminateFlag = default(true);
     @display("i=block/table");
     @class(OmniscientEntity);    
 }
