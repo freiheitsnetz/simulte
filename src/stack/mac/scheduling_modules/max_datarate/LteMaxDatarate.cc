@@ -77,20 +77,21 @@ MaxDatarateSorter* LteMaxDatarate::sortBandsByDatarate(SchedulingMemory* memory)
     try {
         numBands = mOracle->getNumberOfBands();
     } catch (const cRuntimeError& e) {
-        EV << NOW << " LteMaxDatarate::prepareSchedule Oracle not yet ready. Skipping scheduling round." << std::endl;
+        EV << NOW << " LteMaxDatarate::sortBandsByDatarate Oracle not yet ready. Skipping scheduling round." << std::endl;
         return nullptr;
     }
 
     MaxDatarateSorter* sorter = new MaxDatarateSorter(numBands);
-
+    EV << NOW << " LteMaxDatarate::sortBandsByDatarate for " << activeConnectionTempSet_.size() << " connections." << std::endl;
     for (ActiveSet::iterator iterator = activeConnectionTempSet_.begin(); iterator != activeConnectionTempSet_.end (); ++iterator) {
         MacCid currentConnection = *iterator;
         MacNodeId nodeId = MacCidToNodeId(currentConnection);
+        EV << NOW << " LteMaxDatarate::sortBandsByDatarate Checking node " << nodeId << "... ";
 
         // Make sure the current node has not been dynamically removed.
         if (getBinder()->getOmnetId(nodeId) == 0){
             activeConnectionTempSet_.erase(currentConnection);
-            EV << NOW << " LteMaxDatarate::prepareSchedule\t\t has been dynamically removed. Skipping..." << std::endl;
+            EV << " has been dynamically removed. Skipping." << std::endl;
             continue;
         }
 
@@ -103,7 +104,7 @@ MaxDatarateSorter* LteMaxDatarate::sortBandsByDatarate(SchedulingMemory* memory)
         else
             dir = DL;
 
-        EV << " LteMaxDatarate::prepareSchedule\tNode " << nodeId << " wants to transmit in " << dirToA(dir) << " direction." << std::endl;
+        EV << "wants to transmit in " << dirToA(dir) << " direction." << std::endl;
 
         // Save it to memory.
         memory->put(nodeId, dir);
@@ -119,7 +120,7 @@ MaxDatarateSorter* LteMaxDatarate::sortBandsByDatarate(SchedulingMemory* memory)
             case Direction::UL: {
                 destinationId = mOracle->getEnodeBId();
                 SINRs = mOracle->getSINR(nodeId, destinationId, NOW, maxTransmitPower);
-                EV << NOW << " LteMaxDatarate::prepareSchedule From node " << nodeId << " to eNodeB " << mOracle->getEnodeBId() << " (Uplink)" << std::endl;
+                EV << NOW << " LteMaxDatarate::sortBandsByDatarate From node " << nodeId << " to eNodeB " << mOracle->getEnodeBId() << " (Uplink)" << std::endl;
                 break;
             }
             // Downlink: eNB->node
@@ -127,14 +128,14 @@ MaxDatarateSorter* LteMaxDatarate::sortBandsByDatarate(SchedulingMemory* memory)
                 destinationId = nodeId;
                 nodeId = mOracle->getEnodeBId();
                 SINRs = mOracle->getSINR(nodeId, destinationId , NOW, maxTransmitPower);
-                EV << NOW << " LteMaxDatarate::prepareSchedule From eNodeB " << mOracle->getEnodeBId() << " to node " << nodeId << " (Downlink)" << std::endl;
+                EV << NOW << " LteMaxDatarate::sortBandsByDatarate From eNodeB " << mOracle->getEnodeBId() << " to node " << nodeId << " (Downlink)" << std::endl;
                 break;
             }
             // Direct: node->node
             case Direction::D2D: {
                 destinationId = determineD2DEndpoint(nodeId);
                 SINRs = mOracle->getSINR(nodeId, destinationId, NOW, maxTransmitPower);
-                EV << NOW << " LteMaxDatarate::prepareSchedule From node " << nodeId << " to node " << destinationId << " (Direct Link)" << std::endl;
+                EV << NOW << " LteMaxDatarate::sortBandsByDatarate From node " << nodeId << " to node " << destinationId << " (Direct Link)" << std::endl;
                 break;
             }
             default: {
@@ -151,6 +152,8 @@ MaxDatarateSorter* LteMaxDatarate::sortBandsByDatarate(SchedulingMemory* memory)
             double estimatedThroughput = mOracle->getChannelCapacity(associatedSinr);
             // And put the result into the container.
             sorter->put(currentBand, IdRatePair(currentConnection, nodeId, destinationId, maxTransmitPower, estimatedThroughput, dir));
+            EV << NOW << " LteMaxDatarate::sortBandsByDatarate sorter->put(" << currentBand << ", IdRatePair(" << currentConnection << ", " << nodeId << ", "
+               << destinationId << ", " << maxTransmitPower << ", " << estimatedThroughput << ", " << dirToA(dir) << "))" << std::endl;
         }
     }
 
