@@ -1,26 +1,37 @@
-/*
- * D2DModeSelectionMaxDatarate.cpp
- */
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+// 
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/.
+// 
 
-#include <d2dModeSelectionMaxDatarate/D2DModeSelectionMaxDatarate.h>
+#include <d2dModeSelectionForcedD2D/D2DModeSelectionForcedD2D.h>
 
-Define_Module(D2DModeSelectionMaxDatarate);
+Define_Module(D2DModeSelectionForcedD2D);
 
-void D2DModeSelectionMaxDatarate::initialize(int stage) {
+void D2DModeSelectionForcedD2D::initialize(int stage) {
     D2DModeSelectionBase::initialize(stage);
-    EV << NOW << " D2DModeSelectionMaxDatarate::initialize" << std::endl;
+    EV << NOW << " D2DModeSelectionForcedD2D::initialize" << std::endl;
     mOracle = OmniscientEntity::get();
     EV << NOW << "\t" << (mOracle == nullptr ? "Couldn't find oracle." : "Found oracle.") << std::endl;
     if (mOracle == nullptr)
-        throw cRuntimeError("D2DModeSelectionMaxDatarate couldn't find the oracle.");
+        throw cRuntimeError("D2DModeSelectionForcedD2D couldn't find the oracle.");
     // Make <from, <to, mode>> map visible to OmniscientEntity.
     mOracle->setModeSelectionMap(peeringModeMap_);
 }
 
-void D2DModeSelectionMaxDatarate::doModeSelection() {
-    EV << NOW << " D2DModeSelectionMaxDatarate::doModeSelection for " << peeringModeMap_->size() << " nodes." << endl;
+void D2DModeSelectionForcedD2D::doModeSelection() {
+    EV << NOW << " D2DModeSelectionForcedD2D::doModeSelection for " << peeringModeMap_->size() << " nodes." << endl;
 
-    // The switch list will contain entries of devices whose mode switches.
+    // The switch list will contain entries of devices whose mode switch.
     // Clear it to start.
     switchList_.clear();
     // Go through all devices.
@@ -56,21 +67,12 @@ void D2DModeSelectionMaxDatarate::doModeSelection() {
                 continue;
             }
 
-            // Calculate capacities for both direct (D2D) and cellular channels.
-            double txPower_direct = mOracle->getTransmissionPower(srcId, Direction::D2D);
-            double sinr_direct = mOracle->getMean(mOracle->getSINR(srcId, dstId, NOW, txPower_direct));
-            double capacity_direct = mOracle->getChannelCapacity(sinr_direct);
+            EV << std::endl;
 
-            double txPower_cellular = mOracle->getTransmissionPower(srcId, Direction::UL);
-            double sinr_cellular = mOracle->getMean(mOracle->getSINR(srcId, mOracle->getEnodeBId(), NOW, txPower_cellular));
-            double capacity_cellular = mOracle->getChannelCapacity(sinr_cellular);
-
-            EV << NOW << "Node " << srcId << " has sinr_direct=" << sinr_direct << ", capacity_direct=" << capacity_direct << ", sinr_cellular=" << sinr_cellular << ", capacity_cellular=" << capacity_cellular << std::endl;
-
-            // Choose the better one.
             LteD2DMode oldMode = destModeMapIterator->second;
-            LteD2DMode newMode = (capacity_cellular > capacity_direct) ? IM : DM; // IM = Infrastructure Mode, DM = Direct Mode
-            EV << NOW << " D2DModeSelectionMaxDatarate::doModeSelection Node " << srcId << " will communicate with node " << dstId << ((capacity_cellular > capacity_direct) ? " via the eNodeB." : " directly.") << std::endl;
+            // New mode is always DM.
+            LteD2DMode newMode = DM; // DM = Direct Mode
+            EV << NOW << " D2DModeSelectionForcedD2D::doModeSelection Node " << srcId << " will communicate with node " << dstId << " directly." << std::endl;
 
             if (newMode != oldMode) {
                 // Mark this flow as switching modes.

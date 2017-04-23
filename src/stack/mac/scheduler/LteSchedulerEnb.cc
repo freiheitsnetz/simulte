@@ -19,6 +19,7 @@
 #include "LteMacBuffer.h"
 #include "LteMacQueue.h"
 #include "LteMaxDatarate.h"
+#include "LteReassignment.h"
 
 LteSchedulerEnb::LteSchedulerEnb()
 {
@@ -833,6 +834,8 @@ LteScheduler* LteSchedulerEnb::getScheduler(SchedDiscipline discipline)
         return new LteMaxCiComp();
         case MAX_DATARATE:
         return new LteMaxDatarate();
+        case REASSIGNMENT:
+        return new LteReassignment();
 
         default:
         throw cRuntimeError("LteScheduler not recognized");

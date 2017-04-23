@@ -37,6 +37,7 @@ class LteSchedulerEnb
     friend class LteMaxCiOptMB;
     friend class LteMaxCiComp;
     friend class LteMaxDatarate;
+    friend class LteReassignment;
 
   protected:
 

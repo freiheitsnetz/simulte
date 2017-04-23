@@ -46,3 +46,8 @@ simple D2DModeSelectionMaxDatarate extends D2DModeSelectionBase {
 	parameters:
 	    @class("D2DModeSelectionMaxDatarate");    
 }
+
+simple D2DModeSelectionForcedD2D extends D2DModeSelectionBase {
+	parameters:
+	    @class("D2DModeSelectionForcedD2D");    
+}

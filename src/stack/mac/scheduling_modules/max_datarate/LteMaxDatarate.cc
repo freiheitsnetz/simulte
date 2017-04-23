@@ -69,6 +69,7 @@ void LteMaxDatarate::prepareSchedule() {
         // If the allocation of a band to a connection triggered the terminate flag,
         // then we have to stop scheduling altogether.
         EV << NOW << " LteMaxDatarate::prepareSchedule has seen the 'terminate' flag being set by phase1_d2d. Stopping scheduling round." << std::endl;
+        EV << " LteMaxDatarate::phase1 has assigned " << assignedBands.size() << " bands." << std::endl;
         delete sorter;
         delete memory;
         return;
