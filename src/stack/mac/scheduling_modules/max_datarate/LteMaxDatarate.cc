@@ -19,7 +19,7 @@ LteMaxDatarate::~LteMaxDatarate() {}
 
 void LteMaxDatarate::prepareSchedule() {
     EV_STATICCONTEXT;
-    EV << NOW << " LteMaxDatarate::prepareSchedule" << std::endl;
+    EV << NOW << " LteMaxDatarate::prepareSchedule " << (direction_ == DL ? "DOWNLINK" : "UPLINK") << std::endl;
 
     // Copy currently active connections to a working copy.
     activeConnectionTempSet_ = activeConnectionSet_;
@@ -54,19 +54,20 @@ void LteMaxDatarate::prepareSchedule() {
     std::vector<Band> assignedBands;
     assignedBands = phase1_cellular(sorter, memory);
 
-    // Now assign any remaining bands to D2D users.
-    phase1_d2d(sorter, memory, assignedBands);
+    if (direction_ == UL) {
+        // Now assign any remaining bands to D2D users.
+        phase1_d2d(sorter, memory, assignedBands);
 
-    EV << NOW << " LteMaxDatarate::phase1 has assigned " << assignedBands.size() << " bands." << std::endl;
+        EV << NOW << " LteMaxDatarate::phase1 has assigned " << assignedBands.size() << " bands." << std::endl;
 
-    // Phase 2 of the algorithm checks for D2D pairs that went without any assigned bands.
-    // If there are any, they are reassigned that band that yields the highest datarate for them.
-    phase2(sorter, memory);
+        // Phase 2 of the algorithm checks for D2D pairs that went without any assigned bands.
+        // If there are any, they are reassigned that band that yields the highest datarate for them.
+        phase2(sorter, memory);
 
-    // Notify the omniscient entity of this scheduling round.
-    // If it is configured to record the decisions then it'll do so. Otherwise this doesn't do anything.
-    if (direction_ != DL) // DL is not interesting because only the eNB is assigned something.
+        // Notify the omniscient entity of this scheduling round.
+        // If it is configured to record the decisions then it'll do so. Otherwise this doesn't do anything.
         mOracle->recordSchedulingRound(*memory);
+    }
 
     // Scheduling is done. Delete the pointers, new ones will be instantiated in the next scheduling round.
     delete sorter;
@@ -101,7 +102,7 @@ MaxDatarateSorter* LteMaxDatarate::sortBandsByDatarate(SchedulingMemory* memory)
         Direction dir;
         // Uplink may be reused for D2D, so we have to check if the Buffer Status Report (BSR) tells us that this is a D2D link.
         if (direction_ == UL)
-            dir = (MacCidToLcid(currentConnection) == D2D_SHORT_BSR) ? D2D : direction_;
+            dir = (MacCidToLcid(currentConnection) == D2D_SHORT_BSR) ? D2D : UL;
         else
             dir = DL;
 
@@ -140,7 +141,7 @@ MaxDatarateSorter* LteMaxDatarate::sortBandsByDatarate(SchedulingMemory* memory)
                 break;
             }
             default: {
-                // This can't happen, dir is specifically set above. Just for the sake of completeness.
+                // This can't happen, 'dir' is specifically set above. Just for the sake of completeness.
                 throw cRuntimeError(std::string("LteMaxDatarate::sortBandsByDatarate sees undefined direction: " + std::to_string(dir)).c_str());
             }
         }
