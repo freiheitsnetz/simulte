@@ -51,6 +51,8 @@ public:
      * It is essential to save this information. (I think this should be the default behaviour and be done in the LteScheduler class)
      */
     void notifyActiveConnection(MacCid cid) override {
+        EV_STATICCONTEXT;
+        EV << NOW << " LteReassignment::notifyActiveConnection(" << MacCidToNodeId(cid) << ")" << std::endl;
         activeConnectionSet_.insert(cid);
     }
 
@@ -58,6 +60,7 @@ public:
      * When the LteSchedulerEnb learns of a connection going inactive it notifies the LteScheduler.
      */
     void removeActiveConnection(MacCid cid) override {
+        EV << NOW << " LteReassignment::removeActiveConnection(" << MacCidToNodeId(cid) << ")" << std::endl;
         activeConnectionSet_.erase(cid);
     }
 

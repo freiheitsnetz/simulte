@@ -14,6 +14,8 @@
 // 
 
 #include <reassignment/LteReassignment.h>
+#include <SchedulingMemory.h>
+#include <OmniscientEntity.h>
 
 LteReassignment::LteReassignment() {
 
@@ -29,19 +31,38 @@ void LteReassignment::prepareSchedule() {
     // Copy currently active connections to a working copy.
     activeConnectionTempSet_ = activeConnectionSet_;
 
+    SchedulingMemory* memory = new SchedulingMemory();
+
     // Go through all active connections.
-    for (ActiveSet::iterator iterator = activeConnectionTempSet_.begin(); iterator != activeConnectionTempSet_.end (); ++iterator) {
+    int counter = 0;
+    for (ActiveSet::iterator iterator = activeConnectionTempSet_.begin(); iterator != activeConnectionTempSet_.end(); iterator++) {
         MacCid currentConnection = *iterator;
         MacNodeId nodeId = MacCidToNodeId(currentConnection);
+        if (getBinder()->getOmnetId(nodeId) == 0) {
+            EV << NOW << "LteReassignment::prepareSchedule removing node " << nodeId << " because it's ID is unknown" << std::endl;
+            activeConnectionTempSet_.erase(currentConnection);
+            continue;
+        }
         // Assign band 0.
         SchedulingResult result = schedule(currentConnection, Band(0));
+        memory->put(nodeId, Band(0), (counter == 0 ? false : true));
         EV << NOW << " LteReassignment::prepareSchedule Scheduling node " << nodeId << " on band 0: " << schedulingResultToString(result) << std::endl;
+
+        if (result == SchedulingResult::INACTIVE) {
+            EV << NOW << "LteReassignment::prepareSchedule removing node " << nodeId << " because it is now INACTIVE" << std::endl;
+            activeConnectionTempSet_.erase(currentConnection);
+        }
+        counter++;
     }
+    if (direction_ == UL)
+        OmniscientEntity::get()->recordSchedulingRound(*memory);
+    delete memory;
 }
 
 void LteReassignment::commitSchedule() {
     EV_STATICCONTEXT;
     EV << NOW << " LteReassignment::commitSchedule" << std::endl;
+    activeConnectionSet_ = activeConnectionTempSet_;
 }
 
 LteReassignment::SchedulingResult LteReassignment::schedule(MacCid connectionId, Band band) {
