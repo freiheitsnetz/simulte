@@ -57,7 +57,7 @@ void LteMaxDatarate::prepareSchedule() {
     // Now assign any remaining bands to D2D users.
     phase1_d2d(sorter, memory, assignedBands);
 
-    EV << " LteMaxDatarate::phase1 has assigned " << assignedBands.size() << " bands." << std::endl;
+    EV << NOW << " LteMaxDatarate::phase1 has assigned " << assignedBands.size() << " bands." << std::endl;
 
     // Phase 2 of the algorithm checks for D2D pairs that went without any assigned bands.
     // If there are any, they are reassigned that band that yields the highest datarate for them.
@@ -65,7 +65,8 @@ void LteMaxDatarate::prepareSchedule() {
 
     // Notify the omniscient entity of this scheduling round.
     // If it is configured to record the decisions then it'll do so. Otherwise this doesn't do anything.
-    mOracle->recordSchedulingRound(*memory);
+    if (direction_ != DL) // DL is not interesting because only the eNB is assigned something.
+        mOracle->recordSchedulingRound(*memory);
 
     // Scheduling is done. Delete the pointers, new ones will be instantiated in the next scheduling round.
     delete sorter;
@@ -128,7 +129,7 @@ MaxDatarateSorter* LteMaxDatarate::sortBandsByDatarate(SchedulingMemory* memory)
                 destinationId = nodeId;
                 nodeId = mOracle->getEnodeBId();
                 SINRs = mOracle->getSINR(nodeId, destinationId , NOW, maxTransmitPower);
-                EV << NOW << " LteMaxDatarate::sortBandsByDatarate From eNodeB " << mOracle->getEnodeBId() << " to node " << nodeId << " (Downlink)" << std::endl;
+                EV << NOW << " LteMaxDatarate::sortBandsByDatarate From eNodeB " << mOracle->getEnodeBId() << " to node " << destinationId << " (Downlink)" << std::endl;
                 break;
             }
             // Direct: node->node

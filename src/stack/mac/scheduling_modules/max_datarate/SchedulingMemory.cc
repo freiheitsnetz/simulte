@@ -42,7 +42,7 @@ const SchedulingMemory::MemoryItem& SchedulingMemory::get(const MacNodeId &id) c
     if (_memory.at(i).getId() == id)
       return _memory.at(i);
   }
-  throw invalid_argument("SchedulingMemory::get(invalid 'id') was called.");
+  throw invalid_argument("SchedulingMemory::get(invalid 'id') was called with id=" + std::to_string(id));
 }
 
 SchedulingMemory::MemoryItem& SchedulingMemory::get(const MacNodeId &id) {

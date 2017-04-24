@@ -287,8 +287,8 @@ void OmniscientEntity::recordSchedulingRound(const SchedulingMemory& memory) {
         return;
     }
     EV << NOW << " OmniscientEntity::recordSchedulingRound" << endl;
-    if (mBandAllocationTimepoints.size() > 0 && mBandAllocationTimepoints.at(mBandAllocationTimepoints.size() - 1) == NOW)
-        return; // For some reason an empty memory object is often passed for every moment in time. So discard it if we already have one for 'NOW'.
+//    if (mBandAllocationTimepoints.size() > 0 && mBandAllocationTimepoints.at(mBandAllocationTimepoints.size() - 1) == NOW)
+//        return; // For some reason an empty memory object is often passed for every moment in time. So discard it if we already have one for 'NOW'.
     mBandAllocationTimepoints.push_back(NOW);
     mBandAllocationMemories.push_back(SchedulingMemory(memory));
 }
@@ -495,7 +495,9 @@ void OmniscientEntity::printSchedulingHistory(const std::string& filename) const
     EV << NOW << " OmniscientEntity::printSchedulingHistory" << std::endl;
     std::ofstream outfile;
     outfile.open (filename);
+    // Grab all UE infos.
     std::vector<UeInfo*>* ueInfo = getUeInfo();
+    // Print node IDs.
     outfile << "\t";
     for (size_t j = 0; j < ueInfo->size(); j++) {
         MacNodeId id = ueInfo->at(j)->id;
