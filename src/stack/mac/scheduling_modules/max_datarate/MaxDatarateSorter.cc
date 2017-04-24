@@ -74,6 +74,18 @@ std::string MaxDatarateSorter::toString() const {
   return descr;
 }
 
+std::string MaxDatarateSorter::toString(std::string prefix) const {
+  std::string descr = "\n";
+  for (size_t i = 0; i < mBandToIdRate.size(); i++) {
+    descr += prefix + "Band " + std::to_string(i) + ":\n";
+    for (size_t j = 0; j < mBandToIdRate.at(i).size(); j++) {
+      const IdRatePair& pair = mBandToIdRate.at(i).at(j);
+      descr += prefix + "\t" + std::to_string(pair.from) + "-" + dirToA(pair.dir) + "->" + std::to_string(pair.to) + " @" + std::to_string(pair.txPower) + " with throughput " + std::to_string(pair.rate) + "\n";
+    }
+  }
+  return descr;
+}
+
 void MaxDatarateSorter::remove(const MacNodeId id) {
   for (size_t i = 0; i < mBandToIdRate.size(); i++) {
     std::vector<IdRatePair>& currentBandVec = mBandToIdRate.at(i);

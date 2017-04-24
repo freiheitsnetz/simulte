@@ -40,7 +40,7 @@ void LteMaxDatarate::prepareSchedule() {
 
     // We now have all <band, id> combinations sorted by expected datarate.
     EV << NOW << " LteMaxDatarate::prepareSchedule RBs sorted according to their throughputs: " << std::endl;
-    EV << NOW << " LteMaxDatarate::prepareSchedule " << sorter->toString() << std::endl;
+    EV << sorter->toString(std::string(NOW.str() + " LteMaxDatarate::prepareSchedule ")) << std::endl;
 
     // Now initiate phase 1 of the algorithm:
     // Go through all bands

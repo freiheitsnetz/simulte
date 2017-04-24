@@ -92,6 +92,8 @@ class MaxDatarateSorter {
 
     std::string toString() const;
 
+    std::string toString(std::string prefix) const;
+
 
   private:
     /**
