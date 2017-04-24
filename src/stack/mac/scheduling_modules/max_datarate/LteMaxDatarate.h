@@ -46,12 +46,24 @@ public:
      * When the LteSchedulerEnb learns of an active connection it notifies the LteScheduler.
      * It is essential to save this information. (I think this should be the default behaviour and be done in the LteScheduler class)
      */
-    void notifyActiveConnection(MacCid cid) override;
+    void notifyActiveConnection(MacCid cid) override {
+        EV_STATICCONTEXT;
+        OmniscientEntity* oracle = OmniscientEntity::get();
+        std::string name = (oracle == nullptr ? std::to_string(MacCidToNodeId(cid)) : OmniscientEntity::get()->getUeName(MacCidToNodeId(cid)));
+        EV << NOW << " LteReassignment::notifyActiveConnection(" << name << ")" << std::endl;
+        activeConnectionSet_.insert(cid);
+    }
 
     /**
      * When the LteSchedulerEnb learns of a connection going inactive it notifies the LteScheduler.
      */
-    void removeActiveConnection(MacCid cid) override;
+    void removeActiveConnection(MacCid cid) override {
+        EV_STATICCONTEXT;
+        OmniscientEntity* oracle = OmniscientEntity::get();
+        std::string name = (oracle == nullptr ? std::to_string(MacCidToNodeId(cid)) : OmniscientEntity::get()->getUeName(MacCidToNodeId(cid)));
+        EV << NOW << " LteReassignment::removeActiveConnection(" << name << ")" << std::endl;
+        activeConnectionSet_.erase(cid);
+    }
 
 protected:
     OmniscientEntity* mOracle = nullptr;

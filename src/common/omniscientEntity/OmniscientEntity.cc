@@ -293,6 +293,12 @@ void OmniscientEntity::recordSchedulingRound(const SchedulingMemory& memory) {
     mBandAllocationMemories.push_back(SchedulingMemory(memory));
 }
 
+std::string OmniscientEntity::getUeName(const MacNodeId id) const {
+    UeInfo* info = getDeviceInfo(id);
+    int index = info->id;
+    return std::string(info->ue->getName()) + "[" + std::to_string(index) + "]";
+}
+
 void OmniscientEntity::initialize() {
     EV << "OmniscientEntity::initialize" << std::endl;
     // This entity is being initialized before a lot of other entities, like the eNodeBs and UEs, are deployed.
@@ -501,7 +507,7 @@ void OmniscientEntity::printSchedulingHistory(const std::string& filename) const
     outfile << "\t";
     for (size_t j = 0; j < ueInfo->size(); j++) {
         MacNodeId id = ueInfo->at(j)->id;
-        outfile << "\t" << id;
+        outfile << "\t" << getUeName(id);
     }
     outfile << "\n";
     for (size_t i = 0; i < mBandAllocationTimepoints.size(); i++) {

@@ -147,6 +147,8 @@ public:
         return mConsiderTerminateFlagInSchedulingFunction;
     }
 
+    std::string getUeName(const MacNodeId id) const;
+
 protected:
 
     void initialize() override;

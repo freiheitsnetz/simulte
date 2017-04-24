@@ -15,7 +15,6 @@
 
 #include <reassignment/LteReassignment.h>
 #include <SchedulingMemory.h>
-#include <OmniscientEntity.h>
 
 LteReassignment::LteReassignment() {
 
@@ -35,11 +34,11 @@ void LteReassignment::prepareSchedule() {
 
     // Go through all active connections.
     int counter = 0;
-    for (ActiveSet::iterator iterator = activeConnectionTempSet_.begin(); iterator != activeConnectionTempSet_.end(); iterator++) {
+    for (ActiveSet::reverse_iterator iterator = activeConnectionTempSet_.rbegin(); iterator != activeConnectionTempSet_.rend(); iterator++) {
         MacCid currentConnection = *iterator;
         MacNodeId nodeId = MacCidToNodeId(currentConnection);
         if (getBinder()->getOmnetId(nodeId) == 0) {
-            EV << NOW << "LteReassignment::prepareSchedule removing node " << nodeId << " because it's ID is unknown" << std::endl;
+            EV << NOW << "LteReassignment::prepareSchedule removing node " << nodeId << " because its ID is unknown" << std::endl;
             activeConnectionTempSet_.erase(currentConnection);
             continue;
         }
@@ -48,10 +47,12 @@ void LteReassignment::prepareSchedule() {
         memory->put(nodeId, Band(0), (counter == 0 ? false : true));
         EV << NOW << " LteReassignment::prepareSchedule Scheduling node " << nodeId << " on band 0: " << schedulingResultToString(result) << std::endl;
 
-        if (result == SchedulingResult::INACTIVE) {
-            EV << NOW << "LteReassignment::prepareSchedule removing node " << nodeId << " because it is now INACTIVE" << std::endl;
-            activeConnectionTempSet_.erase(currentConnection);
-        }
+//        if (result == SchedulingResult::INACTIVE) {
+//            EV << NOW << " LteReassignment::prepareSchedule removing node " << nodeId << " because it is now INACTIVE" << std::endl;
+//            const bool isContained = activeConnectionTempSet_.find(currentConnection) != activeConnectionTempSet_.end();
+//            if (isContained)
+//                activeConnectionTempSet_.erase(currentConnection);
+//        }
         counter++;
     }
     if (direction_ == UL)

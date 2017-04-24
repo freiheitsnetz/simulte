@@ -19,6 +19,7 @@
 #include <omnetpp.h>
 #include <LteScheduler.h>
 #include "LteCommon.h"
+#include <OmniscientEntity.h>
 
 class LteReassignment : public virtual LteScheduler {
 public:
@@ -52,7 +53,9 @@ public:
      */
     void notifyActiveConnection(MacCid cid) override {
         EV_STATICCONTEXT;
-        EV << NOW << " LteReassignment::notifyActiveConnection(" << MacCidToNodeId(cid) << ")" << std::endl;
+        OmniscientEntity* oracle = OmniscientEntity::get();
+        std::string name = (oracle == nullptr ? std::to_string(MacCidToNodeId(cid)) : OmniscientEntity::get()->getUeName(MacCidToNodeId(cid)));
+        EV << NOW << " LteReassignment::notifyActiveConnection(" << name << ")" << std::endl;
         activeConnectionSet_.insert(cid);
     }
 
@@ -60,7 +63,10 @@ public:
      * When the LteSchedulerEnb learns of a connection going inactive it notifies the LteScheduler.
      */
     void removeActiveConnection(MacCid cid) override {
-        EV << NOW << " LteReassignment::removeActiveConnection(" << MacCidToNodeId(cid) << ")" << std::endl;
+        EV_STATICCONTEXT;
+        OmniscientEntity* oracle = OmniscientEntity::get();
+        std::string name = (oracle == nullptr ? std::to_string(MacCidToNodeId(cid)) : OmniscientEntity::get()->getUeName(MacCidToNodeId(cid)));
+        EV << NOW << " LteReassignment::removeActiveConnection(" << name << ")" << std::endl;
         activeConnectionSet_.erase(cid);
     }
 

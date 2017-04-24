@@ -517,13 +517,3 @@ MacNodeId LteMaxDatarate::determineD2DEndpoint(MacNodeId srcNode) const {
     EV << NOW << " LteMaxDatarate::determineD2DEndpoint found " << srcNode << " --> " << dstNode << "." << std::endl;
     return dstNode;
 }
-
-void LteMaxDatarate::notifyActiveConnection(MacCid conectionId) {
-    EV << NOW << "LteMaxDatarate::notifyActiveConnection(MacCid=" << conectionId << " [MacNodeId=" << MacCidToNodeId(conectionId) << "])" << std::endl;
-    activeConnectionSet_.insert(conectionId);
-}
-
-void LteMaxDatarate::removeActiveConnection(MacCid conectionId) {
-    EV << NOW << "LteMaxDatarate::removeActiveConnection(MacCid=" << conectionId << " [MacNodeId=" << MacCidToNodeId(conectionId) << "])" << std::endl;
-    activeConnectionSet_.erase(conectionId);
-}
