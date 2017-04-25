@@ -34,6 +34,9 @@ simple OmniscientEntity {
         // a codeword is already assigned. This means band reassignment is not supported right now.
         // If this is set to 'false', then this checking is disabled in the function.
         bool considerTerminateFlag = default(true);
+        
+        // Whether the REASSIGNMENT scheduler should go through the connections 'forward' or 'backward'.
+        string reassignmentSchedulingDirection = default("forward");
     @display("i=block/table");
     @class(OmniscientEntity);    
 }

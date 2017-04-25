@@ -149,6 +149,10 @@ public:
 
     std::string getUeName(const MacNodeId id) const;
 
+    std::string getReassignmentSchedulingDirection() const {
+        return reassignmentSchedulingDirection;
+    }
+
 protected:
 
     void initialize() override;
@@ -209,6 +213,7 @@ private:
     std::vector<SimTime> mBandAllocationTimepoints;
     std::vector<SchedulingMemory> mBandAllocationMemories;
     bool mConsiderTerminateFlagInSchedulingFunction;
+    std::string reassignmentSchedulingDirection;
 
     /**
      * The OmniscientEntity's memory holds information values that update periodically.
