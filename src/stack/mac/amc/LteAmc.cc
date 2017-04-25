@@ -18,7 +18,7 @@ LteAmc::~LteAmc()
 
 AmcPilot* LteAmc::getAmcPilot(cPar p)
 {
-    // EV << "Creating Amc pilot " << p.stringValue() << endl;
+    EV << "Creating Amc pilot " << p.stringValue() << endl;
     const char* s = p.stringValue();
     if(strcmp(s,"AUTO")==0)
     return new AmcPilotAuto(this);
@@ -37,7 +37,7 @@ MacNodeId LteAmc::getNextHop(MacNodeId dst)
         return dst;
     }
 
-    // EV << "LteAmc::getNextHop Node Id dst : " << dst << endl;
+    EV << "LteAmc::getNextHop Node Id dst : " << dst << endl;
 
     // The UE is connected to a relay
     // XXX assert(nodeType_==ENODEB);
@@ -46,34 +46,34 @@ MacNodeId LteAmc::getNextHop(MacNodeId dst)
 
 void LteAmc::printParameters()
 {
-    // EV << "###################" << endl;
-    // EV << "# LteAmc parameters" << endl;
-    // EV << "###################" << endl;
+    EV << "###################" << endl;
+    EV << "# LteAmc parameters" << endl;
+    EV << "###################" << endl;
 
-    // EV << "NumUeDl: " << dlConnectedUe_.size() << endl;
-    // EV << "NumUeUl: " << ulConnectedUe_.size() << endl;
-    // EV << "Number of cell bands: " << numBands_ << endl;
+    EV << "NumUeDl: " << dlConnectedUe_.size() << endl;
+    EV << "NumUeUl: " << ulConnectedUe_.size() << endl;
+    EV << "Number of cell bands: " << numBands_ << endl;
 
-    // EV << "MacNodeId: " << nodeId_ << endl;
-    // EV << "MacCellId: " << cellId_ << endl;
-    // EV << "AmcMode: " << mac_->par("amcMode").stdstringValue() << endl;
-    // EV << "RbAllocationType: " << allocationType_ << endl;
-    // EV << "FBHB capacity DL: " << fbhbCapacityDl_ << endl;
-    // EV << "FBHB capacity UL: " << fbhbCapacityUl_ << endl;
-    // EV << "PmiWeight: " << pmiComputationWeight_ << endl;
-    // EV << "CqiWeight: " << cqiComputationWeight_ << endl;
-    // EV << "kCqi: " << kCqi_ << endl;
-    // EV << "DL MCS scale: " << mcsScaleDl_ << endl;
-    // EV << "UL MCS scale: " << mcsScaleUl_ << endl;
-    // EV << "Confidence LB: " << lb_ << endl;
-    // EV << "Confidence UB: " << ub_ << endl;
+    EV << "MacNodeId: " << nodeId_ << endl;
+    EV << "MacCellId: " << cellId_ << endl;
+    EV << "AmcMode: " << mac_->par("amcMode").stdstringValue() << endl;
+    EV << "RbAllocationType: " << allocationType_ << endl;
+    EV << "FBHB capacity DL: " << fbhbCapacityDl_ << endl;
+    EV << "FBHB capacity UL: " << fbhbCapacityUl_ << endl;
+    EV << "PmiWeight: " << pmiComputationWeight_ << endl;
+    EV << "CqiWeight: " << cqiComputationWeight_ << endl;
+    EV << "kCqi: " << kCqi_ << endl;
+    EV << "DL MCS scale: " << mcsScaleDl_ << endl;
+    EV << "UL MCS scale: " << mcsScaleUl_ << endl;
+    EV << "Confidence LB: " << lb_ << endl;
+    EV << "Confidence UB: " << ub_ << endl;
 }
 
 void LteAmc::printFbhb(Direction dir)
 {
-    // EV << "###################################" << endl;
-    // EV << "# AMC FeedBack Historical Base (" << dirToA(dir) << ")" << endl;
-    // EV << "###################################" << endl;
+    EV << "###################################" << endl;
+    EV << "# AMC FeedBack Historical Base (" << dirToA(dir) << ")" << endl;
+    EV << "###################################" << endl;
 
     History_ *history;
     std::vector<MacNodeId> *revIndex;
@@ -101,13 +101,13 @@ void LteAmc::printFbhb(Direction dir)
 
     for(; it!=et; it++)  // for each antenna
     {
-        // EV << simTime() << " # Remote: " << dasToA(it->first) << "\n";
+        EV << simTime() << " # Remote: " << dasToA(it->first) << "\n";
         uit = (*history)[it->first].begin();
         uet = (*history)[it->first].end();
         int i = 0;
         for(; uit!=uet; uit++) // for each UE
         {
-            // EV << "Ue index: " << i << ", MacNodeId: " << (*revIndex)[i] << endl;
+            EV << "Ue index: " << i << ", MacNodeId: " << (*revIndex)[i] << endl;
             txit = (*history)[it->first][i].begin();
             txet = (*history)[it->first][i].end();
             int t = 0;
@@ -122,7 +122,7 @@ void LteAmc::printFbhb(Direction dir)
                 if(testCqi==NOSIGNALCQI)
                 continue;
 
-                // EV << "@TxMode " << txMode << endl;
+                EV << "@TxMode " << txMode << endl;
                 ((*txit).get()).print(0,(*revIndex)[i],dir, txMode,"LteAmc::printAmcFbhb");
             }
             i++;
@@ -132,9 +132,9 @@ void LteAmc::printFbhb(Direction dir)
 
 void LteAmc::printTxParams(Direction dir)
 {
-    // EV << "######################" << endl;
-    // EV << "# UserTxParams vector (" << dirToA(dir) << ")" << endl;
-    // EV << "######################" << endl;
+    EV << "######################" << endl;
+    EV << "# UserTxParams vector (" << dirToA(dir) << ")" << endl;
+    EV << "######################" << endl;
 
     std::vector<UserTxParams>::const_iterator it,et;
     std::vector<UserTxParams> *userInfo;
@@ -167,7 +167,7 @@ void LteAmc::printTxParams(Direction dir)
     int index = 0;
     for(; it!=et; it++)
     {
-        // EV << "Ue index: " << index << ", MacNodeId: " << (*revIndex)[index] << endl;
+        EV << "Ue index: " << index << ", MacNodeId: " << (*revIndex)[index] << endl;
 
         // Print only non empty user transmission parameters
         // testCqi = (*it).readCqiVector().at(0);
@@ -241,7 +241,7 @@ void LteAmc::initialize()
     // Initialize DAS structures
     for (int i = 0; i < numAntennas_; i++)
     {
-        // EV << "Adding Antenna: " << dasToA(Remote(i)) << endl;
+        EV << "Adding Antenna: " << dasToA(Remote(i)) << endl;
         remoteSet_.insert(Remote(i));
     }
 
@@ -259,7 +259,7 @@ void LteAmc::initialize()
     it = dlConnectedUe_.begin();
     et = dlConnectedUe_.end();
 
-    // EV << "DL CONNECTED: " << dlConnectedUe_.size() << endl;
+    EV << "DL CONNECTED: " << dlConnectedUe_.size() << endl;
 
     for (; it != et; it++)  // For all UEs (DL)
     {
@@ -267,7 +267,7 @@ void LteAmc::initialize()
         dlNodeIndex_[nodeId] = dlRevNodeIndex_.size();
         dlRevNodeIndex_.push_back(nodeId);
 
-        // EV << "Creating UE, id: " << nodeId << ", index: " << dlNodeIndex_[nodeId] << endl;
+        EV << "Creating UE, id: " << nodeId << ", index: " << dlNodeIndex_[nodeId] << endl;
 
         ait = remoteSet_.begin();
         aet = remoteSet_.end();
@@ -285,7 +285,7 @@ void LteAmc::initialize()
     dlTxParams_.resize(dlConnectedUe_.size(), UserTxParams());
 
     /* UPLINK */
-    // EV << "UL CONNECTED: " << dlConnectedUe_.size() << endl;
+    EV << "UL CONNECTED: " << dlConnectedUe_.size() << endl;
 
     it = ulConnectedUe_.begin();
     et = ulConnectedUe_.end();
@@ -312,7 +312,7 @@ void LteAmc::initialize()
     ulTxParams_.resize(ulConnectedUe_.size(), UserTxParams());
 
     /* D2D */
-    // EV << "D2D CONNECTED: " << d2dConnectedUe_.size() << endl;
+    EV << "D2D CONNECTED: " << d2dConnectedUe_.size() << endl;
 
     it = d2dConnectedUe_.begin();
     et = d2dConnectedUe_.end();
@@ -365,7 +365,7 @@ void LteAmc::rescaleMcs(double rePerRb, Direction dir)
 
 void LteAmc::pushFeedback(MacNodeId id, Direction dir, LteFeedback fb)
 {
-    // EV << "Feedback from MacNodeId " << id << " (direction " << dirToA(dir) << ")" << endl;
+    EV << "Feedback from MacNodeId " << id << " (direction " << dirToA(dir) << ")" << endl;
 
     History_ *history;
     std::map<MacNodeId, unsigned int> *nodeIndex;
@@ -394,22 +394,22 @@ void LteAmc::pushFeedback(MacNodeId id, Direction dir, LteFeedback fb)
     }
     int index = (*nodeIndex).at(id);
 
-    // EV << "ID: " << id << endl;
-    // EV << "index: " << index << endl;
+    EV << "ID: " << id << endl;
+    EV << "index: " << index << endl;
     (*history)[antenna].at(index).at(txMode).put(fb);
 
     // DEBUG
 //    printFbhb(dir);
-    // EV << "Antenna: " << dasToA(antenna) << ", TxMode: " << txMode << ", Index: " << index << endl;
-    // EV << "RECEIVED" << endl;
+    EV << "Antenna: " << dasToA(antenna) << ", TxMode: " << txMode << ", Index: " << index << endl;
+    EV << "RECEIVED" << endl;
     fb.print(0,id,dir,"LteAmc::pushFeedback");
-//    EV << "SUMMARY" << endl;
+    EV << "SUMMARY" << endl;
 //    (*history)[antenna].at(index).at(txMode).get().print(0,id,dir,txMode,"LteAmc::pushFeedback");
 }
 
 void LteAmc::pushFeedbackD2D(MacNodeId id, LteFeedback fb, MacNodeId peerId)
 {
-    // EV << "Feedback from MacNodeId " << id << " (direction D2D), peerId = " << peerId << endl;
+    EV << "Feedback from MacNodeId " << id << " (direction D2D), peerId = " << peerId << endl;
 
     std::map<MacNodeId, History_> *history = &d2dFeedbackHistory_;
     std::map<MacNodeId, unsigned int> *nodeIndex = &d2dNodeIndex_;
@@ -420,8 +420,8 @@ void LteAmc::pushFeedbackD2D(MacNodeId id, LteFeedback fb, MacNodeId peerId)
     TxMode txMode = fb.getTxMode();
     int index = (*nodeIndex).at(id);
 
-    // EV << "ID: " << id << endl;
-    // EV << "index: " << index << endl;
+    EV << "ID: " << id << endl;
+    EV << "index: " << index << endl;
 
     if (history->find(peerId) == history->end())
     {
@@ -439,11 +439,11 @@ void LteAmc::pushFeedbackD2D(MacNodeId id, LteFeedback fb, MacNodeId peerId)
     }
     (*history)[peerId][antenna].at(index).at(txMode).put(fb);
 
-    // EV << NOW << " Pushing CQI :" << numStored_ << endl ;
+    EV << NOW << " Pushing CQI :" << numStored_ << endl ;
 
     if(numStored_ > 0)
     {
-        // EV << NOW << " Storing CQI :" << numStored_ << endl ;
+        EV << NOW << " Storing CQI :" << numStored_ << endl ;
         if(historyqueue->find(peerId) == historyqueue->end())
             {
                 PeerHistoryStore_ newPeerStore;
@@ -460,7 +460,7 @@ void LteAmc::pushFeedbackD2D(MacNodeId id, LteFeedback fb, MacNodeId peerId)
             else{
                 if((*historyqueue)[peerId][id][antenna].at(txMode).front().getCreationTime() < (NOW - numStored_))
                 {
-                    // EV << NOW << " Removing old CQI :" << (*historyqueue)[peerId][id][antenna].at(txMode).front().getCreationTime() << endl ;
+                    EV << NOW << " Removing old CQI :" << (*historyqueue)[peerId][id][antenna].at(txMode).front().getCreationTime() << endl ;
                     (*historyqueue)[peerId][id][antenna].at(txMode).pop_front();
                     (*historyqueue)[peerId][id][antenna].at(txMode).push_back(LteSummaryBuffer(fbhbCapacityD2D_, MAXCW, numBands_, lb_, ub_));
 
@@ -476,8 +476,8 @@ void LteAmc::pushFeedbackD2D(MacNodeId id, LteFeedback fb, MacNodeId peerId)
     }
 
     // DEBUG
-    // EV << "PeerId: " << peerId << ", Antenna: " << dasToA(antenna) << ", TxMode: " << txMode << ", Index: " << index << endl;
-    // EV << "RECEIVED" << endl;
+    EV << "PeerId: " << peerId << ", Antenna: " << dasToA(antenna) << ", TxMode: " << txMode << ", Index: " << index << endl;
+    EV << "RECEIVED" << endl;
     fb.print(0,id,D2D,"LteAmc::pushFeedbackD2D");
 }
 
@@ -486,7 +486,7 @@ LteSummaryFeedback LteAmc::getFeedback(MacNodeId id, Remote antenna, TxMode txMo
 {
     MacNodeId nh = getNextHop(id);
     if (id != nh)
-        // EV << NOW << " LteAmc::getFeedback detected " << nh << " as nexthop for " << id << "\n";
+        EV << NOW << " LteAmc::getFeedback detected " << nh << " as nexthop for " << id << "\n";
     id = nh;
 
     if (dir == DL)
@@ -502,8 +502,8 @@ LteSummaryFeedback LteAmc::getFeedback(MacNodeId id, Remote antenna, TxMode txMo
 LteSummaryFeedback LteAmc::getFeedbackD2D(MacNodeId id, Remote antenna, TxMode txMode, MacNodeId peerId)
 {
     MacNodeId nh = getNextHop(id);
-//    if (id != nh)
-//        EV << NOW << " LteAmc::getFeedbackD2D detected " << nh << " as nexthop for " << id << "\n";
+    if (id != nh)
+        EV << NOW << " LteAmc::getFeedbackD2D detected " << nh << " as nexthop for " << id << "\n";
     id = nh;
 
     if (peerId == 0)
@@ -525,14 +525,14 @@ LteSummaryFeedback LteAmc::getFeedbackD2D(MacNodeId id, Remote antenna, TxMode t
         std::deque<LteSummaryBuffer>::reverse_iterator it = d2dFBStore_.at(peerId).at(id).at(antenna).at(txMode).rbegin();
         for (; it != d2dFBStore_.at(peerId).at(id).at(antenna).at(txMode).rend(); ++it)
         {
-            // EV << NOW << " Checking History :" << (NOW - numStored_) << endl ;
+            EV << NOW << " Checking History :" << (NOW - numStored_) << endl ;
 
             if (it->getCreationTime() > (NOW - numStored_))
             {
-                // EV << NOW << " Old CQI Dont use: " << it->getCreationTime() << endl ;
+                EV << NOW << " Old CQI Dont use: " << it->getCreationTime() << endl ;
                 continue;
             }
-            // EV << NOW << " History Found : " << it->getCreationTime() << endl ;
+            EV << NOW << " History Found : " << it->getCreationTime() << endl ;
             return it->get();
         }
         return d2dFBStore_.at(peerId).at(id).at(antenna).at(txMode).front().get();
@@ -568,8 +568,8 @@ MacNodeId LteAmc::computeMuMimoPairing(const MacNodeId nodeId, Direction dir)
 bool LteAmc::existTxParams(MacNodeId id, const Direction dir)
 {
     MacNodeId nh = getNextHop(id);
-//    if (id != nh)
-//        EV << NOW << " LteAmc::existTxparams detected " << nh << " as nexthop for " << id << "\n";
+    if (id != nh)
+        EV << NOW << " LteAmc::existTxparams detected " << nh << " as nexthop for " << id << "\n";
     id = nh;
 
     if (dir == DL)
@@ -587,8 +587,8 @@ bool LteAmc::existTxParams(MacNodeId id, const Direction dir)
 const UserTxParams& LteAmc::setTxParams(MacNodeId id, const Direction dir, UserTxParams& info)
 {
     MacNodeId nh = getNextHop(id);
-//    if (id != nh)
-//        EV << NOW << " LteAmc::setTxParams detected " << nh << " as nexthop for " << id << "\n";
+    if (id != nh)
+        EV << NOW << " LteAmc::setTxParams detected " << nh << " as nexthop for " << id << "\n";
     id = nh;
 
     info.isSet() = true;
@@ -600,12 +600,12 @@ const UserTxParams& LteAmc::setTxParams(MacNodeId id, const Direction dir, UserT
      */
 
     // DEBUG
-    // EV << NOW << " LteAmc::setTxParams DAS antenna set for user " << id << " is \t";
+    EV << NOW << " LteAmc::setTxParams DAS antenna set for user " << id << " is \t";
     for (std::set<Remote>::const_iterator it = info.readAntennaSet().begin(); it != info.readAntennaSet().end(); ++it)
     {
-        // EV << "[" << dasToA(*it) << "]\t";
+        EV << "[" << dasToA(*it) << "]\t";
     }
-    // EV << endl;
+    EV << endl;
 
     if (dir == DL)
         return (dlTxParams_.at(dlNodeIndex_.at(id)) = info);
@@ -622,28 +622,28 @@ const UserTxParams& LteAmc::setTxParams(MacNodeId id, const Direction dir, UserT
 const UserTxParams& LteAmc::computeTxParams(MacNodeId id, const Direction dir)
 {
     // DEBUG
-    // EV << NOW << " LteAmc::computeTxParams --------------::[ START ]::--------------\n";
-    // EV << NOW << " LteAmc::computeTxParams CellId: " << cellId_ << "\n";
-    // EV << NOW << " LteAmc::computeTxParams NodeId: " << id << "\n";
-    // EV << NOW << " LteAmc::computeTxParams Direction: " << dirToA(dir) << "\n";
-    // EV << NOW << " LteAmc::computeTxParams - - - - - - - - - - - - - - - - - - - - -\n";
-    // EV << NOW << " LteAmc::computeTxParams RB allocation type: " << allocationTypeToA(allocationType_) << "\n";
-    // EV << NOW << " LteAmc::computeTxParams - - - - - - - - - - - - - - - - - - - - -\n";
+    EV << NOW << " LteAmc::computeTxParams --------------::[ START ]::--------------\n";
+    EV << NOW << " LteAmc::computeTxParams CellId: " << cellId_ << "\n";
+    EV << NOW << " LteAmc::computeTxParams NodeId: " << id << "\n";
+    EV << NOW << " LteAmc::computeTxParams Direction: " << dirToA(dir) << "\n";
+    EV << NOW << " LteAmc::computeTxParams - - - - - - - - - - - - - - - - - - - - -\n";
+    EV << NOW << " LteAmc::computeTxParams RB allocation type: " << allocationTypeToA(allocationType_) << "\n";
+    EV << NOW << " LteAmc::computeTxParams - - - - - - - - - - - - - - - - - - - - -\n";
 
     MacNodeId nh = getNextHop(id);
-//    if(id != nh)
-//    EV << NOW << " LteAmc::computeTxParams detected " << nh << " as nexthop for " << id << "\n";
+    if(id != nh)
+    EV << NOW << " LteAmc::computeTxParams detected " << nh << " as nexthop for " << id << "\n";
     id = nh;
 
     const UserTxParams &info = pilot_->computeTxParams(id,dir);
-    // EV << NOW << " LteAmc::computeTxParams --------------::[  END  ]::--------------\n";
+    EV << NOW << " LteAmc::computeTxParams --------------::[  END  ]::--------------\n";
 
     return info;
 }
 
 void LteAmc::cleanAmcStructures(Direction dir, ActiveSet aUser)
 {
-    // EV << NOW << " LteAmc::cleanAmcStructures. Direction " << dirToA(dir) << endl;
+    EV << NOW << " LteAmc::cleanAmcStructures. Direction " << dirToA(dir) << endl;
 
     //Convert from active cid to active users
     //Update active user for TMS algorithms
@@ -682,13 +682,13 @@ void LteAmc::cleanAmcStructures(Direction dir, ActiveSet aUser)
 
 unsigned int LteAmc::computeReqRbs(MacNodeId id, Band b, Codeword cw, unsigned int bytes, const Direction dir)
 {
-    // EV << NOW << " LteAmc::getRbs Node " << id << ", Band " << b << ", Codeword " << cw << ", direction " << dirToA(dir) << endl;
+    EV << NOW << " LteAmc::getRbs Node " << id << ", Band " << b << ", Codeword " << cw << ", direction " << dirToA(dir) << endl;
 
     if(bytes == 0)
     {
         // DEBUG
-        // EV << NOW << " LteAmc::getRbs Occupation: 0 bytes\n";
-        // EV << NOW << " LteAmc::getRbs Number of RBs: 0\n";
+        EV << NOW << " LteAmc::getRbs Occupation: 0 bytes\n";
+        EV << NOW << " LteAmc::getRbs Number of RBs: 0\n";
 
         return 0;
     }
@@ -710,8 +710,8 @@ unsigned int LteAmc::computeReqRbs(MacNodeId id, Band b, Codeword cw, unsigned i
     break;
 
     // DEBUG
-    // EV << NOW << " LteAmc::getRbs Occupation: " << bytes << " bytes , CQI : " << info.readCqiVector().at(cw) << " \n";
-    // EV << NOW << " LteAmc::getRbs Number of RBs: " << j+1 << "\n";
+    EV << NOW << " LteAmc::getRbs Occupation: " << bytes << " bytes , CQI : " << info.readCqiVector().at(cw) << " \n";
+    EV << NOW << " LteAmc::getRbs Number of RBs: " << j+1 << "\n";
 
     return j+1;
 }
@@ -725,9 +725,9 @@ unsigned int LteAmc::computeBitsOnNRbs(MacNodeId id, Band b, unsigned int blocks
         return 0;
 
     // DEBUG
-    // EV << NOW << " LteAmc::blocks2bits Node: " << id << "\n";
-    // EV << NOW << " LteAmc::blocks2bits Band: " << b << "\n";
-    // EV << NOW << " LteAmc::blocks2bits Direction: " << dirToA(dir) << "\n";
+    EV << NOW << " LteAmc::blocks2bits Node: " << id << "\n";
+    EV << NOW << " LteAmc::blocks2bits Band: " << b << "\n";
+    EV << NOW << " LteAmc::blocks2bits Direction: " << dirToA(dir) << "\n";
 
     // Acquiring current user scheduling information
     UserTxParams info = computeTxParams(id, dir);
@@ -741,7 +741,7 @@ unsigned int LteAmc::computeBitsOnNRbs(MacNodeId id, Band b, unsigned int blocks
         // if CQI == 0 the UE is out of range, thus bits=0
         if (info.readCqiVector().at(cw) == 0)
         {
-            // EV << NOW << " LteAmc::blocks2bits - CQI equal to zero on cw " << cw << ", return no blocks available" << endl;
+            EV << NOW << " LteAmc::blocks2bits - CQI equal to zero on cw " << cw << ", return no blocks available" << endl;
             continue;
         }
 
@@ -750,11 +750,11 @@ unsigned int LteAmc::computeBitsOnNRbs(MacNodeId id, Band b, unsigned int blocks
         unsigned int i = (mod == _QPSK ? 0 : (mod == _16QAM ? 9 : (mod == _64QAM ? 15 : 0)));
 
         // DEBUG
-        // EV << NOW << " LteAmc::blocks2bits ---::[ Codeword = " << cw << "\n";
-        // EV << NOW << " LteAmc::blocks2bits Modulation: " << modToA(mod) << "\n";
-        // EV << NOW << " LteAmc::blocks2bits iTbs: " << iTbs << "\n";
-        // EV << NOW << " LteAmc::blocks2bits i: " << i << "\n";
-        // EV << NOW << " LteAmc::blocks2bits CQI: " << info.readCqiVector().at(cw) << "\n";
+        EV << NOW << " LteAmc::blocks2bits ---::[ Codeword = " << cw << "\n";
+        EV << NOW << " LteAmc::blocks2bits Modulation: " << modToA(mod) << "\n";
+        EV << NOW << " LteAmc::blocks2bits iTbs: " << iTbs << "\n";
+        EV << NOW << " LteAmc::blocks2bits i: " << i << "\n";
+        EV << NOW << " LteAmc::blocks2bits CQI: " << info.readCqiVector().at(cw) << "\n";
 
         mac_->emitItbs(iTbs);
 
@@ -763,8 +763,8 @@ unsigned int LteAmc::computeBitsOnNRbs(MacNodeId id, Band b, unsigned int blocks
     }
 
             // DEBUG
-    // EV << NOW << " LteAmc::blocks2bits Resource Blocks: " << blocks << "\n";
-    // EV << NOW << " LteAmc::blocks2bits Available space: " << bits << "\n";
+    EV << NOW << " LteAmc::blocks2bits Resource Blocks: " << blocks << "\n";
+    EV << NOW << " LteAmc::blocks2bits Available space: " << bits << "\n";
 
     return bits;
 }
@@ -778,10 +778,10 @@ unsigned int LteAmc::computeBitsOnNRbs(MacNodeId id, Band b, Codeword cw, unsign
         return 0;
 
     // DEBUG
-    // EV << NOW << " LteAmc::blocks2bits Node: " << id << "\n";
-    // EV << NOW << " LteAmc::blocks2bits Band: " << b << "\n";
-    // EV << NOW << " LteAmc::blocks2bits Codeword: " << cw << "\n";
-    // EV << NOW << " LteAmc::blocks2bits Direction: " << dirToA(dir) << "\n";
+    EV << NOW << " LteAmc::blocks2bits Node: " << id << "\n";
+    EV << NOW << " LteAmc::blocks2bits Band: " << b << "\n";
+    EV << NOW << " LteAmc::blocks2bits Codeword: " << cw << "\n";
+    EV << NOW << " LteAmc::blocks2bits Direction: " << dirToA(dir) << "\n";
 
     // Acquiring current user scheduling information
     UserTxParams info = computeTxParams(id, dir);
@@ -789,7 +789,7 @@ unsigned int LteAmc::computeBitsOnNRbs(MacNodeId id, Band b, Codeword cw, unsign
     // if CQI == 0 the UE is out of range, thus return 0
     if (info.readCqiVector().at(cw) == 0)
     {
-        // EV << NOW << " LteAmc::blocks2bits - CQI equal to zero, return no blocks available" << endl;
+        EV << NOW << " LteAmc::blocks2bits - CQI equal to zero, return no blocks available" << endl;
         return 0;
     }
     unsigned char layers = info.getLayers().at(cw);
@@ -799,60 +799,60 @@ unsigned int LteAmc::computeBitsOnNRbs(MacNodeId id, Band b, Codeword cw, unsign
     unsigned int i = (mod == _QPSK ? 0 : (mod == _16QAM ? 9 : (mod == _64QAM ? 15 : 0)));
 
     // DEBUG
-    // EV << NOW << " LteAmc::blocks2bits Modulation: " << modToA(mod) << "\n";
-    // EV << NOW << " LteAmc::blocks2bits iTbs: " << iTbs << "\n";
-    // EV << NOW << " LteAmc::blocks2bits i: " << i << "\n";
+    EV << NOW << " LteAmc::blocks2bits Modulation: " << modToA(mod) << "\n";
+    EV << NOW << " LteAmc::blocks2bits iTbs: " << iTbs << "\n";
+    EV << NOW << " LteAmc::blocks2bits i: " << i << "\n";
 
     const unsigned int* tbsVect = itbs2tbs(mod, info.readTxMode(), layers, iTbs - i);
 
     // DEBUG
-    // EV << NOW << " LteAmc::blocks2bits Resource Blocks: " << blocks << "\n";
-    // EV << NOW << " LteAmc::blocks2bits Available space: " << tbsVect[blocks-1] << "\n";
+    EV << NOW << " LteAmc::blocks2bits Resource Blocks: " << blocks << "\n";
+    EV << NOW << " LteAmc::blocks2bits Available space: " << tbsVect[blocks-1] << "\n";
 
     return tbsVect[blocks - 1];
 }
 
 unsigned int LteAmc::computeBytesOnNRbs(MacNodeId id, Band b, unsigned int blocks, const Direction dir)
 {
-    // EV << NOW << " LteAmc::blocks2bytes Node " << id << ", Band " << b << ", direction " << dirToA(dir) << ", blocks " << blocks << "\n";
+    EV << NOW << " LteAmc::blocks2bytes Node " << id << ", Band " << b << ", direction " << dirToA(dir) << ", blocks " << blocks << "\n";
 
     unsigned int bits = computeBitsOnNRbs(id, b, blocks, dir);
     unsigned int bytes = bits/8;
 
     // DEBUG
-    // EV << NOW << " LteAmc::blocks2bytes Resource Blocks: " << blocks << "\n";
-    // EV << NOW << " LteAmc::blocks2bytes Available space: " << bits << "\n";
-    // EV << NOW << " LteAmc::blocks2bytes Available space: " << bytes << "\n";
+    EV << NOW << " LteAmc::blocks2bytes Resource Blocks: " << blocks << "\n";
+    EV << NOW << " LteAmc::blocks2bytes Available space: " << bits << "\n";
+    EV << NOW << " LteAmc::blocks2bytes Available space: " << bytes << "\n";
 
     return bytes;
 }
 
 unsigned int LteAmc::computeBytesOnNRbs(MacNodeId id, Band b, Codeword cw, unsigned int blocks, const Direction dir)
 {
-    // EV << NOW << " LteAmc::blocks2bytes Node " << id << ", Band " << b << ", Codeword " << cw << ",  direction " << dirToA(dir) << ", blocks " << blocks << "\n";
+    EV << NOW << " LteAmc::blocks2bytes Node " << id << ", Band " << b << ", Codeword " << cw << ",  direction " << dirToA(dir) << ", blocks " << blocks << "\n";
 
     unsigned int bits = computeBitsOnNRbs(id, b, cw, blocks, dir);
     unsigned int bytes = bits/8;
 
     // DEBUG
-    // EV << NOW << " LteAmc::blocks2bytes Resource Blocks: " << blocks << "\n";
-    // EV << NOW << " LteAmc::blocks2bytes Available space: " << bits << "\n";
-    // EV << NOW << " LteAmc::blocks2bytes Available space: " << bytes << "\n";
+    EV << NOW << " LteAmc::blocks2bytes Resource Blocks: " << blocks << "\n";
+    EV << NOW << " LteAmc::blocks2bytes Available space: " << bits << "\n";
+    EV << NOW << " LteAmc::blocks2bytes Available space: " << bytes << "\n";
 
     return bytes;
 }
 
 unsigned int LteAmc::computeBytesOnNRbs_MB(MacNodeId id, Band b, unsigned int blocks, const Direction dir)
 {
-    // EV << NOW << " LteAmc::computeBytesOnNRbs_MB Node " << id << ", Band " << b << ",  direction " << dirToA(dir) << ", blocks " << blocks << "\n";
+    EV << NOW << " LteAmc::computeBytesOnNRbs_MB Node " << id << ", Band " << b << ",  direction " << dirToA(dir) << ", blocks " << blocks << "\n";
 
     unsigned int bits = computeBitsOnNRbs_MB(id, b, blocks, dir);
     unsigned int bytes = bits/8;
 
     // DEBUG
-    // EV << NOW << " LteAmc::computeBytesOnNRbs_MB Resource Blocks: " << blocks << "\n";
-    // EV << NOW << " LteAmc::computeBytesOnNRbs_MB Available space: " << bits << "\n";
-    // EV << NOW << " LteAmc::computeBytesOnNRbs_MB Available space: " << bytes << "\n";
+    EV << NOW << " LteAmc::computeBytesOnNRbs_MB Resource Blocks: " << blocks << "\n";
+    EV << NOW << " LteAmc::computeBytesOnNRbs_MB Available space: " << bits << "\n";
+    EV << NOW << " LteAmc::computeBytesOnNRbs_MB Available space: " << bytes << "\n";
 
     return bytes;
 
@@ -867,9 +867,9 @@ unsigned int LteAmc::computeBitsOnNRbs_MB(MacNodeId id, Band b,  unsigned int bl
         return 0;
 
     // DEBUG
-    // EV << NOW << " LteAmc::computeBitsOnNRbs_MB Node: " << id << "\n";
-    // EV << NOW << " LteAmc::computeBitsOnNRbs_MB Band: " << b << "\n";
-    // EV << NOW << " LteAmc::computeBitsOnNRbs_MB Direction: " << dirToA(dir) << "\n";
+    EV << NOW << " LteAmc::computeBitsOnNRbs_MB Node: " << id << "\n";
+    EV << NOW << " LteAmc::computeBitsOnNRbs_MB Band: " << b << "\n";
+    EV << NOW << " LteAmc::computeBitsOnNRbs_MB Direction: " << dirToA(dir) << "\n";
 
     Cqi cqi = readMultiBandCqi(id,dir)[b];
 
@@ -881,7 +881,7 @@ unsigned int LteAmc::computeBitsOnNRbs_MB(MacNodeId id, Band b,  unsigned int bl
     // if CQI == 0 the UE is out of range, thus return 0
     if (cqi == 0)
     {
-        // EV << NOW << " LteAmc::computeBitsOnNRbs_MB - CQI equal to zero, return no blocks available" << endl;
+        EV << NOW << " LteAmc::computeBitsOnNRbs_MB - CQI equal to zero, return no blocks available" << endl;
         return 0;
     }
 
@@ -890,15 +890,15 @@ unsigned int LteAmc::computeBitsOnNRbs_MB(MacNodeId id, Band b,  unsigned int bl
     unsigned int i = (mod == _QPSK ? 0 : (mod == _16QAM ? 9 : (mod == _64QAM ? 15 : 0)));
 
     // DEBUG
-    // EV << NOW << " LteAmc::computeBitsOnNRbs_MB Modulation: " << modToA(mod) << "\n";
-    // EV << NOW << " LteAmc::computeBitsOnNRbs_MB iTbs: " << iTbs << "\n";
-    // EV << NOW << " LteAmc::computeBitsOnNRbs_MB i: " << i << "\n";
+    EV << NOW << " LteAmc::computeBitsOnNRbs_MB Modulation: " << modToA(mod) << "\n";
+    EV << NOW << " LteAmc::computeBitsOnNRbs_MB iTbs: " << iTbs << "\n";
+    EV << NOW << " LteAmc::computeBitsOnNRbs_MB i: " << i << "\n";
 
     const unsigned int* tbsVect = itbs2tbs(mod, TRANSMIT_DIVERSITY, layers[0], iTbs - i);
 
     // DEBUG
-    // EV << NOW << " LteAmc::computeBitsOnNRbs_MB Resource Blocks: " << blocks << "\n";
-    // EV << NOW << " LteAmc::computeBitsOnNRbs_MB Available space: " << tbsVect[blocks-1] << "\n";
+    EV << NOW << " LteAmc::computeBitsOnNRbs_MB Resource Blocks: " << blocks << "\n";
+    EV << NOW << " LteAmc::computeBitsOnNRbs_MB Available space: " << tbsVect[blocks-1] << "\n";
 
     return tbsVect[blocks - 1];
 
@@ -1177,7 +1177,7 @@ Cqi LteAmc::readWbCqi(const CqiVector& cqi)
     unsigned int bands = cqi.size();
     for (Band b = 0; b < bands; ++b)
     {
-        // EV << "LteAmc::getWbCqi - Cqi " << cqi.at(b) << " on band " << (int)b << endl;
+        EV << "LteAmc::getWbCqi - Cqi " << cqi.at(b) << " on band " << (int)b << endl;
 
         cqiCounter += cqi.at(b);
         cqiMin = cqiMin < cqi.at(b) ? cqiMin : cqi.at(b);
@@ -1221,7 +1221,7 @@ Cqi LteAmc::readWbCqi(const CqiVector& cqi)
         throw cRuntimeError("LteAmc::getWbCqi(): Unknown weight %d", cqiComputationWeight_);
     }
 
-    // EV << "LteAmc::getWbCqi - Cqi " << cqiRet << " evaluated\n";
+    EV << "LteAmc::getWbCqi - Cqi " << cqiRet << " evaluated\n";
 
     return cqiRet;
 }
@@ -1296,7 +1296,7 @@ Pmi LteAmc::readWbPmi(const PmiVector& pmi)
         throw cRuntimeError("LteAmc::readWbPmi(): Unknown weight %d", pmiComputationWeight_);
     }
 
-    // EV << "LteAmc::getWbPmi - Pmi " << pmiRet << " evaluated\n";
+    EV << "LteAmc::getWbPmi - Pmi " << pmiRet << " evaluated\n";
 
     return pmiRet;
 }
@@ -1307,9 +1307,9 @@ Pmi LteAmc::readWbPmi(const PmiVector& pmi)
 
 void LteAmc::detachUser(MacNodeId nodeId, Direction dir)
 {
-    // EV << "##// EV##############################" << endl;
-    // EV << // EV LteAmc::detachUser. Id: " << nodeId << ", direction: " << dirToA(dir) << endl;
-    // EV << "##################################" << endl;
+    EV << "################################" << endl;
+    EV << " LteAmc::detachUser. Id: " << nodeId << ", direction: " << dirToA(dir) << endl;
+    EV << "##################################" << endl;
     try
     {
         ConnectedUesMap *connectedUe;
@@ -1381,9 +1381,9 @@ void LteAmc::detachUser(MacNodeId nodeId, Direction dir)
 
 void LteAmc::attachUser(MacNodeId nodeId, Direction dir)
 {
-    // EV << "##################################" << endl;
-    // EV << "# LteAmc::attachUser. Id: " << nodeId << ", direction: " << dirToA(dir) << endl;
-    // EV << "##################################" << endl;
+    EV << "##################################" << endl;
+    EV << "# LteAmc::attachUser. Id: " << nodeId << ", direction: " << dirToA(dir) << endl;
+    EV << "##################################" << endl;
 
     ConnectedUesMap *connectedUe;
     std::map<MacNodeId, unsigned int> *nodeIndexMap;
@@ -1439,7 +1439,7 @@ void LteAmc::attachUser(MacNodeId nodeId, Direction dir)
     // check if the UE is known (it has been here before)
     if( (*connectedUe).find(nodeId) != (*connectedUe).end() )
     {
-        // EV << "LteAmc::attachUser. Id " << nodeId << " is known (he has been here before)." << endl;
+        EV << "LteAmc::attachUser. Id " << nodeId << " is known (he has been here before)." << endl;
 
         // user is known, get his index
         nodeIndex = (*nodeIndexMap).at(nodeId);
@@ -1472,7 +1472,7 @@ void LteAmc::attachUser(MacNodeId nodeId, Direction dir)
     }
     else
     {
-        // EV << "LteAmc::attachUser. Id " << nodeId << " is not known (it is the first time we see him)." << endl;
+        EV << "LteAmc::attachUser. Id " << nodeId << " is not known (it is the first time we see him)." << endl;
 
         // new user: [] operator insert a new element in the map
         (*nodeIndexMap)[nodeId] = (*revIndexVec).size();
@@ -1511,8 +1511,8 @@ void LteAmc::attachUser(MacNodeId nodeId, Direction dir)
 
 void LteAmc::testUe(MacNodeId nodeId, Direction dir)
 {
-    // EV << "##################################" << endl;
-    // EV << "LteAmc::testUe (" << dirToA(dir) << ")" << endl;
+    EV << "##################################" << endl;
+    EV << "LteAmc::testUe (" << dirToA(dir) << ")" << endl;
 
     ConnectedUesMap *connectedUe;
     std::map<MacNodeId, unsigned int> *nodeIndexMap;
@@ -1558,10 +1558,10 @@ void LteAmc::testUe(MacNodeId nodeId, Direction dir)
     bool isConnected = (*connectedUe).at(nodeId);
     MacNodeId revIndex = (*revIndexVec).at(nodeIndex);
 
-    // EV << "Id: " << nodeId << endl;
-    // EV << "Index: " << nodeIndex << endl;
-    // EV << "Reverse index: " << revIndex << " (should be the same of ID)" << endl;
-    // EV << "Is connected: " << (isConnected?"TRUE":"FALSE") << endl;
+    EV << "Id: " << nodeId << endl;
+    EV << "Index: " << nodeIndex << endl;
+    EV << "Reverse index: " << revIndex << " (should be the same of ID)" << endl;
+    EV << "Is connected: " << (isConnected?"TRUE":"FALSE") << endl;
 
     if(!isConnected)
     return;
@@ -1569,7 +1569,7 @@ void LteAmc::testUe(MacNodeId nodeId, Direction dir)
     // If connected compute and print user transmission parameters and history
     computeTxParams(nodeId,dir);
     UserTxParams info = (*userInfoVec).at(nodeIndex);
-    // EV << "UserTxParams" << endl;
+    EV << "UserTxParams" << endl;
     info.print("LteAmc::testUe");
 
     if (dir == UL || dir == DL)
@@ -1578,10 +1578,10 @@ void LteAmc::testUe(MacNodeId nodeId, Direction dir)
         RemoteSet::iterator et = remoteSet_.end();
         std::vector<LteSummaryBuffer> feedback;
 
-        // EV << "History" << endl;
+        EV << "History" << endl;
         for(; it!=et; it++ )
         {
-            // EV << "Remote: " << dasToA(*it) << endl;
+            EV << "Remote: " << dasToA(*it) << endl;
             feedback = (*history).at(*it).at(nodeIndex);
             for(int i=0; i<numTxModes; i++)
             {
@@ -1604,10 +1604,10 @@ void LteAmc::testUe(MacNodeId nodeId, Direction dir)
             RemoteSet::iterator et = remoteSet_.end();
             std::vector<LteSummaryBuffer> feedback;
 
-            // EV << "History" << endl;
+            EV << "History" << endl;
             for(; it!=et; it++ )
             {
-                // EV << "Remote: " << dasToA(*it) << endl;
+                EV << "Remote: " << dasToA(*it) << endl;
                 feedback = (*history).at(*it).at(nodeIndex);
                 for(int i=0; i<numTxModes; i++)
                 {
@@ -1621,5 +1621,5 @@ void LteAmc::testUe(MacNodeId nodeId, Direction dir)
             }
         }
     }
-    // EV << "##################################" << endl;
+    EV << "##################################" << endl;
 }

@@ -37,18 +37,18 @@ void AmcPilotD2D::setPreconfiguredTxParams(Cqi cqi)
 
 const UserTxParams& AmcPilotD2D::computeTxParams(MacNodeId id, const Direction dir)
 {
-    // EV << NOW << " AmcPilot" << getName() << "::computeTxParams for UE " << id << ", direction " << dirToA(dir) << endl;
+    EV << NOW << " AmcPilot" << getName() << "::computeTxParams for UE " << id << ", direction " << dirToA(dir) << endl;
 
     if ((dir == D2D || dir == D2D_MULTI) && usePreconfiguredTxParams_)
     {
-        // EV << NOW << " AmcPilot" << getName() << "::computeTxParams Use preconfigured Tx params for D2D connections\n";
+        EV << NOW << " AmcPilot" << getName() << "::computeTxParams Use preconfigured Tx params for D2D connections\n";
         return *preconfiguredTxParams_;
     }
 
     // Check if user transmission parameters have been already allocated
     if(amc_->existTxParams(id, dir))
     {
-        // EV << NOW << " AmcPilot" << getName() << "::computeTxParams The Information for this user have been already assigned \n";
+        EV << NOW << " AmcPilot" << getName() << "::computeTxParams The Information for this user have been already assigned \n";
         return amc_->getTxParams(id, dir);
     }
     // TODO make it configurable from NED
@@ -120,7 +120,7 @@ const UserTxParams& AmcPilotD2D::computeTxParams(MacNodeId id, const Direction d
     info.writeAntennas(antennas);
 
     // DEBUG
-    // EV << NOW << " AmcPilot" << getName() << "::computeTxParams NEW values assigned! - CQI =" << chosenCqi << "\n";
+    EV << NOW << " AmcPilot" << getName() << "::computeTxParams NEW values assigned! - CQI =" << chosenCqi << "\n";
     info.print("AmcPilotD2D::computeTxParams");
 
     //return amc_->setTxParams(id, dir, info,user_type); OLD solution
