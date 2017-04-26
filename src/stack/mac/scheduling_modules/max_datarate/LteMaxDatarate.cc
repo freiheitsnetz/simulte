@@ -19,7 +19,7 @@ LteMaxDatarate::~LteMaxDatarate() {}
 
 void LteMaxDatarate::prepareSchedule() {
     EV_STATICCONTEXT;
-    EV << NOW << " LteMaxDatarate::prepareSchedule " << (direction_ == DL ? "DOWNLINK" : "UPLINK") << std::endl;
+    EV << NOW << " LteMaxDatarate::prepareSchedule for " << (direction_ == DL ? "DOWNLINK" : "UPLINK") << " for " << activeConnectionSet_.size() << " connections." << std::endl;
 
     // Copy currently active connections to a working copy.
     activeConnectionTempSet_ = activeConnectionSet_;
@@ -35,11 +35,13 @@ void LteMaxDatarate::prepareSchedule() {
 
     // 'nullptr' is returned if the oracle is not ready yet.
     // In this case we can't do scheduling yet.
-    if (sorter == nullptr)
-        return;
+    if (sorter == nullptr) {
+      return;
+      EV << NOW << " LteMaxDatarate::prepareSchedule stopping because oracle is not ready yet." << std::endl;
+    }
 
     // We now have all <band, id> combinations sorted by expected datarate.
-    EV << NOW << " LteMaxDatarate::prepareSchedule RBs sorted according to their throughputs: " << std::endl;
+    EV << NOW << " LteMaxDatarate::prepareSchedule bands sorted according to their expected throughputs: " << std::endl;
     EV << sorter->toString(std::string(NOW.str() + " LteMaxDatarate::prepareSchedule ")) << std::endl;
 
     // Now initiate phase 1 of the algorithm:
