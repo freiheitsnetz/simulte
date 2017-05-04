@@ -30,7 +30,7 @@ void LteReassignment::prepareSchedule() {
         return;
     std::string schedulingDirection = oracle->getReassignmentSchedulingDirection();
     EV_STATICCONTEXT;
-    EV << NOW << " LteReassignment::prepareSchedule [" << schedulingDirection << "]" << std::endl;
+    EV << NOW << " LteReassignment::prepareSchedule [" << schedulingDirection << "/" << dirToA(direction_) << "] for " << activeConnectionSet_.size() << " connections." << std::endl;
     if (schedulingDirection.compare("forward") != 0 && schedulingDirection.compare("backward") != 0)
         throw std::runtime_error("LteReassignment sees invalid direction: '" + schedulingDirection + "' (only 'forward' and 'backward' work)");
     // Copy currently active connections to a working copy.
@@ -48,22 +48,28 @@ void LteReassignment::prepareSchedule() {
     }
 
     // Go through all active connections.
-    for (std::size_t i = 0; i < connections.size(); i++) {
+    for (int i = 0; i < ((int) connections.size()); i++) {
         MacCid currentConnection = connections.at(i);
         MacNodeId nodeId = MacCidToNodeId(currentConnection);
+        EV << NOW << " LteReassignment::prepareSchedule Considerung node " << nodeId << "." << std::endl;
         if (getBinder()->getOmnetId(nodeId) == 0) {
             EV << NOW << "LteReassignment::prepareSchedule removing node " << nodeId << " because its ID is unknown" << std::endl;
             connections.erase(connections.begin() + i);
+            i--;
             continue;
         }
         // Assign band 0.
+        EV << NOW << " LteReassignment::prepareSchedule Scheduling node " << nodeId << " on band 0." << std::endl;
         SchedulingResult result = schedule(currentConnection, Band(0));
         memory->put(nodeId, Band(0), (i == 0 ? false : true));
-        EV << NOW << " LteReassignment::prepareSchedule Scheduling node " << nodeId << " on band 0: " << schedulingResultToString(result) << std::endl;
+        EV << NOW << " LteReassignment::prepareSchedule Scheduled node " << nodeId << " on band 0: " << schedulingResultToString(result) << std::endl;
 
         if (result == SchedulingResult::INACTIVE) {
             EV << NOW << " LteReassignment::prepareSchedule removing node " << nodeId << " because it is now INACTIVE" << std::endl;
+            EV << NOW << " LteReassignment::prepareSchedule BEFORE DELETE SIZE=" << connections.size() << std::endl;
             connections.erase(connections.begin() + i);
+            i--;
+            EV << NOW << " LteReassignment::prepareSchedule AFTER DELETE SIZE=" << connections.size() << " i=" << i << std::endl;
         }
     }
 
@@ -94,7 +100,9 @@ LteReassignment::SchedulingResult LteReassignment::schedule(MacCid connectionId,
     bandLimitVec.push_back(bandLimit);
 
     // requestGrant(...) might alter the three bool values, so we can check them afterwards.
-    unsigned int granted = requestGrant(connectionId, 4294967295U, terminate, active, eligible, &bandLimitVec);
+    unsigned long bytes = 4294967295U; // 2^32
+//    unsigned long bytes = 50; // 89 is max for 1 RB, take less.
+    unsigned int granted = requestGrant(connectionId, bytes, terminate, active, eligible, &bandLimitVec);
     EV << " " << granted << " bytes granted." << std::endl;
     if (terminate)
         return LteReassignment::SchedulingResult::TERMINATE;
