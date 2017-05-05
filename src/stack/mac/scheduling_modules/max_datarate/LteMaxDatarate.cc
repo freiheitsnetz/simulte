@@ -218,7 +218,7 @@ std::vector<Band> LteMaxDatarate::phase1_cellular(MaxDatarateSorter* sorter, Sch
             double associatedSinr = consecutiveSINRs.at(consecutiveBand);
             double estimatedThroughput = mOracle->getChannelCapacity(associatedSinr);
             EV << NOW << " LteMaxDatarate::prepareSchedule Determined throughput for consecutive band " << consecutiveBand << " at halved transmit power of "
-               << halvedTxPower << ": " << estimatedThroughput << std::endl;
+               << halvedTxPower << "dB: " << estimatedThroughput << std::endl;
 
             // Is this better than the next best candidate?
             std::vector<IdRatePair> consecutiveList = sorter->at(consecutiveBand);
@@ -268,8 +268,8 @@ std::vector<Band> LteMaxDatarate::phase1_cellular(MaxDatarateSorter* sorter, Sch
 
             // Current candidate transmitting at halved power has worse throughput than next candidate.
             } else {
-                EV << NOW << " Consecutive throughput at halved txPower is not better than the best candidate: "
-                   << bestConsecutiveCandidate.rate << " >= " << estimatedThroughput << std::endl;
+                EV << NOW << "LteMaxDatarate::phase1_cellular Consecutive throughput at halved txPower is not better than the best candidate: "
+                   << bestConsecutiveCandidate.rate << " (node " << bestConsecutiveCandidate.from << " -> " << bestConsecutiveCandidate.to << ") >= " << estimatedThroughput << std::endl;
                 // Remove current candidate as it shouldn't be assigned any more resource blocks in this scheduling round.
                 sorter->remove(bestCandidate.from);
                 // Quit checking consecutive bands. Next band will be assigned to the next best candidate.

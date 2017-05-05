@@ -92,7 +92,7 @@ Cqi OmniscientEntity::getCqi(const MacNodeId from, const MacNodeId to, const Sim
     if (from == to)
         throw cRuntimeError(std::string("OmniscientEntity::getCqi shouldn't be called for from==to!").c_str());
     // getSINR handles distinction of computing a current value or querying the memory.
-    double txPower = (to == mENodeBId ? getTransmissionPower(from, Direction::UL) : getTransmissionPower(from, Direction::D2D));
+    double txPower = getTransmissionPower(from, determineDirection(from, to));
     double meanSINR = getMean(getSINR(from, to, time, txPower));
     return getCqi(transmissionMode, meanSINR);
 }
@@ -177,21 +177,6 @@ std::vector<double> OmniscientEntity::getSINROld(MacNodeId from, MacNodeId to, c
         return mMemory->get(time, from, to);
     }
 }
-
-//std::vector<double> OmniscientEntity::getSINR(MacNodeId from, MacNodeId to, SimTime time) const {
-//    // Determine direction.
-//    Direction dir = determineDirection(from, to);
-//
-//    // Make sure eNodeB is the target so that getDeviceInfo() is not given the eNodeB's ID.
-//    if (from == mENodeBId) {
-//        MacNodeId temp = from;
-//        from = to;
-//        to = temp;
-//    }
-//
-//    double transmissionPower = getTransmissionPower(from, dir);
-//    return getSINR(from, to, time, transmissionPower, dir);
-//}
 
 IMobility* OmniscientEntity::getMobility(const MacNodeId& device) const {
     cModule *host = nullptr;
@@ -287,8 +272,6 @@ void OmniscientEntity::recordSchedulingRound(const SchedulingMemory& memory) {
         return;
     }
     EV << NOW << " OmniscientEntity::recordSchedulingRound" << endl;
-//    if (mBandAllocationTimepoints.size() > 0 && mBandAllocationTimepoints.at(mBandAllocationTimepoints.size() - 1) == NOW)
-//        return; // For some reason an empty memory object is often passed for every moment in time. So discard it if we already have one for 'NOW'.
     mBandAllocationTimepoints.push_back(NOW);
     mBandAllocationMemories.push_back(SchedulingMemory(memory));
 }
@@ -309,7 +292,6 @@ void OmniscientEntity::initialize() {
     mShouldRecordBandAllocation = par("recordBandAllocation").boolValue();
     mConsiderTerminateFlagInSchedulingFunction = par("considerTerminateFlag").boolValue();
     reassignmentSchedulingDirection = par("reassignmentSchedulingDirection").stdstringValue();
-    EV << "Record = " << (mShouldRecordBandAllocation ? "true" : "false") << endl;
     cConfigOption simTimeConfig("sim-time-limit", true, cConfigOption::Type::CFG_DOUBLE, "s", "300", "");
     double maxSimTime = getEnvir()->getConfig()->getAsDouble(&simTimeConfig);
 
@@ -327,8 +309,9 @@ void OmniscientEntity::initialize() {
  */
 void OmniscientEntity::configure() {
     EV << "OmniscientEntity::configure" << std::endl;
-    // Get the eNodeB.
+    // Get device lists.
     std::vector<EnbInfo*>* enbInfo = getEnbInfo();
+    std::vector<UeInfo*>* ueInfo = getUeInfo();
     if (enbInfo->size() == 0)
         throw cRuntimeError("OmniscientEntity::configure can't get AMC pointer because I couldn't find an eNodeB!");
     // -> its ID -> the node -> cast to the eNodeB class
@@ -350,24 +333,6 @@ void OmniscientEntity::configure() {
         throw cRuntimeError("OmniscientEntity::configure couldn't find the deployer.");
     EV << "\tFound deployer." << endl;
 
-    // Print info about all network devices.
-    // UEs...
-    std::vector<UeInfo*>* ueInfo = getUeInfo();
-    EV << "\tThere are " << ueInfo->size() << " UEs in the network: " << std::endl;
-    for (size_t i = 0; i < ueInfo->size(); i++) {
-        Coord position = getPosition(ueInfo->at(i)->id);
-        EV << "\t\t#" << i+1 << ": has MacNodeId " << ueInfo->at(i)->id << " and OmnetID " << getId(ueInfo->at(i)->id)
-           << " and sits at position (" << position.x << ", " << position.y << ")." << std::endl;
-    }
-    // eNodeB...
-    std::vector<EnbInfo*>* EnbInfo = getEnbInfo();
-    EV << "\tThere are " << EnbInfo->size() << " EnBs in the network: " << std::endl;
-    for (size_t i = 0; i < EnbInfo->size(); i++) {
-        Coord position = getPosition(EnbInfo->at(i)->id);
-        EV << "\t\t#" << i+1 << ": has MacNodeId " << EnbInfo->at(i)->id << " and OmnetID " << getId(EnbInfo->at(i)->id)
-           << " and sits at position (" << position.x << ", " << position.y << ")." << std::endl;
-    }
-
     // Get a pointer to the channel model.
     mChannelModel = check_and_cast<LteRealisticChannelModel*>(ueInfo->at(0)->phy->getChannelModel());
     if (mChannelModel != nullptr)
@@ -381,6 +346,25 @@ void OmniscientEntity::configure() {
         throw cRuntimeError("OmniscientEntity::configure couldn't construct the feedback computer.");
     else
         EV << "\tConstructed feedback computer." << endl;
+
+    // Print info about all network devices.
+    // UEs...
+    EV << "\tThere are " << ueInfo->size() << " UEs in the network: " << std::endl;
+    for (size_t i = 0; i < ueInfo->size(); i++) {
+        Coord position = getPosition(ueInfo->at(i)->id);
+        EV << "\t\t#" << i+1 << ": has MacNodeId " << ueInfo->at(i)->id << " and OmnetID " << getId(ueInfo->at(i)->id)
+           << " and sits at position (" << position.x << ", " << position.y << ") and has a mean SINR to the eNB of "
+           << getMean(getSINR(ueInfo->at(i)->id, mENodeBId, NOW, getTransmissionPower(ueInfo->at(i)->id, Direction::UL)))
+           << " which is " << euclideanDistance(position, mENodeBPosition) << "m away" << std::endl;
+    }
+    // eNodeB...
+    std::vector<EnbInfo*>* EnbInfo = getEnbInfo();
+    EV << "\tThere are " << EnbInfo->size() << " EnBs in the network: " << std::endl;
+    for (size_t i = 0; i < EnbInfo->size(); i++) {
+        Coord position = getPosition(EnbInfo->at(i)->id);
+        EV << "\t\t#" << i+1 << ": has MacNodeId " << EnbInfo->at(i)->id << " and OmnetID " << getId(EnbInfo->at(i)->id)
+           << " and sits at position (" << position.x << ", " << position.y << ")." << std::endl;
+    }
 
     }
 
