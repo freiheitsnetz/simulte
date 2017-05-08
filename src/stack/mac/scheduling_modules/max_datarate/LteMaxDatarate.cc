@@ -156,8 +156,8 @@ MaxDatarateSorter* LteMaxDatarate::sortBandsByDatarate(SchedulingMemory* memory)
             double estimatedThroughput = mOracle->getChannelCapacity(associatedSinr);
             // And put the result into the container.
             sorter->put(currentBand, IdRatePair(currentConnection, nodeId, destinationId, maxTransmitPower, estimatedThroughput, dir));
-            EV << NOW << " LteMaxDatarate::sortBandsByDatarate sorter->put(" << currentBand << ", IdRatePair(" << currentConnection << ", " << nodeId << ", "
-               << destinationId << ", " << maxTransmitPower << ", " << estimatedThroughput << ", " << dirToA(dir) << "))" << std::endl;
+            EV << NOW << " LteMaxDatarate::sortBandsByDatarate sorter->put(" << currentBand << ", IdRatePair(connectionId=" << currentConnection << ", nodeId=" << nodeId << ", "
+               << destinationId << ", txPw=" << maxTransmitPower << ", throughput=" << estimatedThroughput << ", dir=" << dirToA(dir) << "))" << std::endl;
         }
     }
 
