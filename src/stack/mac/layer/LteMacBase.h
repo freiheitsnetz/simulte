@@ -238,6 +238,12 @@ class LteMacBase : public cSimpleModule
         return false;
     }
 
+    // Enhancement for Autonomous D2D
+    virtual bool isAutoD2DCapable()
+    {
+        return false;
+    }
+
     // check whether HARQ processes have been aborted during this TTI
     bool isHarqReset(MacNodeId srcId)
     {

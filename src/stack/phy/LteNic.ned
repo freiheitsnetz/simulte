@@ -42,6 +42,7 @@ module LteNicBase like ILteNic
         string LtePhyType;
         string nodeType;
         bool d2dCapable;            // inherit the value from the parent module
+        bool autoD2dCapable;        // Enhancement for Autonomous D2D
         
     gates:
         //#
@@ -68,6 +69,7 @@ module LteNicBase like ILteNic
         rlc: LteRlc {
             @display("p=150,227");
             d2dCapable = d2dCapable;
+            autoD2dCapable = autoD2dCapable;
         }
         // MAC Layer
         mac: <LteMacType> like LteMac {
@@ -76,7 +78,7 @@ module LteNicBase like ILteNic
         }
         // LtePhy submodule
         phy: <LtePhyType> like LtePhy {
-            @display("p=151,390");
+            @display("p=151,390");	
             @class(LtePhyType);
         }
 
@@ -130,6 +132,7 @@ module LteNicUe extends LteNicBase
 //
 // D2D-capable User Equipment of LTE stack
 //
+
 module LteNicUeD2D extends LteNicBase
 {
     parameters:
@@ -144,6 +147,31 @@ module LteNicUeD2D extends LteNicBase
         dlFbGen: LteDlFeedbackGenerator {
             @display("p=50,50;is=s");
         }
+}
+
+//
+// D2D-capable User Equipment of LTE stack - Unassisted version
+//
+module LteNicUeAutoD2D extends LteNicBase
+{
+    parameters:
+        LtePdcpRrcType = "LtePdcpRrcUeD2D";
+        LteMacType = default("LteMacUeRealisticAutoD2D");
+        LtePhyType = "LtePhyUeD2D";
+		
+		bool compEnabled = default(false);
+        string LteCompManagerType = default("LteCompManagerProportional");
+        bool d2dModeSelection = default(false);
+        string d2dModeSelectionType = default("D2DModeSelectionBestCqi");
+        string d2dPeerAddresses = default("");  // list of D2D peer UEs, separated by blank spaces
+
+    submodules:
+        // Feedback generator submodule
+        dlFbGen: LteDlFeedbackGenerator {
+            @display("p=50,50;is=s");
+        }
+        
+        
 }
 
 //

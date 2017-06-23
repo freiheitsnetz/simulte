@@ -98,8 +98,11 @@ const std::string d2dModeToA(LteD2DMode mode)
 {
     switch (mode)
     {
-        case IM:
-            return "IM";
+    //case IM:
+    //    return "IM";
+    //Disabling infrastructure mode for Unassisted D2D only.
+    case IM:
+        return "DM";
         case DM:
             return "DM";
         default:

@@ -216,7 +216,7 @@ void UmRxQueue::initialize()
         rlcCellThroughput_ = nodeB_->registerSignal("rlcCellThroughputDl");
         rlcCellPacketLoss_ = nodeB_->registerSignal("rlcCellPacketLossDl");
 
-        if (mac->isD2DCapable())
+        if ((mac->isD2DCapable())|| (mac->isAutoD2DCapable())) // Enhancement for Autonomous D2D
         {
             rlcPacketLossD2D_ = parent->registerSignal("rlcPacketLossD2D");
             rlcPduPacketLossD2D_ = parent->registerSignal("rlcPduPacketLossD2D");

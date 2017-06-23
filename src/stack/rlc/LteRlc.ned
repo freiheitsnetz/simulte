@@ -18,7 +18,8 @@ module LteRlc {
         @display("i=block/transport");      
         string LteRlcUmType = default("LteRlcUmRealistic");          // One of: "LteRlcUm", "LteRlcUmRealistic", "LteRlcUmRealisticD2D"      
         bool d2dCapable;                                             // inherit the value from the parent module
-
+		bool autoD2dCapable;        								 // Enhancement for Autonomous D2D
+		
     gates:
         //# 
         //# Gates connecting PDCP/RRC and RLC Layers
@@ -45,10 +46,10 @@ module LteRlc {
         um: LteRlcUm if (LteRlcUmType=="LteRlcUm") {
             @display("p=200,100;");
         }
-        um: LteRlcUmRealistic if (LteRlcUmType=="LteRlcUmRealistic" && !d2dCapable) {
+        um: LteRlcUmRealistic if (LteRlcUmType=="LteRlcUmRealistic" && !d2dCapable && !autoD2dCapable) { // Enhancement for Autonomous D2D
             @display("p=200,100;");
         }
-        um: LteRlcUmRealisticD2D if (LteRlcUmType=="LteRlcUmRealistic" && d2dCapable) {
+        um: LteRlcUmRealisticD2D if (LteRlcUmType=="LteRlcUmRealistic" && d2dCapable ) {
             @display("p=200,100;");
         }
         

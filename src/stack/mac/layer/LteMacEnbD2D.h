@@ -78,6 +78,10 @@ class LteMacEnbD2D : public LteMacEnb
     {
         return true;
     }
+    virtual bool isAutoD2DCapable() // Enhancement for Autonomous D2D ... PROBABLY NOT REQUIRED
+    {
+            return false;
+    }
 
     // update the status of the "mirror" RX-Harq Buffer for this node
     void storeRxHarqBufferMirror(MacNodeId id, LteHarqBufferRxD2DMirror* mirbuff);

@@ -47,7 +47,8 @@ LteHarqBufferRxD2D::LteHarqBufferRxD2D(unsigned int num, LteMacBase *owner, MacN
         macDelay_ = macOwner_->registerSignal("macDelayDl");
 
         // if D2D is enabled, register also D2D statistics
-        if (macOwner_->isD2DCapable())
+        // Enhancement for Autonomous D2D
+        if (macOwner_->isD2DCapable() || macOwner_->isAutoD2DCapable())
         {
             macThroughputD2D_ = macOwner_->registerSignal("macThroughputD2D");
             macCellThroughputD2D_ = nodeB_->registerSignal("macCellThroughputD2D");

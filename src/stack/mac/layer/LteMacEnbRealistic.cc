@@ -7,7 +7,7 @@
 // and cannot be removed from it.
 //
 
-#include "LteMacEnbRealistic.h"
+#include "LteMacUeAutoD2DRealistic.h"
 #include "LteHarqBufferRx.h"
 #include "LteMacBuffer.h"
 #include "LteMacQueue.h"
@@ -23,19 +23,19 @@
 #include "LteCommon.h"
 #include "LteMacSduRequest.h"
 
-Define_Module( LteMacEnbRealistic);
+Define_Module( LteMacUeAutoD2DRealistic);
 
 /*********************
  * PUBLIC FUNCTIONS
  *********************/
 
-LteMacEnbRealistic::LteMacEnbRealistic() :
+LteMacUeAutoD2DRealistic::LteMacUeAutoD2DRealistic() :
     LteMacEnb()
 {
     scheduleListDl_ = NULL;
 }
 
-LteMacEnbRealistic::~LteMacEnbRealistic()
+LteMacUeAutoD2DRealistic::~LteMacUeAutoD2DRealistic()
 {
 }
 
@@ -43,7 +43,7 @@ LteMacEnbRealistic::~LteMacEnbRealistic()
  * PROTECTED FUNCTIONS
  ***********************/
 
-void LteMacEnbRealistic::initialize(int stage)
+void LteMacUeAutoD2DRealistic::initialize(int stage)
 {
     if (stage == 0)
     {
@@ -51,8 +51,8 @@ void LteMacEnbRealistic::initialize(int stage)
         // TODO do the same for RLC AM
         std::string rlcUmType = getParentModule()->getSubmodule("rlc")->par("LteRlcUmType").stdstringValue();
         std::string macType = getParentModule()->par("LteMacType").stdstringValue();
-        if (macType.compare("LteMacEnbRealistic") == 0 && rlcUmType.compare("LteRlcUmRealistic") != 0)
-            throw cRuntimeError("LteMacEnbRealistic::initialize - %s module found, must be LteRlcUmRealistic. Aborting", rlcUmType.c_str());
+        if (macType.compare("LteMacUeAutoD2DRealistic") == 0 && rlcUmType.compare("LteRlcUmRealistic") != 0)
+            throw cRuntimeError("LteMacUeAutoD2DRealistic::initialize - %s module found, must be LteRlcUmRealistic. Aborting", rlcUmType.c_str());
 
         /* Create and initialize MAC Downlink scheduler */
         enbSchedulerDl_ = new LteSchedulerEnbDlRealistic();
@@ -65,7 +65,7 @@ void LteMacEnbRealistic::initialize(int stage)
     LteMacEnb::initialize(stage);
 }
 
-void LteMacEnbRealistic::handleMessage(cMessage* msg)
+void LteMacUeAutoD2DRealistic::handleMessage(cMessage* msg)
 {
     if (msg->isSelfMessage())
     {
@@ -80,9 +80,9 @@ void LteMacEnbRealistic::handleMessage(cMessage* msg)
     LteMacBase::handleMessage(msg);
 }
 
-void LteMacEnbRealistic::macSduRequest()
+void LteMacUeAutoD2DRealistic::macSduRequest()
 {
-    EV << "----- START LteMacEnbRealistic::macSduRequest -----\n";
+    EV << "----- START LteMacUeAutoD2DRealistic::macSduRequest -----\n";
 
     // Ask for a MAC sdu for each scheduled user on each codeword
     LteMacScheduleList::const_iterator it;
@@ -111,12 +111,12 @@ void LteMacEnbRealistic::macSduRequest()
         sendUpperPackets(macSduRequest);
     }
 
-    EV << "------ END LteMacEnbRealistic::macSduRequest ------\n";
+    EV << "------ END LteMacUeAutoD2DRealistic::macSduRequest ------\n";
 }
 
-void LteMacEnbRealistic::macPduMake(MacCid cid)
+void LteMacUeAutoD2DRealistic::macPduMake(MacCid cid)
 {
-    EV << "----- START LteMacEnbRealistic::macPduMake -----\n";
+    EV << "----- START LteMacUeAutoD2DRealistic::macPduMake -----\n";
     // Finalizes the scheduling decisions according to the schedule list,
     // detaching sdus from real buffers.
 
@@ -244,10 +244,10 @@ void LteMacEnbRealistic::macPduMake(MacCid cid)
             txBuf->insertPdu(txList.first, cw, macPkt);
         }
     }
-    EV << "------ END LteMacEnbRealistic::macPduMake ------\n";
+    EV << "------ END LteMacUeAutoD2DRealistic::macPduMake ------\n";
 }
 
-bool LteMacEnbRealistic::bufferizePacket(cPacket* pkt)
+bool LteMacUeAutoD2DRealistic::bufferizePacket(cPacket* pkt)
 {
     if (pkt->getByteLength() == 0)
         return false;
@@ -345,7 +345,7 @@ bool LteMacEnbRealistic::bufferizePacket(cPacket* pkt)
     return false; // do not need to notify the activation of the connection (already done when received newDataPkt)
 }
 
-void LteMacEnbRealistic::handleUpperMessage(cPacket* pkt)
+void LteMacUeAutoD2DRealistic::handleUpperMessage(cPacket* pkt)
 {
     FlowControlInfo* lteInfo = check_and_cast<FlowControlInfo*>(pkt->getControlInfo());
     MacCid cid = idToMacCid(lteInfo->getDestId(), lteInfo->getLcid());
@@ -369,7 +369,7 @@ void LteMacEnbRealistic::handleUpperMessage(cPacket* pkt)
     }
 }
 
-void LteMacEnbRealistic::handleSelfMessage()
+void LteMacUeAutoD2DRealistic::handleSelfMessage()
 {
     /***************
      *  MAIN LOOP  *
@@ -450,7 +450,7 @@ void LteMacEnbRealistic::handleSelfMessage()
     EV << "--- END " << ((nodeType==MACRO_ENB)?"MACRO":"MICRO") << " ENB MAIN LOOP ---" << endl;
 }
 
-void LteMacEnbRealistic::flushHarqBuffers()
+void LteMacUeAutoD2DRealistic::flushHarqBuffers()
 {
     HarqTxBuffers::iterator it;
     for (it = harqTxBuffers_.begin(); it != harqTxBuffers_.end(); it++)

@@ -20,6 +20,7 @@ import inet.transportlayer.tcp.TCP;
 import inet.transportlayer.udp.UDP;
 import lte.stack.phy.LteNicUe;
 import lte.stack.phy.LteNicUeD2D;
+import lte.stack.phy.LteNicUeAutoD2D;
 
 // 
 // User Equipment Module
@@ -45,6 +46,7 @@ module Ue
         
         //# D2D capability
         bool d2dCapable = default(false);
+        bool autoD2dCapable = default(false);
 
         //# Network Layer specs
         string networkLayerType = default("IPv4NetworkLayer");
@@ -80,7 +82,7 @@ module Ue
             @display("p=325,150");
         }
         // NOTE: instance must be named "nic"
-        nic: LteNicUe if !d2dCapable {
+        nic: LteNicUe if (!d2dCapable || !autoD2dCapable) {
             nodeType = nodeType;
             d2dCapable = d2dCapable;
             @display("p=250,407");
@@ -91,6 +93,13 @@ module Ue
             d2dCapable = d2dCapable;
             @display("p=250,407");
         }
+        // Enhancement to support autonomous D2D
+        nic: LteNicUeD2D if autoD2dCapable {
+            nodeType = nodeType;
+            autoD2dCapable = autoD2dCapable;
+            @display("p=250,407");
+        }
+        
         // network layer
         networkLayer: <networkLayerType> like INetworkLayer {
             parameters:

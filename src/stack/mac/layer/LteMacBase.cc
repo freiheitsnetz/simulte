@@ -330,7 +330,7 @@ void LteMacBase::initialize(int stage)
         scheduleAt(NOW + TTI, ttiTick_);
         macBufferOverflowDl_ = registerSignal("macBufferOverflowDl");
         macBufferOverflowUl_ = registerSignal("macBufferOverflowUl");
-        if (isD2DCapable())
+        if (isD2DCapable() || isAutoD2DCapable()) // Enhancement for Autnomous D2D
             macBufferOverflowD2D_ = registerSignal("macBufferOverflowD2D");
         receivedPacketFromUpperLayer = registerSignal("receivedPacketFromUpperLayer");
         receivedPacketFromLowerLayer = registerSignal("receivedPacketFromLowerLayer");

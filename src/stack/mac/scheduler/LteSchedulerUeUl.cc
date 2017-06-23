@@ -21,8 +21,10 @@ LteSchedulerUeUl::LteSchedulerUeUl(LteMacUe * mac)
 
     // check if MAC is "experimental"
     std::string macType = mac_->getParentModule()->par("LteMacType").stdstringValue();
-    if (macType.compare("LteMacUeRealistic") == 0 || macType.compare("LteMacUeRealisticD2D") == 0)
+    if (macType.compare("LteMacUeRealistic") == 0 || macType.compare("LteMacUeRealisticD2D") == 0 || macType.compare("LteMacUeRealisticAutoD2D") == 0)
         lcgScheduler_ = new LcgSchedulerRealistic(mac);
+    else if (macType.compare("LteMacUeRealisticAutoD2D") == 1)
+        {} //MAC layer Scheduling for Auto D2D
     else
         lcgScheduler_ = new LcgScheduler(mac);
 }
