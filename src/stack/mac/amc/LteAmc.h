@@ -19,12 +19,15 @@
 #include "LteBinder.h"
 #include "LteDeployer.h"
 
+//#include "LteMacUeAutoD2D.h"
 /// Forward declaration of AmcPilot class, used by LteAmc.
 class AmcPilot;
 /// Forward declaration of LteDeployer class, used by LteAmc.
 class LteDeployer;
 /// Forward declaration of LteMacEnb class, used by LteAmc.
 class LteMacEnb;
+/// Forward declaration of LteMacEnb class, used by LteAmc.
+class LteMacUeAutoD2D;
 
 /**
  * @class LteAMC
@@ -43,7 +46,7 @@ class LteAmc
     void printTxParams(Direction dir);
     void printMuMimoMatrix(const char *s);
     protected:
-    LteMacEnb *mac_;
+    LteMacBase *mac_;
     LteBinder *binder_;
     LteDeployer *deployer_;
     AmcPilot *pilot_;
@@ -90,6 +93,7 @@ class LteAmc
     LteMuMimoMatrix muMimoD2DMatrix_;
     public:
     LteAmc(LteMacEnb *mac, LteBinder *binder, LteDeployer *deployer, int numAntennas);
+    LteAmc(LteMacUeAutoD2D *mac, LteBinder *binder, LteDeployer *deployer, int numAntennas);  // Overlaoded to support AutoD2D . Have to enhance functionality
     void initialize();
     ~LteAmc();
     void sefType(int f)

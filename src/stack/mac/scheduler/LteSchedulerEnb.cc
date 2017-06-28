@@ -21,7 +21,7 @@
 
 LteSchedulerEnb::LteSchedulerEnb()
 {
-    direction_ = DL;
+    direction_ = NULL;
     mac_ = 0;
     allocator_ = 0;
     scheduler_ = 0;
