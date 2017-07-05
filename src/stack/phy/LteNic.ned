@@ -155,7 +155,7 @@ module LteNicUeD2D extends LteNicBase
 module LteNicUeAutoD2D extends LteNicBase
 {
     parameters:
-        LtePdcpRrcType = "LtePdcpRrcUeD2D";
+        LtePdcpRrcType = "LtePdcpRrcUeAutoD2DD2D";
         LteMacType = default("LteMacUeRealisticAutoD2D");
         LtePhyType = "LtePhyUeD2D";
 		

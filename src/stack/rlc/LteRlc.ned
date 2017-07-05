@@ -52,6 +52,9 @@ module LteRlc {
         um: LteRlcUmRealisticD2D if (LteRlcUmType=="LteRlcUmRealistic" && d2dCapable ) {
             @display("p=200,100;");
         }
+        um: LteRlcUmRealisticAutoD2D if (LteRlcUmType=="LteRlcUmRealistic" && autoD2dCapable ) {
+            @display("p=200,100;");
+        }
         
         // AM Module
         am: LteRlcAm {
@@ -187,6 +190,17 @@ simple LteRlcUmRealisticD2D extends LteRlcUm
 {
     parameters:
         @class("LteRlcUmRealisticD2D");
+        @display("i=block/wheelbarrow");
+}
+
+
+// 
+// UM Module (realistic) for the RLC layer of LTE Stack (with D2D).
+//
+simple LteRlcUmRealisticAutoD2D extends LteRlcUm
+{
+    parameters:
+        @class("LteRlcUmRealisticAutoD2D");
         @display("i=block/wheelbarrow");
 }
 

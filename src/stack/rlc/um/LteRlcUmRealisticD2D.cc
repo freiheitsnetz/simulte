@@ -73,9 +73,9 @@ void LteRlcUmRealisticD2D::initialize(int stage)
             if (macType.compare("LteMacUeRealisticD2D") != 0)
               throw cRuntimeError("LteRlcUmRealisticD2D::initialize - %s module found, must be LteMacUeRealisticD2D. Aborting", macType.c_str());
 
-           // For Autonomous D2D
-            if (macType.compare("LteMacUeRealisticAutoD2D") != 0)
-                throw cRuntimeError("LteMacUeRealisticAutoD2D::initialize - %s module found, must be LteMacUeRealisticAutoD2D. Aborting", macType.c_str());
+//           // For Autonomous D2D
+//            if (macType.compare("LteMacUeRealisticAutoD2D") != 0)
+//                throw cRuntimeError("LteMacUeRealisticAutoD2D::initialize - %s module found, must be LteMacUeRealisticAutoD2D. Aborting", macType.c_str());
 
             if (pdcpType.compare("LtePdcpRrcUeD2D") != 0)
                 throw cRuntimeError("LteRlcUmRealisticD2D::initialize - %s module found, must be LtePdcpRrcUeD2D. Aborting", pdcpType.c_str());

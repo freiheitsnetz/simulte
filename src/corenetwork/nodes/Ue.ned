@@ -94,7 +94,7 @@ module Ue
             @display("p=250,407");
         }
         // Enhancement to support autonomous D2D
-        nic: LteNicUeD2D if autoD2dCapable {
+        nic: LteNicUeAutoD2D if autoD2dCapable {
             nodeType = nodeType;
             autoD2dCapable = autoD2dCapable;
             @display("p=250,407");

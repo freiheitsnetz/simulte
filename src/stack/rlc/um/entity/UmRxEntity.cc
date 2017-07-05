@@ -10,6 +10,7 @@
 #include "UmRxEntity.h"
 #include "LteMacBase.h"
 #include "LteMacEnb.h"
+#include "LteMacUeAutoD2D.h"
 #include "LteRlcUm.h"
 
 Define_Module(UmRxEntity);
