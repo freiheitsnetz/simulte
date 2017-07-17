@@ -7,15 +7,18 @@
 #include "UserTxParams.h"
 #include "LteSchedulerAutoD2D.h"
 #include "LteSchedulerUeAutoD2D.h"
-//#include "LteSchedulerUeAutoD2DDl.h"
-//#include "LteSchedulerUeAutoD2DUl.h"
+#include "LteSchedulerUeAutoD2DDl.h"
+#include "LteSchedulerUeAutoD2DUl.h"
 #include "LteHarqBufferRx.h"
+
 #include "LteHarqBufferRxD2DMirror.h"
 #include "LteDeployer.h"
 #include "D2DModeSwitchNotification_m.h"
 #include "LteRac_m.h"
 #include "LteAmc.h"
-
+#include "LteAllocationModule.h"
+#include "LteCommon.h"
+#include "LteFeedbackPkt.h"
 Define_Module(LteMacUeAutoD2D);
 
 LteMacUeAutoD2D::LteMacUeAutoD2D() {
@@ -1084,3 +1087,478 @@ void LteMacUeAutoD2D::sendModeSwitchNotification(MacNodeId srcId,
     sendLowerPackets(switchPktRx);
 }
 
+int LteMacUeAutoD2D::getNumRbDl()
+{
+    return numRbDl_;
+}
+
+int LteMacUeAutoD2D::getNumRbUl()
+{
+    return numRbUl_;
+}
+
+bool LteMacUeAutoD2D::bufferizePacket(cPacket* pkt)
+{
+    FlowControlInfo* lteInfo = check_and_cast<FlowControlInfo*>(pkt->getControlInfo());
+    MacCid cid = idToMacCid(lteInfo->getDestId(), lteInfo->getLcid());
+    OmnetId id = getBinder()->getOmnetId(lteInfo->getDestId());
+    if(id == 0){
+        // destination UE has left the simulation
+        delete pkt;
+        return false;
+    }
+    bool ret = false;
+
+    if ((ret = LteMacBase::bufferizePacket(pkt)))
+    {
+        ueAutoD2DSchedulerDl_->backlog(cid);
+    }
+    return ret;
+}
+
+void LteMacUeAutoD2D::handleUpperMessage(cPacket* pkt)
+{
+    FlowControlInfo* lteInfo = check_and_cast<FlowControlInfo*>(pkt->getControlInfo());
+    MacCid cid = idToMacCid(lteInfo->getDestId(), lteInfo->getLcid());
+    if (LteMacBase::bufferizePacket(pkt))
+    {
+        ueAutoD2DSchedulerDl_->backlog(cid);
+    }
+}
+
+double LteMacUeAutoD2D::getZeroLevel(Direction dir, LteSubFrameType type)
+{
+    std::string a("zeroLevel");
+    a.append(SubFrameTypeToA(type));
+    a.append(dirToA(dir));
+    return par(a.c_str());
+}
+
+double LteMacUeAutoD2D::getIdleLevel(Direction dir, LteSubFrameType type)
+{
+    std::string a("idleLevel");
+    a.append(SubFrameTypeToA(type));
+    a.append(dirToA(dir));
+    return par(a.c_str());
+}
+
+double LteMacUeAutoD2D::getPowerUnit(Direction dir, LteSubFrameType type)
+{
+    std::string a("powerUnit");
+    a.append(SubFrameTypeToA(type));
+    a.append(dirToA(dir));
+    return par(a.c_str());
+}
+
+void LteMacUeAutoD2D::allocatedRB(unsigned int rb)
+{
+    lastTtiAllocatedRb_ = rb;
+}
+
+SchedDiscipline LteMacUeAutoD2D::getSchedDiscipline(Direction dir)
+{
+    if (dir == DL)
+        return aToSchedDiscipline(
+            par("schedulingDisciplineDl").stdstringValue());
+    else if (dir == UL)
+        return aToSchedDiscipline(
+            par("schedulingDisciplineUl").stdstringValue());
+    else
+    {
+        throw cRuntimeError("LteMacUeAutoD2D::getSchedDiscipline(): unrecognized direction %d", (int) dir);
+    }
+}
+
+int LteMacUeAutoD2D::getNumAntennas()
+{
+    /* Get number of antennas: +1 is for MACRO */
+    return deployer_->getNumRus() + 1;
+}
+
+void LteMacUeAutoD2D::macPduUnmake(cPacket* pkt)
+{
+    LteMacPdu* macPkt = check_and_cast<LteMacPdu*>(pkt);
+    while (macPkt->hasSdu())
+    {
+        // Extract and send SDU
+        cPacket* upPkt = macPkt->popSdu();
+        take(upPkt);
+
+        // TODO: upPkt->info()
+        EV << "LteMacUeAutoD2D: pduUnmaker extracted SDU" << endl;
+        sendUpperPackets(upPkt);
+    }
+
+    while (macPkt->hasCe())
+    {
+        // Extract CE
+        // TODO: vedere se bsr  per cid o lcid
+        MacBsr* bsr = check_and_cast<MacBsr*>(macPkt->popCe());
+        UserControlInfo* lteInfo = check_and_cast<UserControlInfo*>(macPkt->getControlInfo());
+        MacCid cid = idToMacCid(lteInfo->getSourceId(), 0);
+        bufferizeBsr(bsr, cid);
+        delete bsr;
+    }
+
+    ASSERT(macPkt->getOwner() == this);
+    delete macPkt;
+
+}
+
+void LteMacUeAutoD2D::deleteQueues(MacNodeId nodeId)
+{
+    LteMacBase::deleteQueues(nodeId);
+
+    LteMacBufferMap::iterator bit;
+    for (bit = bsrbuf_.begin(); bit != bsrbuf_.end();)
+    {
+        if (MacCidToNodeId(bit->first) == nodeId)
+        {
+            delete bit->second; // Delete Queue
+            bsrbuf_.erase(bit++); // Delete Elem
+        }
+        else
+        {
+            ++bit;
+        }
+    }
+
+    //update harq status in schedulers
+//    ueAutoD2DSchedulerDl_->updateHarqDescs();
+//    ueAutoD2DSchedulerUl_->updateHarqDescs();
+
+    // remove active connections from the schedulers
+    ueAutoD2DSchedulerDl_->removeActiveConnections(nodeId);
+    ueAutoD2DSchedulerUl_->removeActiveConnections(nodeId);
+
+    // remove pending RAC requests
+    ueAutoD2DSchedulerUl_->removePendingRac(nodeId);
+}
+
+void LteMacUeAutoD2D::macHandleFeedbackPkt(cPacket *pkt)
+{
+    LteFeedbackPkt* fb = check_and_cast<LteFeedbackPkt*>(pkt);
+    LteFeedbackDoubleVector fbMapDl = fb->getLteFeedbackDoubleVectorDl();
+    LteFeedbackDoubleVector fbMapUl = fb->getLteFeedbackDoubleVectorUl();
+    //get Source Node Id<
+    MacNodeId id = fb->getSourceNodeId();
+    LteFeedbackDoubleVector::iterator it;
+    LteFeedbackVector::iterator jt;
+
+    for (it = fbMapDl.begin(); it != fbMapDl.end(); ++it)
+    {
+        unsigned int i = 0;
+        for (jt = it->begin(); jt != it->end(); ++jt)
+        {
+            //            TxMode rx=(TxMode)i;
+            if (!jt->isEmptyFeedback())
+            {
+                amc_->pushFeedback(id, DL, (*jt));
+                cqiStatistics(id, DL, (*jt));
+            }
+            i++;
+        }
+    }
+    for (it = fbMapUl.begin(); it != fbMapUl.end(); ++it)
+    {
+        for (jt = it->begin(); jt != it->end(); ++jt)
+        {
+            if (!jt->isEmptyFeedback())
+                amc_->pushFeedback(id, UL, (*jt));
+        }
+    }
+    delete fb;
+}
+
+void LteMacUeAutoD2D::updateUserTxParam(cPacket* pkt)
+{
+    UserControlInfo *lteInfo = check_and_cast<UserControlInfo *>(
+        pkt->getControlInfo());
+
+    if (lteInfo->getFrameType() != DATAPKT)
+        return; // TODO check if this should be removed.
+
+    Direction dir = (Direction) lteInfo->getDirection();
+
+    const UserTxParams& newParam = amc_->computeTxParams(lteInfo->getDestId(), dir);
+    UserTxParams* tmp = new UserTxParams(newParam);
+
+    lteInfo->setUserTxParams(tmp);
+    RbMap rbMap;
+    lteInfo->setTxMode(newParam.readTxMode());
+    LteSchedulerUeAutoD2D* scheduler = ((dir == DL) ? (LteSchedulerUeAutoD2D*) ueAutoD2DSchedulerDl_ : (LteSchedulerUeAutoD2D*) ueAutoD2DSchedulerUl_);
+
+    int grantedBlocks = scheduler->readRbOccupation(lteInfo->getDestId(), rbMap);
+
+    lteInfo->setGrantedBlocks(rbMap);
+    lteInfo->setTotalGrantedBlocks(grantedBlocks);
+}
+
+void LteMacUeAutoD2D::sendGrants(LteMacScheduleList* scheduleList)
+{
+    EV << NOW << "LteMacUeAutoD2D::sendGrants " << endl;
+
+    while (!scheduleList->empty())
+    {
+        LteMacScheduleList::iterator it, ot;
+        it = scheduleList->begin();
+
+        Codeword cw = it->first.second;
+        Codeword otherCw = MAX_CODEWORDS - cw;
+
+        MacCid cid = it->first.first;
+        LogicalCid lcid = MacCidToLcid(cid);
+        MacNodeId nodeId = MacCidToNodeId(cid);
+
+        unsigned int granted = it->second;
+        unsigned int codewords = 0;
+
+        // removing visited element from scheduleList.
+        scheduleList->erase(it);
+
+        if (granted > 0)
+        {
+            // increment number of allocated Cw
+            ++codewords;
+        }
+        else
+        {
+            // active cw becomes the "other one"
+            cw = otherCw;
+        }
+
+        std::pair<unsigned int, Codeword> otherPair(nodeId, otherCw);
+
+        if ((ot = (scheduleList->find(otherPair))) != (scheduleList->end()))
+        {
+            // increment number of allocated Cw
+            ++codewords;
+
+            // removing visited element from scheduleList.
+            scheduleList->erase(ot);
+        }
+
+        if (granted == 0)
+        continue; // avoiding transmission of 0 grant (0 grant should not be created)
+
+        EV << NOW << " LteMacUeAutoD2D::sendGrants Node[" << getMacNodeId() << "] - "
+           << granted << " blocks to grant for user " << nodeId << " on "
+           << codewords << " codewords. CW[" << cw << "\\" << otherCw << "]" << endl;
+
+        // TODO Grant is set aperiodic as default
+        LteSchedulingGrant* grant = new LteSchedulingGrant("LteGrant");
+
+        grant->setDirection(UL);
+
+        grant->setCodewords(codewords);
+
+        // set total granted blocks
+        grant->setTotalGrantedBlocks(granted);
+
+        UserControlInfo* uinfo = new UserControlInfo();
+        uinfo->setSourceId(getMacNodeId());
+        uinfo->setDestId(nodeId);
+        uinfo->setFrameType(GRANTPKT);
+
+        grant->setControlInfo(uinfo);
+
+        // get and set the user's UserTxParams
+        const UserTxParams& ui = getAmc()->computeTxParams(nodeId, UL);
+        UserTxParams* txPara = new UserTxParams(ui);
+        grant->setUserTxParams(txPara);
+
+        // acquiring remote antennas set from user info
+        const std::set<Remote>& antennas = ui.readAntennaSet();
+        std::set<Remote>::const_iterator antenna_it, antenna_et = antennas.end();
+        const unsigned int logicalBands = deployer_->getNumBands();
+
+        //  HANDLE MULTICW
+        for (; cw < codewords; ++cw)
+        {
+            unsigned int grantedBytes = 0;
+
+            for (Band b = 0; b < logicalBands; ++b)
+            {
+                unsigned int bandAllocatedBlocks = 0;
+
+                for (antenna_it = antennas.begin(); antenna_it != antenna_et; ++antenna_it)
+                {
+                    bandAllocatedBlocks += ueAutoD2DSchedulerUl_->readPerUeAllocatedBlocks(nodeId,
+                        *antenna_it, b);
+                }
+
+                grantedBytes += amc_->computeBytesOnNRbs(nodeId, b, cw,
+                    bandAllocatedBlocks, UL);
+            }
+
+            grant->setGrantedCwBytes(cw, grantedBytes);
+            EV << NOW << " LteMacUeAutoD2D::sendGrants - granting " << grantedBytes << " on cw " << cw << endl;
+        }
+
+        RbMap map;
+
+        ueAutoD2DSchedulerUl_->readRbOccupation(nodeId, map);
+
+        grant->setGrantedBlocks(map);
+
+        // send grant to PHY layer
+        sendLowerPackets(grant);
+    }
+}
+
+void LteMacUeAutoD2D::bufferizeBsr(MacBsr* bsr, MacCid cid)
+{
+    PacketInfo vpkt(bsr->getSize(), bsr->getTimestamp());
+
+    LteMacBufferMap::iterator it = bsrbuf_.find(cid);
+    if (it == bsrbuf_.end())
+    {
+        // Queue not found for this cid: create
+        LteMacBuffer* bsrqueue = new LteMacBuffer();
+
+        bsrqueue->pushBack(vpkt);
+        bsrbuf_[cid] = bsrqueue;
+
+        EV << "LteBsrBuffers : Added new BSR buffer for node: "
+           << MacCidToNodeId(cid) << " for Lcid: " << MacCidToLcid(cid)
+           << " Current BSR size: " << bsr->getSize() << "\n";
+    }
+    else
+    {
+        // Found
+        LteMacBuffer* bsrqueue = it->second;
+        bsrqueue->pushBack(vpkt);
+
+        EV << "LteBsrBuffers : Using old buffer for node: " << MacCidToNodeId(
+            cid) << " for Lcid: " << MacCidToLcid(cid)
+           << " Current BSR size: " << bsr->getSize() << "\n";
+    }
+
+        // signal backlog to Uplink scheduler
+    ueAutoD2DSchedulerUl_->backlog(cid);
+}
+
+
+void LteMacUeAutoD2D::cqiStatistics(MacNodeId id, Direction dir, LteFeedback fb)
+{
+    if (dir == DL)
+    {
+        tSample_->id_ = id;
+        if (fb.getTxMode() == SINGLE_ANTENNA_PORT0)
+        {
+            for (unsigned int i = 0; i < fb.getBandCqi(0).size(); i++)
+            {
+                switch (i)
+                {
+                    case 0:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlSiso0_, tSample_);
+                        break;
+                    case 1:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlSiso1_, tSample_);
+                        break;
+                    case 2:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlSiso2_, tSample_);
+                        break;
+                    case 3:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlSiso3_, tSample_);
+                        break;
+                    case 4:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlSiso4_, tSample_);
+                        break;
+                }
+            }
+        }
+        else if (fb.getTxMode() == TRANSMIT_DIVERSITY)
+        {
+            for (unsigned int i = 0; i < fb.getBandCqi(0).size(); i++)
+            {
+                switch (i)
+                {
+                    case 0:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlTxDiv0_, tSample_);
+                        break;
+                    case 1:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlTxDiv1_, tSample_);
+                        break;
+                    case 2:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlTxDiv2_, tSample_);
+                        break;
+                    case 3:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlTxDiv3_, tSample_);
+                        break;
+                    case 4:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlTxDiv4_, tSample_);
+                        break;
+                }
+            }
+        }
+        else if (fb.getTxMode() == OL_SPATIAL_MULTIPLEXING)
+        {
+            for (unsigned int i = 0; i < fb.getBandCqi(0).size(); i++)
+            {
+                switch (i)
+                {
+                    case 0:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlSpmux0_, tSample_);
+                        break;
+                    case 1:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlSpmux1_, tSample_);
+                        break;
+                    case 2:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlSpmux2_, tSample_);
+                        break;
+                    case 3:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlSpmux3_, tSample_);
+                        break;
+                    case 4:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlSpmux4_, tSample_);
+                        break;
+                }
+            }
+        }
+        else if (fb.getTxMode() == MULTI_USER)
+        {
+            for (unsigned int i = 0; i < fb.getBandCqi(0).size(); i++)
+            {
+                switch (i)
+                {
+                    case 0:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlMuMimo0_, tSample_);
+                        break;
+                    case 1:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlMuMimo1_, tSample_);
+                        break;
+                    case 2:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlMuMimo2_, tSample_);
+                        break;
+                    case 3:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlMuMimo3_, tSample_);
+                        break;
+                    case 4:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlMuMimo4_, tSample_);
+                        break;
+                }
+            }
+        }
+    }
+}

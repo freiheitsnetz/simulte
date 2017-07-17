@@ -14,9 +14,9 @@
 
 Define_Module(LteRlcUmRealisticAutoD2D);
 
-//void LteRlcUmRealisticAutoD2D::handleMessage(cMessage *msg) {
-//    LteRlcUmRealistic::handleMessage(msg);
-//}
+void LteRlcUmRealisticAutoD2D::handleMessage(cMessage *msg) {
+    LteRlcUm::handleMessage(msg);
+}
 
 //void LteRlcUmRealisticAutoD2D::handleLowerMessage(cPacket *pkt) {
 //    if (strcmp(pkt->getName(), "AutoD2DModeSwitchNotification") == 0) {

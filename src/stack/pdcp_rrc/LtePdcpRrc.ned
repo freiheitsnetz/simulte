@@ -96,6 +96,14 @@ simple LtePdcpRrcUeD2D extends LtePdcpRrcUe {
 }
 
 //
+// Auto D2D-capable User Equipment PDCP/RRC layer of LTE stack
+//
+simple LtePdcpRrcUeAutoD2D extends LtePdcpRrcUe {
+    parameters:
+        @class("LtePdcpRrcUeAutoD2D");
+}
+
+//
 // eNodeB PDCP/RRC layer of LTE stack
 //
 simple LtePdcpRrcEnb extends LtePdcpRrcBase {

@@ -171,7 +171,7 @@ simple LteMacUeD2D extends LteMacUe {
 //
 // Auto-D2D-capable User Equipment MAC layer of LTE stack
 //
-simple LteMacUeAutoD2D extends LteMacUe {
+simple LteMacUeAutoD2D extends LteMacEnb {
     parameters:
         @class("LteMacUeAutoD2D");
     
@@ -179,18 +179,18 @@ simple LteMacUeAutoD2D extends LteMacUe {
         int d2dCqi = default(7);
 }
 
-//
-// Auto-D2D-capable User Equipment MAC layer of LTE stack (Realistic)
-//
-simple LteMacUeRealisticAutoD2D extends LteMacUeRealistic
-{
-  parameters:
-    
-    @class("LteMacUeRealisticAutoD2D"); 
-    
-    bool usePreconfiguredTxParams = default(false);
-    int d2dCqi = default(7);
-}
+////
+//// Auto-D2D-capable User Equipment MAC layer of LTE stack (Realistic)
+////
+//simple LteMacUeRealisticAutoD2D extends LteMacUeRealistic
+//{
+//  parameters:
+//    
+//    @class("LteMacUeRealisticAutoD2D"); 
+//    
+//    bool usePreconfiguredTxParams = default(false);
+//    int d2dCqi = default(7);
+//}
 
 //
 // User Equipment MAC layer of LTE stack (Realistic)

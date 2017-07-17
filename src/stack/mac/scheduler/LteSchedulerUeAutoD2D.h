@@ -140,7 +140,7 @@ class LteSchedulerUeAutoD2D
      * Schedule data.
      * @param list
      */
-    LteMacScheduleList* schedule();
+    virtual LteMacScheduleList* schedule();
 
     /**
      * Update the status of the scheduler. Called by the MAC.
