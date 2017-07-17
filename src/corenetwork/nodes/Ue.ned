@@ -46,7 +46,7 @@ module Ue
         
         //# D2D capability
         bool d2dCapable = default(false);
-        bool autoD2dCapable = default(false);
+        bool autoD2dCapable = default(false); // Enhancement for Autonomous D2D 
 
         //# Network Layer specs
         string networkLayerType = default("IPv4NetworkLayer");
@@ -85,6 +85,7 @@ module Ue
         nic: LteNicUe if (!d2dCapable || !autoD2dCapable) {
             nodeType = nodeType;
             d2dCapable = d2dCapable;
+            autoD2dCapable = autoD2dCapable;
             @display("p=250,407");
         }
         // NOTE: instance must be named "nic"

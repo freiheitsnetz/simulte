@@ -45,7 +45,7 @@ module eNodeB
         int macCellId = default(0);  // TODO: this is not a real parameter
         double txPower @unit(mw) = default(100mw);
         bool d2dCapable = default(false);
-        bool autoD2dCapable = default(false); // Enhancement for Autonomous D2D 
+        //bool autoD2dCapable = default(false); // Enhancement for Autonomous D2D 
 
         //# Network Layer specs
         string networkLayerType = default("IPv4NetworkLayer");

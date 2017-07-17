@@ -216,7 +216,7 @@ void UmRxQueue::initialize()
         rlcCellThroughput_ = nodeB_->registerSignal("rlcCellThroughputDl");
         rlcCellPacketLoss_ = nodeB_->registerSignal("rlcCellPacketLossDl");
 
-        if ((mac->isD2DCapable())|| (mac->isAutoD2DCapable())) // Enhancement for Autonomous D2D
+        if (mac->isD2DCapable())
         {
             rlcPacketLossD2D_ = parent->registerSignal("rlcPacketLossD2D");
             rlcPduPacketLossD2D_ = parent->registerSignal("rlcPduPacketLossD2D");
@@ -227,6 +227,18 @@ void UmRxQueue::initialize()
 
             rlcCellThroughputD2D_ = nodeB_->registerSignal("rlcCellThroughputD2D");
             rlcCellPacketLossD2D_ = nodeB_->registerSignal("rlcCellPacketLossD2D");
+        }
+        else if (mac->isAutoD2DCapable()) // Enhancement for Autonomous D2D
+        {
+            rlcPacketLossD2D_ = parent->registerSignal("rlcPacketLossD2D");
+            rlcPduPacketLossD2D_ = parent->registerSignal("rlcPduPacketLossD2D");
+            rlcDelayD2D_ = parent->registerSignal("rlcDelayD2D");
+            rlcThroughputD2D_ = parent->registerSignal("rlcThroughputD2D");
+            rlcPduDelayD2D_ = parent->registerSignal("rlcPduDelayD2D");
+            rlcPduThroughputD2D_ = parent->registerSignal("rlcPduThroughputD2D");
+
+            rlcCellThroughputD2D_ = parent->registerSignal("rlcCellThroughputD2D");
+            rlcCellPacketLossD2D_ = parent->registerSignal("rlcCellPacketLossD2D");
         }
     }
 
