@@ -179,19 +179,6 @@ simple LteMacUeAutoD2D extends LteMacEnb {
         int d2dCqi = default(7);
 }
 
-////
-//// Auto-D2D-capable User Equipment MAC layer of LTE stack (Realistic)
-////
-//simple LteMacUeRealisticAutoD2D extends LteMacUeRealistic
-//{
-//  parameters:
-//    
-//    @class("LteMacUeRealisticAutoD2D"); 
-//    
-//    bool usePreconfiguredTxParams = default(false);
-//    int d2dCqi = default(7);
-//}
-
 //
 // User Equipment MAC layer of LTE stack (Realistic)
 //

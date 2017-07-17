@@ -64,9 +64,9 @@ void LteRlcUmRealisticAutoD2D::initialize(int stage) {
 
        if (nodeType.compare("UE") == 0) {
             nodeType_ = UE;
-            if (macType.compare("LteMacUeRealisticAutoD2D") != 0)
+            if (macType.compare("LteMacUeAutoD2D") != 0)
                 throw cRuntimeError(
-                        "LteRlcUmRealisticAutoD2D::initialize - %s module found, must be LteMacUeRealisticAutoD2D. Aborting",
+                        "LteRlcUmRealisticAutoD2D::initialize - %s module found, must be LteMacUeAutoD2D. Aborting",
                         macType.c_str());
 
             if (pdcpType.compare("LtePdcpRrcUeAutoD2D") != 0)

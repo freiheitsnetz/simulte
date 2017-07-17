@@ -166,13 +166,13 @@ void LteMacUeAutoD2D::initialize(int stage) {
                 getParentModule()->par("LtePdcpRrcType").stdstringValue();
         cModule* rlc = getParentModule()->getSubmodule("rlc");
         std::string rlcUmType = rlc->par("LteRlcUmType").stdstringValue();
-        bool rlcD2dCapable = rlc->par("d2dCapable").boolValue();
+        bool rlcD2dCapable = rlc->par("autoD2dCapable").boolValue();
         std::string macType =
                 getParentModule()->par("LteMacType").stdstringValue();
-        if (macType.compare("LteMacUeAutoD2DRealistic") == 0
-                && rlcUmType.compare("LteRlcUmRealistic") != 0)
+        if (macType.compare("LteMacUeAutoD2D") == 0
+                && rlcUmType.compare("LteRlcUmRealisticAutoD2D") != 0)
             throw cRuntimeError(
-                    "LteMacUeAutoD2DRealistic::initialize - %s module found, must be LteRlcUmRealistic. Aborting",
+                    "LteMacUeAutoD2D::initialize - %s module found, must be LteRlcUmRealisticAutoD2D. Aborting",
                     rlcUmType.c_str());
 
         /* Create and initialize MAC Downlink scheduler */
@@ -183,13 +183,13 @@ void LteMacUeAutoD2D::initialize(int stage) {
         ueAutoD2DSchedulerUl_ = new LteSchedulerUeAutoD2DUl();
         ueAutoD2DSchedulerUl_->initialize(UL, this);
 
-        if (rlcUmType.compare("LteRlcUmRealistic") != 0 || !rlcD2dCapable)
+        if (rlcUmType.compare("LteRlcUmRealisticAutoD2D") != 0 || !rlcD2dCapable)
             throw cRuntimeError(
-                    "LteMacUeRealisticAutoD2D::initialize - %s module found, must be LteRlcUmRealisticD2D. Aborting",
+                    "LteMacUeAutoD2D::initialize - %s module found, must be LteRlcUmRealisticAutoD2D. Aborting",
                     rlcUmType.c_str());
-        if (pdcpType.compare("LtePdcpRrcUeD2D") != 0)
+        if (pdcpType.compare("LtePdcpRrcUeAutoD2D") != 0)
             throw cRuntimeError(
-                    "LteMacUeRealisticAutoD2D::initialize - %s module found, must be LtePdcpRrcUeD2D. Aborting",
+                    "LteMacUeAutoD2D::initialize - %s module found, must be LtePdcpRrcUeAutoD2D. Aborting",
                     pdcpType.c_str());
     }
     if (stage == 1) {
@@ -455,7 +455,7 @@ void LteMacUeAutoD2D::handleSelfMessage() {
         if (hit->first == cellId_)
             purged += hit->second->purgeCorruptedPdus();
     }
-    EV << NOW << " LteMacUe::handleSelfMessage Purged " << purged << " PDUS"
+    EV << NOW << " LteMacUeAutoD2D::handleSelfMessage Purged " << purged << " PDUS"
               << endl;
 
     // update current harq process id
