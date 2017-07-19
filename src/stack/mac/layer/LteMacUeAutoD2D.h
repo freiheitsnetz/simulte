@@ -21,13 +21,13 @@ class LteMacUeAutoD2D : public LteMacBase
 protected:
     /*
      * Map associating a nodeId with the corresponding RX H-ARQ buffer.
-     * Used in eNB for D2D communications. The key value of the map is
+     * Used in ueAutoD2D for D2D communications. The key value of the map is
      * the *receiver* of the D2D flow
      */
     HarqRxBuffersMirror harqRxBuffersD2DMirror_;
     /// Local LteDeployer
     LteDeployer *deployer_;
-    // reference to the eNB
+    // reference to the ueAutoD2D
     LteMacUeAutoD2D* ueAutoD2D_;
 
     /// Lte AMC module

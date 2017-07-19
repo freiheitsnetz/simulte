@@ -52,7 +52,7 @@ module LteRlc {
         um: LteRlcUmRealisticD2D if (LteRlcUmType=="LteRlcUmRealistic" && d2dCapable ) {
             @display("p=200,100;");
         }
-        um: LteRlcUmRealisticAutoD2D if (LteRlcUmType=="LteRlcUmRealistic" && autoD2dCapable ) {
+        um: LteRlcUmRealisticAutoD2D if (LteRlcUmType=="LteRlcUmRealisticAutoD2D" && autoD2dCapable ) {
             @display("p=200,100;");
         }
         

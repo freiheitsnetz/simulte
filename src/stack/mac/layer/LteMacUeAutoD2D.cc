@@ -10,7 +10,9 @@
 #include "LteSchedulerUeAutoD2DDl.h"
 #include "LteSchedulerUeAutoD2DUl.h"
 #include "LteHarqBufferRx.h"
-
+#include "InterfaceEntry.h"
+#include "ModuleAccess.h"
+#include "IPv4InterfaceData.h"
 #include "LteHarqBufferRxD2DMirror.h"
 #include "LteDeployer.h"
 #include "D2DModeSwitchNotification_m.h"
@@ -19,6 +21,8 @@
 #include "LteAllocationModule.h"
 #include "LteCommon.h"
 #include "LteFeedbackPkt.h"
+#include "LtePhyBase.h"
+
 Define_Module(LteMacUeAutoD2D);
 
 LteMacUeAutoD2D::LteMacUeAutoD2D() {
@@ -29,7 +33,7 @@ LteMacUeAutoD2D::LteMacUeAutoD2D() {
     numAntennas_ = 0;
     bsrbuf_.clear();
     currentSubFrameType_ = NORMAL_FRAME_TYPE;
-    nodeType_ = ENODEB;
+    //    nodeType_ = ENODEB;
     frameIndex_ = 0;
     lastTtiAllocatedRb_ = 0;
     racD2DMulticastRequested_ = false;
@@ -57,17 +61,28 @@ LteMacUeAutoD2D::LteMacUeAutoD2D() {
     harqProcesses_ = 8;
 }
 
-LteMacUeAutoD2D::~LteMacUeAutoD2D() {
+LteMacUeAutoD2D::~LteMacUeAutoD2D()
+{
+//    delete lcgScheduler_;
+//
+//        if (schedulingGrant_!=NULL)
+//        {
+//            delete schedulingGrant_;
+//            schedulingGrant_ = NULL;
+//        }
 }
 
 LteDeployer* LteMacUeAutoD2D::getDeployer() {
     // Get local deployer
     if (deployer_ != NULL)
         return deployer_;
-
-    return check_and_cast<LteDeployer*>(getParentModule()-> // Stack
-    getParentModule()-> // Enb
-    getSubmodule("deployer")); // Deployer
+    if (getParentModule()-> getSubmodule("deployer") == NULL)
+        throw cRuntimeError("UE parent submodule deployer is null", getParentModule()->getFullName());
+    else if (getParentModule()-> getParentModule() == NULL)
+        throw cRuntimeError("UE grand parent is null");
+    else if (getParentModule()-> getParentModule()-> getSubmodule("deployer") == NULL)
+        throw cRuntimeError("UE grand parent submodule is null");
+    return check_and_cast<LteDeployer*>(getParentModule()->getParentModule()->getSubmodule("deployer")); // Deployer
 }
 
 LteDeployer* LteMacUeAutoD2D::getDeployer(MacNodeId nodeId) {
@@ -75,14 +90,42 @@ LteDeployer* LteMacUeAutoD2D::getDeployer(MacNodeId nodeId) {
     if (deployer_ != NULL)
         return deployer_;
 
-    return check_and_cast<LteDeployer*>(getParentModule()-> // Stack
-    getParentModule()-> // Enb
-    getSubmodule("deployer")); // Deployer
+    return check_and_cast<LteDeployer*>(getParentModule()->getParentModule()->getSubmodule("deployer")); // Deployer
 }
 
 void LteMacUeAutoD2D::initialize(int stage) {
     LteMacBase::initialize(stage);
-    if (stage == inet::INITSTAGE_LOCAL) {
+
+    if (stage == INITSTAGE_PHYSICAL_ENVIRONMENT)
+    {
+        /* Insert UeInfo in the Binder */
+        UeInfo* info = new UeInfo();
+        info->id = nodeId_;            // local mac ID
+        info->cellId = cellId_;        // cell ID
+        info->init = false;            // flag for phy initialization
+        info->ue = this->getParentModule()->getParentModule();  // reference to the UE module
+        if (info->ue->getSubmodule("nic") == NULL)
+            throw cRuntimeError("UE NIC is null");
+        else if (info->ue->getSubmodule("nic")->getSubmodule("phy") == NULL)
+            throw cRuntimeError("UE NIC PHY is null");
+        // Get the Physical Channel reference of the node
+        info->phy = check_and_cast<LtePhyBase*>(info->ue->getSubmodule("nic")->getSubmodule("phy"));
+
+        binder_->addUeInfo(info);
+    }
+    else if (stage == INITSTAGE_NETWORK_LAYER_3)
+    {
+        // find interface entry and use its address
+        IInterfaceTable *interfaceTable = getModuleFromPar<IInterfaceTable>(par("interfaceTableModule"), this);
+        // TODO: how do we find the LTE interface?
+        InterfaceEntry * interfaceEntry = interfaceTable->getInterfaceByName("wlan");
+
+        IPv4InterfaceData* ipv4if = interfaceEntry->ipv4Data();
+        if(ipv4if == NULL)
+            throw new cRuntimeError("no IPv4 interface data - cannot bind node %i", nodeId_);
+        binder_->setMacNodeId(ipv4if->getIPAddress(), nodeId_);
+    }else if ((stage == inet::INITSTAGE_LOCAL)) {
+//        lcgScheduler_ = new LteSchedulerUeAutoD2DUl(this);
         // TODO: read NED parameters, when will be present
         deployer_ = getDeployer();
         /* Get num RB Dl */
@@ -92,6 +135,19 @@ void LteMacUeAutoD2D::initialize(int stage) {
 
         /* Get number of antennas */
         numAntennas_ = getNumAntennas();
+
+        // check the RLC module type: if it is not "RealisticAutoD2D", abort simulation
+        std::string pdcpType =
+                getParentModule()->par("LtePdcpRrcType").stdstringValue();
+        cModule* rlc = getParentModule()->getSubmodule("rlc");
+        std::string rlcUmType = rlc->par("LteRlcUmType").stdstringValue();
+        bool rlcAutoD2dCapable = rlc->par("autoD2dCapable").boolValue();
+        std::string macType =
+                getParentModule()->par("LteMacType").stdstringValue();
+        if (macType.compare("LteMacUeAutoD2D") == 0 && rlcUmType.compare("LteRlcUmRealisticAutoD2D") != 0  && rlcAutoD2dCapable)
+            throw cRuntimeError("LteMacUeAutoD2D::initialize - %s module found, must be LteRlcUmRealisticAutoD2D. Aborting",rlcUmType.c_str());
+        if (macType.compare("LteMacUeAutoD2D") == 0 && pdcpType.compare("LtePdcpRrcUeD2D") != 0 && rlcAutoD2dCapable)
+            throw cRuntimeError("LteMacUeAutoD2D::initialize - %s module found, must be LtePdcpRrcUeAutoD2D. Aborting", pdcpType.c_str());
 
         /* Create and initialize MAC Downlink scheduler */
         if (ueAutoD2DSchedulerDl_ == NULL) {
@@ -141,70 +197,37 @@ void LteMacUeAutoD2D::initialize(int stage) {
         eNodeBCount = par("eNodeBCount");
         WATCH(numAntennas_);
         WATCH_MAP(bsrbuf_);
+
+
     } else if (stage == 1) {
         /* Create and initialize AMC module */
         amc_ = new LteAmc(this, binder_, deployer_, numAntennas_);
 
-        /* Insert EnbInfo in the Binder */
-        EnbInfo* info = new EnbInfo();
-        info->id = nodeId_;            // local mac ID
-        info->type = MACRO_ENB;        // eNb Type
-        info->init = false;            // flag for phy initialization
-        info->eNodeB = this->getParentModule()->getParentModule(); // reference to the eNodeB module
-        binder_->addEnbInfo(info);
-
-        // register the pair <id,name> to the binder
-        const char* moduleName =
-                getParentModule()->getParentModule()->getName();
-        binder_->registerName(nodeId_, moduleName);
-    }
-
-    if (stage == 0) // Added from LteMacUeRealisticAutoD2D
-            {
-        // check the RLC module type: if it is not "RealisticD2D", abort simulation
-        std::string pdcpType =
-                getParentModule()->par("LtePdcpRrcType").stdstringValue();
-        cModule* rlc = getParentModule()->getSubmodule("rlc");
-        std::string rlcUmType = rlc->par("LteRlcUmType").stdstringValue();
-        bool rlcD2dCapable = rlc->par("autoD2dCapable").boolValue();
-        std::string macType =
-                getParentModule()->par("LteMacType").stdstringValue();
-        if (macType.compare("LteMacUeAutoD2D") == 0
-                && rlcUmType.compare("LteRlcUmRealisticAutoD2D") != 0)
-            throw cRuntimeError(
-                    "LteMacUeAutoD2D::initialize - %s module found, must be LteRlcUmRealisticAutoD2D. Aborting",
-                    rlcUmType.c_str());
-
-        /* Create and initialize MAC Downlink scheduler */
-        ueAutoD2DSchedulerDl_ = new LteSchedulerUeAutoD2DDl();
-        ueAutoD2DSchedulerDl_->initialize(DL, this);
-
-        /* Create and initialize MAC Uplink scheduler */
-        ueAutoD2DSchedulerUl_ = new LteSchedulerUeAutoD2DUl();
-        ueAutoD2DSchedulerUl_->initialize(UL, this);
-
-        if (rlcUmType.compare("LteRlcUmRealisticAutoD2D") != 0 || !rlcD2dCapable)
-            throw cRuntimeError(
-                    "LteMacUeAutoD2D::initialize - %s module found, must be LteRlcUmRealisticAutoD2D. Aborting",
-                    rlcUmType.c_str());
-        if (pdcpType.compare("LtePdcpRrcUeAutoD2D") != 0)
-            throw cRuntimeError(
-                    "LteMacUeAutoD2D::initialize - %s module found, must be LtePdcpRrcUeAutoD2D. Aborting",
-                    pdcpType.c_str());
-    }
-    if (stage == 1) {
-        usePreconfiguredTxParams_ = par("usePreconfiguredTxParams");
-        if (usePreconfiguredTxParams_)
-            preconfiguredTxParams_ = getPreconfiguredTxParams();
-        else
-            preconfiguredTxParams_ = NULL;
-
+//        /* Insert EnbInfo in the Binder */
+//        EnbInfo* info = new EnbInfo();
+//        info->id = nodeId_;            // local mac ID
+//        info->type = MACRO_ENB;        // eNb Type
+//        info->init = false;            // flag for phy initialization
+//        info->eNodeB = this->getParentModule()->getParentModule(); // reference to the eNodeB module
+//        binder_->addEnbInfo(info);
         // get the reference to the UeAutoD2D
         ueAutoD2D_ =
                 check_and_cast<LteMacUeAutoD2D*>(
                         getSimulation()->getModule(
                                 binder_->getOmnetId(getMacCellId()))->getSubmodule(
                                 "nic")->getSubmodule("mac"));
+        // register the pair <id,name> to the binder
+        const char* moduleName =
+                getParentModule()->getParentModule()->getName();
+        binder_->registerName(nodeId_, moduleName);
+
+        usePreconfiguredTxParams_ = par("usePreconfiguredTxParams");
+        if (usePreconfiguredTxParams_)
+            preconfiguredTxParams_ = getPreconfiguredTxParams();
+        else
+            preconfiguredTxParams_ = NULL;
+
+
     }
 }
 

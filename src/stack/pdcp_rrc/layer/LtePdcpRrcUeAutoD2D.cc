@@ -164,7 +164,7 @@ void LtePdcpRrcUeAutoD2D::handleMessage(cMessage* msg)
     // check whether the message is a notification for mode switch
     if (strcmp(pkt->getName(),"D2DModeSwitchNotification") == 0)
     {
-        EV << "LtePdcpRrcUeD2D::handleMessage - Received packet " << pkt->getName() << " from port " << pkt->getArrivalGate()->getName() << endl;
+        EV << "LtePdcpRrcUeAutoD2D::handleMessage - Received packet " << pkt->getName() << " from port " << pkt->getArrivalGate()->getName() << endl;
 
         D2DModeSwitchNotification* switchPkt = check_and_cast<D2DModeSwitchNotification*>(pkt);
 

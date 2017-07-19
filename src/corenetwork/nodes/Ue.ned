@@ -16,6 +16,8 @@ import inet.mobility.contract.IMobility;
 import inet.networklayer.common.InterfaceTable;
 import inet.networklayer.contract.IRoutingTable;
 import inet.networklayer.contract.INetworkLayer;
+
+import lte.corenetwork.deployer.LteDeployer;
 import inet.transportlayer.tcp.TCP;
 import inet.transportlayer.udp.UDP;
 import lte.stack.phy.LteNicUe;
@@ -46,6 +48,9 @@ module Ue
         
         //# D2D capability
         bool d2dCapable = default(false);
+        
+        //# Auto D2D capability
+        double txPower @unit(mw) = default(100mw);
         bool autoD2dCapable = default(false); // Enhancement for Autonomous D2D 
 
         //# Network Layer specs
@@ -69,6 +74,10 @@ module Ue
         mobility: <mobilityType> like IMobility {
             @display("p=50,175;is=s");
         }
+                // NOTE: LteDeployer must be created first
+        deployer: LteDeployer {
+            @display("p=50,225;is=s");
+        }
         tcpApp[numTcpApps]: <> like ITCPApp {
             @display("p=175,50,row");
         }
@@ -82,7 +91,7 @@ module Ue
             @display("p=325,150");
         }
         // NOTE: instance must be named "nic"
-        nic: LteNicUe if (!d2dCapable || !autoD2dCapable) {
+        nic: LteNicUe if (!d2dCapable && !autoD2dCapable) {
             nodeType = nodeType;
             d2dCapable = d2dCapable;
             autoD2dCapable = autoD2dCapable;
