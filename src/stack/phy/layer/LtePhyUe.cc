@@ -248,12 +248,21 @@ void LtePhyUe::doHandover()
     hysteresisTh_ = updateHysteresisTh(currentMasterRssi_);
 
     // update deployer
+    if(getParentModule()-> par("autoD2dCapable")) // Auto D2D enabled
+    {
+        LteMacUeAutoD2D* newMacUeAutoD2D =  check_and_cast<LteMacUeAutoD2D*>(getSimulation()->getModule(binder_->getOmnetId(candidateMasterId_))->getSubmodule("nic")->getSubmodule("mac"));
+        LteDeployer* newDeployer = newMacUeAutoD2D->getDeployer();
+        deployer_->detachUser(nodeId_);
+        newDeployer->attachUser(nodeId_);
+        deployer_ = newDeployer;
+    }
+    else{
     LteMacEnb* newMacEnb =  check_and_cast<LteMacEnb*>(getSimulation()->getModule(binder_->getOmnetId(candidateMasterId_))->getSubmodule("nic")->getSubmodule("mac"));
     LteDeployer* newDeployer = newMacEnb->getDeployer();
     deployer_->detachUser(nodeId_);
     newDeployer->attachUser(nodeId_);
     deployer_ = newDeployer;
-
+    }
     // update DL feedback generator
     LteDlFeedbackGenerator* fbGen = check_and_cast<LteDlFeedbackGenerator*>(getParentModule()->getSubmodule("dlFbGen"));
     fbGen->handleHandover(masterId_);

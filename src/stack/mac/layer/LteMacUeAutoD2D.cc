@@ -76,9 +76,7 @@ LteDeployer* LteMacUeAutoD2D::getDeployer() {
     // Get local deployer
     if (deployer_ != NULL)
         return deployer_;
-    if (getParentModule()-> getSubmodule("deployer") == NULL)
-        throw cRuntimeError("UE parent submodule deployer is null", getParentModule()->getFullName());
-    else if (getParentModule()-> getParentModule() == NULL)
+    if (getParentModule()-> getParentModule() == NULL)
         throw cRuntimeError("UE grand parent is null");
     else if (getParentModule()-> getParentModule()-> getSubmodule("deployer") == NULL)
         throw cRuntimeError("UE grand parent submodule is null");
@@ -146,7 +144,7 @@ void LteMacUeAutoD2D::initialize(int stage) {
                 getParentModule()->par("LteMacType").stdstringValue();
         if (macType.compare("LteMacUeAutoD2D") == 0 && rlcUmType.compare("LteRlcUmRealisticAutoD2D") != 0  && rlcAutoD2dCapable)
             throw cRuntimeError("LteMacUeAutoD2D::initialize - %s module found, must be LteRlcUmRealisticAutoD2D. Aborting",rlcUmType.c_str());
-        if (macType.compare("LteMacUeAutoD2D") == 0 && pdcpType.compare("LtePdcpRrcUeD2D") != 0 && rlcAutoD2dCapable)
+        if (macType.compare("LteMacUeAutoD2D") == 0 && pdcpType.compare("LtePdcpRrcUeAutoD2D") != 0 && rlcAutoD2dCapable)
             throw cRuntimeError("LteMacUeAutoD2D::initialize - %s module found, must be LtePdcpRrcUeAutoD2D. Aborting", pdcpType.c_str());
 
         /* Create and initialize MAC Downlink scheduler */

@@ -13,6 +13,7 @@
 #include "LtePhyBase.h"
 #include "DasFilter.h"
 #include "LteMacUe.h"
+#include "LteMacUeAutoD2D.h"
 #include "LteRlcUm.h"
 
 class DasFilter;

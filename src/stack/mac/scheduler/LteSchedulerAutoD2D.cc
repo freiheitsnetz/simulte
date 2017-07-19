@@ -16,9 +16,9 @@
  * - rimuovere i commenti dalle funzioni quando saranno implementate nel ueAutoD2D scheduler
  */
 
-void LteSchedulerAutoD2D::setUeAutoD2DScheduler(LteSchedulerUeAutoD2D* UeAutoD2DScheduler)
+void LteSchedulerAutoD2D::setUeAutoD2DScheduler(LteSchedulerUeAutoD2D* ueAutoD2DScheduler)
 {
-    ueAutoD2DScheduler_ = UeAutoD2DScheduler;
+    ueAutoD2DScheduler_ = ueAutoD2DScheduler;
     direction_ = ueAutoD2DScheduler_->direction_;
     mac_ = ueAutoD2DScheduler_->mac_;
     initializeGrants();
@@ -37,12 +37,12 @@ bool LteSchedulerAutoD2D::scheduleRetransmissions()
 
 void LteSchedulerAutoD2D::scheduleRacRequests()
 {
-    //return (dynamic_cast<LteSchedulerAutoD2DAutoD2DEnbUl*>(eNbScheduler_))->serveRacs();
+//    return (dynamic_cast<LteSchedulerUeAutoD2DUl*>(ueAutoD2DScheduler_))->serveRacs();
 }
 
 void LteSchedulerAutoD2D::requestRacGrant(MacNodeId nodeId)
 {
-    //return (dynamic_cast<LteSchedulerAutoD2DAutoD2DEnbUl*>(eNbScheduler_))->racGrantEnb(nodeId);
+//    return (dynamic_cast<LteSchedulerUeAutoD2DUl*>(ueAutoD2DScheduler_))->racGrantEnb(nodeId);
 }
 
 void LteSchedulerAutoD2D::schedule()

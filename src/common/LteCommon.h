@@ -238,7 +238,8 @@ const SchedDisciplineTable disciplines[] = {
     ELEM(MAXCI_MB),
     ELEM(MAXCI_OPT_MB),
     ELEM(MAXCI_COMP),
-    ELEM(UNKNOWN_DISCIPLINE)
+    ELEM(UNKNOWN_DISCIPLINE),
+    ELEM(MAXCIAUTOD2D)
 };
 
 // specifies how the final CQI will be computed from the multiband ones
