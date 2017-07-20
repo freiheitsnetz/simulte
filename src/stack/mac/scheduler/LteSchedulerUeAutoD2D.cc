@@ -99,7 +99,7 @@ void LteSchedulerUeAutoD2D::initialize(Direction dir, LteMacUeAutoD2D* mac) {
     // Create LteScheduler
     SchedDiscipline discipline = mac_->getSchedDiscipline(direction_);
 
-    scheduler_ = getScheduler(discipline); // getting null here have to be solved
+    scheduler_ = getScheduler(discipline); // getting unknown here have to be solved
     scheduler_->setUeAutoD2DScheduler(this);
 
     // Initialize statistics

@@ -90,7 +90,7 @@ class LtePhyUe : public LtePhyBase
     double txAmount_;    // drawn current amount for tx operations (mA)
     double rxAmount_;    // drawn current amount for rx operations (mA)
 
-    LteMacUe *mac_;
+    LteMacBase *mac_;
     LteRlcUm *rlcUm_;
 
     simtime_t lastFeedback_;

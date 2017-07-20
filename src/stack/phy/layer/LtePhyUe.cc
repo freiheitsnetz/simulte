@@ -89,9 +89,17 @@ void LtePhyUe::initialize(int stage)
         lastFeedback_ = 0;
 
         handoverStarter_ = new cMessage("handoverStarter");
-        mac_ = check_and_cast<LteMacUe *>(
-            getParentModule()-> // nic
-            getSubmodule("mac"));
+        if(getParentModule()-> par("autoD2dCapable")) // Auto D2D enabled
+        {
+            mac_ = check_and_cast<LteMacUeAutoD2D *>(
+                        getParentModule()-> // nic
+                        getSubmodule("mac"));
+                    }
+        else{
+            mac_ = check_and_cast<LteMacUe *>(
+                        getParentModule()-> // nic
+                        getSubmodule("mac"));
+        }
         rlcUm_ = check_and_cast<LteRlcUm *>(
             getParentModule()-> // nic
             getSubmodule("rlc")->
@@ -243,7 +251,7 @@ void LtePhyUe::doHandover()
     // change masterId and notify handover to the MAC layer
     MacNodeId oldMaster = masterId_;
     masterId_ = candidateMasterId_;
-    mac_->doHandover(candidateMasterId_);  // do MAC operations for handover
+    ((LteMacUe *) mac_)->doHandover(candidateMasterId_);  // do MAC operations for handover
     currentMasterRssi_ = candidateMasterRssi_;
     hysteresisTh_ = updateHysteresisTh(currentMasterRssi_);
 

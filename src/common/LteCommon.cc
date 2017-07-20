@@ -209,6 +209,7 @@ TxMode aToTxMode(std::string s)
 const std::string schedDisciplineToA(SchedDiscipline discipline)
 {
     int i = 0;
+    EV_INFO << " schedDisciplineToA Discipline received ::  " << discipline << "####" << endl;
     while (disciplines[i].discipline != UNKNOWN_DISCIPLINE)
     {
         if (disciplines[i].discipline == discipline)
@@ -221,6 +222,7 @@ const std::string schedDisciplineToA(SchedDiscipline discipline)
 SchedDiscipline aToSchedDiscipline(std::string s)
 {
     int i = 0;
+    EV_INFO << "aToSchedDiscipline Discipline received ::  " << s << "####" << endl;
     while (disciplines[i].discipline != UNKNOWN_DISCIPLINE)
     {
         if (disciplines[i].disciplineName == s)
