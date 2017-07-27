@@ -31,6 +31,8 @@ Oracle::Oracle()
       mUpdateInterval(0.01) // Will be properly set to provided .NED value in initialize()
     {
     Oracle::SINGLETON = this;
+    mModeSelectionMap = getBinder()->getD2DPeeringModeMap();
+    EV << "Oracle initialized." << std::endl;
     }
 
 Oracle::~Oracle() {
@@ -239,6 +241,7 @@ const std::map<MacNodeId, std::map<MacNodeId, LteD2DMode>>* Oracle::getModeSelec
 
 void Oracle::setModeSelectionMap(const std::map<MacNodeId, std::map<MacNodeId, LteD2DMode>>* map) {
     mModeSelectionMap = map;
+    EV << "Oracle::setModeSelectionMap called." << std::endl;
 }
 
 double euclideanDistance(Coord from, Coord to) {

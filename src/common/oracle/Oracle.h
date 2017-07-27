@@ -16,17 +16,13 @@
 #include <stack/mac/amc/LteAmc.h>
 #include <stack/mac/layer/LteMacEnb.h>
 #include <stack/phy/feedback/LteFeedback.h>
-// For mobility.
 #include <inet/networklayer/common/L3AddressResolver.h>
 #include <inet/common/ModuleAccess.h>
 #include <inet/mobility/contract/IMobility.h>
-// For SINR.
 #include <stack/phy/ChannelModel/LteRealisticChannelModel.h>
 #include <stack/phy/packet/LteFeedbackPkt.h>
 #include <stack/phy/packet/LteAirFrame.h>
-// For feedback computation <-> CQI computation.
 #include <stack/phy/feedback/LteFeedbackComputationRealistic.h>
-
 #include <common/oracle/SchedulingMemory.h>
 
 class ExposedFeedbackComputer;
