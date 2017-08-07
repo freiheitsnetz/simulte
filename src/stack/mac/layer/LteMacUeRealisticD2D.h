@@ -10,9 +10,9 @@
 #ifndef _LTE_LTEMACUEREALISTICD2D_H_
 #define _LTE_LTEMACUEREALISTICD2D_H_
 
-#include "LteMacUeRealistic.h"
-#include "LteMacEnbRealisticD2D.h"
-#include "LteHarqBufferTxD2D.h"
+#include "stack/mac/layer/LteMacUeRealistic.h"
+#include "stack/mac/layer/LteMacEnbRealisticD2D.h"
+#include "stack/mac/buffer/harq_d2d/LteHarqBufferTxD2D.h"
 
 class LteSchedulingGrant;
 class LteSchedulerUeUl;
@@ -53,6 +53,16 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
 
     virtual void macHandleGrant(cPacket* pkt);
 
+    /*
+     * Checks RAC status
+     */
+    virtual void checkRAC();
+
+    /*
+     * Receives and handles RAC responses
+     */
+    virtual void macHandleRac(cPacket* pkt);
+
     void macHandleD2DModeSwitch(cPacket* pkt);
 
     virtual LteMacPdu* makeBsr(int size);
@@ -67,8 +77,6 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
      * containing the size of its buffer (for that CID)
      */
     virtual void macPduMake();
-
-    virtual void updateUserTxParam(cPacket* pkt);
 
   public:
     LteMacUeRealisticD2D();

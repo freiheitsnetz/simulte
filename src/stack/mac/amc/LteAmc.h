@@ -11,13 +11,13 @@
 #define _LTE_LTEAMC_H_
 
 #include <omnetpp.h>
-#include "LteFeedback.h"
-//#include "LteCommon.h"
-#include "AmcPilot.h"
-#include "LteMcs.h"
-#include "UserTxParams.h"
-#include "LteBinder.h"
-#include "LteDeployer.h"
+#include "stack/phy/feedback/LteFeedback.h"
+//#include "common/LteCommon.h"
+#include "stack/mac/amc/AmcPilot.h"
+#include "stack/mac/amc/LteMcs.h"
+#include "stack/mac/amc/UserTxParams.h"
+#include "corenetwork/binder/LteBinder.h"
+#include "corenetwork/deployer/LteDeployer.h"
 
 /// Forward declaration of AmcPilot class, used by LteAmc.
 class AmcPilot;
@@ -35,7 +35,7 @@ class LteMacEnb;
 class LteAmc
 {
   private:
-    AmcPilot *getAmcPilot(cPar amcMode);
+    AmcPilot *getAmcPilot(const cPar& amcMode);
     MacNodeId getNextHop(MacNodeId dst);
     public:
     void printParameters();

@@ -7,9 +7,9 @@
 // and cannot be removed from it.
 //
 
-#include "LteSchedulingGrant_m.h"
-#include "LteCommon.h"
-#include "UserTxParams.h"
+#include "stack/mac/packet/LteSchedulingGrant_m.h"
+#include "common/LteCommon.h"
+#include "stack/mac/amc/UserTxParams.h"
 
 class UserTxParams;
 
@@ -33,11 +33,11 @@ class LteSchedulingGrant : public LteSchedulingGrant_Base
 
     ~LteSchedulingGrant()
     {
-//        if (userTxParams != NULL)
-//        {
-//            delete userTxParams;
-//            userTxParams = NULL;
-//        }
+        if (userTxParams != NULL)
+        {
+            delete userTxParams;
+            userTxParams = NULL;
+        }
     }
 
     LteSchedulingGrant(const LteSchedulingGrant& other) :

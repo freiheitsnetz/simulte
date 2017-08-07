@@ -7,12 +7,12 @@
 // and cannot be removed from it.
 //
 
-#include "LteAmc.h"
-#include "LteMacEnb.h"
+#include "stack/mac/amc/LteAmc.h"
+#include "stack/mac/layer/LteMacEnb.h"
 
 // NOTE: AMC Pilots header file inclusions must go here
-#include "AmcPilotAuto.h"
-#include "AmcPilotD2D.h"
+#include "stack/mac/amc/AmcPilotAuto.h"
+#include "stack/mac/amc/AmcPilotD2D.h"
 
 LteAmc::~LteAmc()
 {
@@ -23,7 +23,7 @@ LteAmc::~LteAmc()
  * PRIVATE FUNCTIONS
  *********************/
 
-AmcPilot* LteAmc::getAmcPilot(cPar p)
+AmcPilot* LteAmc::getAmcPilot(const cPar& p)
 {
     EV << "Creating Amc pilot " << p.stringValue() << endl;
     const char* s = p.stringValue();
