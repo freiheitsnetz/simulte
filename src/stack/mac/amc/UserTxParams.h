@@ -30,14 +30,14 @@ class UserTxParams
 {
   protected:
 
-    TxMode txMode_; // tx mode da usare
+    TxMode txMode_; // tx mode to use
     Rank ri_;       // RI
-    CqiVector cqiVector_; // vettore con tanti elementi quante sono le cw: quindi contiente dei wb cqi
+    CqiVector cqiVector_; // Vector with as many elements as are the cws: so contiguous of wb cqi
     Pmi pmi_;       // WB pmi
 
-    std::set<Band> allowedBands_;     // bande su cui l'utente puo' trasmettere
+    std::set<Band> allowedBands_;     // Bands on which the user can transmit
 
-    bool isValid_; // dice se la userinfo è settata o meno
+    bool isValid_; // userinfo is set or not
 
     //! set of Remote Antennas in use for transmission  (DAS support)
     RemoteSet antennaSet_;

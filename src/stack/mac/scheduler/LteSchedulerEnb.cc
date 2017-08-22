@@ -819,17 +819,18 @@ LteScheduler* LteSchedulerEnb::getScheduler(SchedDiscipline discipline)
     switch(discipline)
     {
         case DRR:
-        return new LteDrr();
+            return new LteDrr();
         case PF:
-        return new LtePf(mac_->par("pfAlpha").doubleValue());
+            return new LtePf(mac_->par("pfAlpha").doubleValue());
         case MAXCI:
-        return new LteMaxCi();
+            return new LteMaxCi();
         case MAXCI_MB:
-        return new LteMaxCiMultiband();
+            return new LteMaxCiMultiband();
         case MAXCI_OPT_MB:
-        return new LteMaxCiOptMB();
+            return new LteMaxCiOptMB();
         case MAXCI_COMP:
-        return new LteMaxCiComp();
+            return new LteMaxCiComp();
+
 
         default:
         throw cRuntimeError("LteScheduler not recognized");
