@@ -34,6 +34,10 @@ struct SortedDesc
     }
 
   public:
+    SortedDesc()
+    {
+
+    }
     SortedDesc(const T x, const S score)
     {
         x_ = x;
@@ -50,6 +54,9 @@ class LteScheduler
 
     /// MAC module, used to get parameters from NED
     LteMacEnb *mac_;
+
+    /// Reference to the LTE binder
+    LteBinder *binder_;
 
     /// Associated LteSchedulerEnb (it is the one who creates the LteScheduler)
     LteSchedulerEnb* eNbScheduler_;
@@ -89,6 +96,7 @@ class LteScheduler
     {
         //    WATCH(activeSet_);
         activeConnectionSet_.clear();
+        binder_ = NULL;
     }
     /**
      * Destructor.

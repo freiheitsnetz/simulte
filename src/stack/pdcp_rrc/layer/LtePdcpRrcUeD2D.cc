@@ -46,6 +46,24 @@ void LtePdcpRrcUeD2D::fromDataPort(cPacket *pkt)
     }
     else
     {
+        if (binder_->getMacNodeId(destAddr) == 0)
+        {
+            EV << NOW << " LtePdcpRrcUeD2D::fromDataPort - Destination " << destAddr << " has left the simulation. Delete packet." << endl;
+            delete pkt;
+            return;
+        }
+
+        // This part is required for supporting D2D unicast with dynamic-created modules
+        // the first time we see a new destination address, we need to check whether the endpoint
+        // is a D2D peer and, eventually, add it to the binder
+        const char* destName = (L3AddressResolver().findHostWithAddress(destAddr))->getFullName();
+        if (d2dPeeringInit_.find(destName) == d2dPeeringInit_.end() || !d2dPeeringInit_.at(destName))
+        {
+            MacNodeId d2dPeerId = binder_->getMacNodeId(destAddr);
+            binder_->addD2DCapability(nodeId_, d2dPeerId);
+            d2dPeeringInit_[destName] = true;
+        }
+
         // set direction based on the destination Id. If the destination can be reached
         // using D2D, set D2D direction. Otherwise, set UL direction
         destId = binder_->getMacNodeId(destAddr);
@@ -134,8 +152,7 @@ void LtePdcpRrcUeD2D::fromDataPort(cPacket *pkt)
 void LtePdcpRrcUeD2D::initialize(int stage)
 {
     EV << "LtePdcpRrcUeD2D::initialize() - stage " << stage << endl;
-    if (stage == inet::INITSTAGE_LOCAL)
-        LtePdcpRrcBase::initialize();
+    LtePdcpRrcUe::initialize(stage);
     if (stage == INITSTAGE_NETWORK_LAYER_3+1)
     {
         // inform the Binder about the D2D capabilities of this node
@@ -145,9 +162,10 @@ void LtePdcpRrcUeD2D::initialize(int stage)
         const char *token;
         while ((token = tokenizer.nextToken()) != NULL)
         {
-            IPv4Address d2dPeerAddr = L3AddressResolver().resolve(token).toIPv4();
-            MacNodeId d2dPeerId = binder_->getMacNodeId(d2dPeerAddr);
-            binder_->addD2DCapability(nodeId_, d2dPeerId);
+            std::pair<const char*, bool> p(token,false);
+            d2dPeeringInit_.insert(p);
+
+            // delay initialization D2D capabilities to once arrive the first packet to the destination
         }
     }
 }

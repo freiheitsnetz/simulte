@@ -30,7 +30,6 @@
 #include <list>
 #include "inet/common/geometry/common/Coord.h"
 #include <algorithm>
-#include "common/lterecorder.h"
 
 using namespace omnetpp;
 
@@ -222,7 +221,7 @@ const ApplicationTable applications[] = {
 
 enum SchedDiscipline
 {
-    DRR, PF, MAXCI, MAXCI_MB, MAXCI_OPT_MB, MAXCI_COMP, UNKNOWN_DISCIPLINE
+    DRR, PF, MAXCI, MAXCI_MB, MAXCI_OPT_MB, MAXCI_COMP, ALLOCATOR_BESTFIT, UNKNOWN_DISCIPLINE
 };
 
 struct SchedDisciplineTable
@@ -238,6 +237,7 @@ const SchedDisciplineTable disciplines[] = {
     ELEM(MAXCI_MB),
     ELEM(MAXCI_OPT_MB),
     ELEM(MAXCI_COMP),
+    ELEM(ALLOCATOR_BESTFIT),
     ELEM(UNKNOWN_DISCIPLINE)
 };
 

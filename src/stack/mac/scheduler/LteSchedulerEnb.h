@@ -12,6 +12,7 @@
 
 #include "common/LteCommon.h"
 #include "stack/mac/buffer/harq/LteHarqBufferTx.h"
+#include "stack/mac/allocator/LteAllocatorUtils.h"
 
 /// forward declarations
 class LteScheduler;
@@ -36,6 +37,7 @@ class LteSchedulerEnb
     friend class LteMaxCiMultiband;
     friend class LteMaxCiOptMB;
     friend class LteMaxCiComp;
+    friend class LteAllocatorBestFit;
 
   protected:
 
@@ -65,6 +67,9 @@ class LteSchedulerEnb
 
     // Owner MAC module (can be LteMacEnb on eNB or LteMacRelayEnb on Relays). Set via initialize().
     LteMacEnb *mac_;
+
+    // Reference to the LTE Binder
+    LteBinder *binder_;
 
     // System allocator, carries out the block-allocation functions.
     LteAllocationModule *allocator_;
@@ -110,7 +115,6 @@ class LteSchedulerEnb
     simsignal_t rb_0, rb_1a, rb_2a, rb_3a, rb_1b, rb_2b, rb_3b,
         rb_1c, rb_2c, rb_3c, rb_4, rb_5, rb_6a, rb_7a, rb_8a, rb_6b, rb_7b,
         rb_8b, rb_6c, rb_7c, rb_8c, rb_9;
-    TaggedSample* tSample_;
 
   public:
 
@@ -294,6 +298,14 @@ class LteSchedulerEnb
     {
         return allocatedCws_[nodeId];
     }
+
+    // Get the bands already allocated
+    std::set<Band> getOccupiedBands();
+
+    void storeAllocationEnb(std::vector<std::vector<AllocatedRbsPerBandMapA> > allocatedRbsPerBand, std::set<Band>* untouchableBands = NULL);
+
+    // store an element in the schedule list
+    void storeScListId(std::pair<unsigned int, Codeword> scList,unsigned int num_blocks);
 
   private:
 

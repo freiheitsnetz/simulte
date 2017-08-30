@@ -29,6 +29,7 @@ void LtePhyUeD2D::initialize(int stage)
     LtePhyUe::initialize(stage);
     if (stage == 0)
     {
+        averageCqiD2D_ = registerSignal("averageCqiD2D");
         d2dTxPower_ = par("d2dTxPower");
         d2dMulticastEnableCaptureEffect_ = par("d2dMulticastCaptureEffect");
         d2dDecodingTimer_ = NULL;
@@ -139,20 +140,8 @@ void LtePhyUeD2D::handleAirFrame(cMessage* msg)
         if (lteInfo->getUserTxParams()->readCqiVector().size() == 1)
             cw = 0;
         double cqi = lteInfo->getUserTxParams()->readCqiVector()[cw];
-        tSample_->sample_ = cqi;
-        tSample_->id_ = nodeId_;
-        tSample_->module_ = getMacByMacNodeId(nodeId_);
-
         if (lteInfo->getDirection() == DL)
-        {
-            emit(averageCqiDl_, tSample_);
-            emit(averageCqiDlvect_,cqi);
-        }
-        else
-        {
-            emit(averageCqiD2D_, tSample_);
-            emit(averageCqiD2Dvect_,cqi);
-        }
+            emit(averageCqiDl_, cqi);
     }
     // apply decider to received packet
     bool result = true;
@@ -215,10 +204,12 @@ void LtePhyUeD2D::handleAirFrame(cMessage* msg)
 void LtePhyUeD2D::triggerHandover()
 {
     // stop active D2D flows (go back to Infrastructure mode)
+    // currently, DM is possible only for UEs served by the same cell
 
     // trigger D2D mode switch
-    D2DModeSelectionBase *d2dModeSelection = check_and_cast<D2DModeSelectionBase*>(getSimulation()->getModule(binder_->getOmnetId(masterId_))->getSubmodule("nic")->getSubmodule("d2dModeSelection"));
-    d2dModeSelection->doModeSwitchAtHandover(nodeId_);
+    cModule* enb = getSimulation()->getModule(binder_->getOmnetId(masterId_));
+    D2DModeSelectionBase *d2dModeSelection = check_and_cast<D2DModeSelectionBase*>(enb->getSubmodule("lteNic")->getSubmodule("d2dModeSelection"));
+    d2dModeSelection->doModeSwitchAtHandover(nodeId_, false);
 
     LtePhyUe::triggerHandover();
 }
@@ -233,6 +224,11 @@ void LtePhyUeD2D::doHandover()
     newAmc->attachUser(nodeId_, D2D);
 
     LtePhyUe::doHandover();
+
+    // call mode selection module to check if DM connections are possible
+    cModule* enb = getSimulation()->getModule(binder_->getOmnetId(masterId_));
+    D2DModeSelectionBase *d2dModeSelection = check_and_cast<D2DModeSelectionBase*>(enb->getSubmodule("lteNic")->getSubmodule("d2dModeSelection"));
+    d2dModeSelection->doModeSwitchAtHandover(nodeId_, true);
 }
 
 void LtePhyUeD2D::handleUpperMessage(cMessage* msg)
@@ -261,6 +257,15 @@ void LtePhyUeD2D::handleUpperMessage(cMessage* msg)
     }
     lastActive_ = NOW;
 
+    if (lteInfo->getFrameType() == DATAPKT && lteInfo->getUserTxParams() != NULL)
+    {
+        double cqi = lteInfo->getUserTxParams()->readCqiVector()[lteInfo->getCw()];
+        if (lteInfo->getDirection() == UL)
+            emit(averageCqiUl_, cqi);
+        else if (lteInfo->getDirection() == D2D)
+            emit(averageCqiD2D_, cqi);
+    }
+
     EV << NOW << " LtePhyUeD2D::handleUpperMessage - message from stack" << endl;
     LteAirFrame* frame = NULL;
 
@@ -284,6 +289,7 @@ void LtePhyUeD2D::handleUpperMessage(cMessage* msg)
     lteInfo->setCoord(getRadioPosition());
 
     lteInfo->setTxPower(txPower_);
+    lteInfo->setD2dTxPower(d2dTxPower_);
     frame->setControlInfo(lteInfo);
 
     EV << "LtePhyUeD2D::handleUpperMessage - " << nodeTypeToA(nodeType_) << " with id " << nodeId_
@@ -403,17 +409,6 @@ LteAirFrame* LtePhyUeD2D::extractAirFrame()
 void LtePhyUeD2D::decodeAirFrame(LteAirFrame* frame, UserControlInfo* lteInfo)
 {
     EV << NOW << " LtePhyUeD2D::decodeAirFrame - Start decoding..." << endl;
-    if ((lteInfo->getUserTxParams()) != NULL)
-    {
-        int cw = lteInfo->getCw();
-        if (lteInfo->getUserTxParams()->readCqiVector().size() == 1)
-            cw = 0;
-        double cqi = lteInfo->getUserTxParams()->readCqiVector()[cw];
-        tSample_->sample_ = cqi;
-        tSample_->id_ = nodeId_;
-        tSample_->module_ = getMacByMacNodeId(nodeId_);
-        emit(averageCqiD2D_, tSample_);
-    }
 
     // apply decider to received packet
     bool result = true;
@@ -516,4 +511,19 @@ void LtePhyUeD2D::sendFeedback(LteFeedbackDoubleVector fbDl, LteFeedbackDoubleVe
     EV << "LtePhy: " << nodeTypeToA(nodeType_) << " with id "
        << nodeId_ << " sending feedback to the air channel" << endl;
     sendUnicast(frame);
+}
+
+void LtePhyUeD2D::finish()
+{
+    if (getSimulation()->getSimulationStage() != CTX_FINISH)
+    {
+        // do this only at deletion of the module during the simulation
+
+        // amc calls
+        LteAmc *amc = getAmcModule(masterId_);
+        if (amc != NULL)
+            amc->detachUser(nodeId_, D2D);
+
+        LtePhyUe::finish();
+    }
 }

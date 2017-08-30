@@ -36,7 +36,7 @@ LteMacUeRealistic::~LteMacUeRealistic()
 void LteMacUeRealistic::initialize(int stage)
 {
     LteMacUe::initialize(stage);
-    if (stage == 0)
+    if (stage == inet::INITSTAGE_LOCAL)
     {
         // check the RLC module type: if it is not "realistic", abort simulation
         // TODO do the same for RLC AM
@@ -363,15 +363,15 @@ bool LteMacUeRealistic::bufferizePacket(cPacket* pkt)
         LteMacQueue* queue = it->second;
         if (!queue->pushBack(pkt))
         {
-            tSample_->id_=nodeId_;
-            tSample_->sample_=pkt->getByteLength();
+            totalOverflowedBytes_ += pkt->getByteLength();
+            double sample = (double)totalOverflowedBytes_ / (NOW - getSimulation()->getWarmupPeriod());
             if (lteInfo->getDirection()==DL)
             {
-                emit(macBufferOverflowDl_,tSample_);
+                emit(macBufferOverflowDl_,sample);
             }
             else
             {
-                emit(macBufferOverflowUl_,tSample_);
+                emit(macBufferOverflowUl_,sample);
             }
 
             EV << "LteMacBuffers : Dropped packet: queue" << cid << " is full\n";

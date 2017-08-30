@@ -11,6 +11,8 @@
 #include "stack/mac/layer/LteMacEnbD2D.h"
 #include "stack/mac/layer/LteMacEnbRealisticD2D.h"
 
+Define_Module(D2DModeSelectionBase);
+
 void D2DModeSelectionBase::initialize(int stage)
 {
     if (stage != 0)
@@ -60,9 +62,15 @@ void D2DModeSelectionBase::handleMessage(cMessage *msg)
     }
 }
 
-void D2DModeSelectionBase::doModeSwitchAtHandover(MacNodeId nodeId)
+void D2DModeSelectionBase::doModeSwitchAtHandover(MacNodeId nodeId, bool handoverCompleted)
 {
     EV << NOW << " D2DModeSelectionBase::doModeSwitchAtHandover - Force mode switching for UE " << nodeId << " (handover)" << endl;
+
+    LteD2DMode newMode;
+    if (handoverCompleted)
+        newMode = DM;
+    else
+        newMode = IM;
 
     switchList_.clear();
     std::map<MacNodeId, std::map<MacNodeId, LteD2DMode> >::iterator it = peeringModeMap_->begin();
@@ -77,10 +85,13 @@ void D2DModeSelectionBase::doModeSwitchAtHandover(MacNodeId nodeId)
                 continue;
 
             LteD2DMode oldMode = jt->second;
-            if (oldMode == IM)
+            if (oldMode == newMode)
                 continue;
 
-            LteD2DMode newMode = IM;
+            // check if the two peers are under the same cell
+            // if not, do not perform the switch
+            if (newMode == DM && binder_->getNextHop(srcId) != binder_->getNextHop(dstId))
+                continue;
 
             // add this flow to the list of flows to be switched
             FlowId p(srcId, dstId);
@@ -93,12 +104,14 @@ void D2DModeSelectionBase::doModeSwitchAtHandover(MacNodeId nodeId)
             // update peering map
             jt->second = newMode;
 
-            EV << NOW << " D2DModeSelectionBase::doModeSwitchAtHandover - Flow: " << srcId << " --> " << dstId << " [" << d2dModeToA(newMode) << "]" << endl;
+            std::cout << NOW << " D2DModeSelectionBase::doModeSwitchAtHandover - Flow: " << srcId << " --> " << dstId << " [" << d2dModeToA(newMode) << "]" << endl;
         }
     }
 
     // send switching command
     sendModeSwitchNotifications();
+
+    switchList_.clear();
 }
 
 

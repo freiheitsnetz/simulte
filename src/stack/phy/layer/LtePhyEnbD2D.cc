@@ -112,7 +112,7 @@ void LtePhyEnbD2D::requestFeedback(UserControlInfo* lteinfo, LteAirFrame* frame,
                     MacNodeId peerId = (*it)->id;
                     if (peerId != lteinfo->getSourceId() && binder_->checkD2DCapability(lteinfo->getSourceId(), peerId) && binder_->getNextHop(peerId) == nodeId_)
                     {
-                         // the source UE might communicate with this peer using D2D, so compute feedback
+                         // the source UE might communicate with this peer using D2D, so compute feedback (only in-cell D2D)
 
                          // retrieve the position of the peer
                          Coord peerCoord = (*it)->phy->getCoord();
@@ -153,24 +153,6 @@ void LtePhyEnbD2D::handleAirFrame(cMessage* msg)
         return;
     }
 
-    /*
-     * This could happen if the ue associates with a new master while it has
-     * already scheduled a packet for the old master: the packet is in the air
-     * while the ue changes master.
-     * Event timing:      TTI x: packet scheduled and sent by the UE (tx time = 1ms)
-     *                     TTI x+0.1: ue changes master
-     *                     TTI x+1: packet from UE arrives at the old master
-     */
-    if (binder_->getNextHop(lteInfo->getSourceId()) != nodeId_)
-    {
-        EV << "WARNING: frame from a UE that is leaving this cell (handover): deleted " << endl;
-        EV << "Source MacNodeId: " << lteInfo->getSourceId() << endl;
-        EV << "Master MacNodeId: " << nodeId_ << endl;
-        delete lteInfo;
-        delete frame;
-        return;
-    }
-
     // Check if the frame is for us ( MacNodeId matches or - if this is a multicast communication - enrolled in multicast group)
     if (lteInfo->getDestId() != nodeId_)
     {
@@ -194,20 +176,29 @@ void LtePhyEnbD2D::handleAirFrame(cMessage* msg)
         return;
     }
 
+    /*
+     * This could happen if the ue associates with a new master while it has
+     * already scheduled a packet for the old master: the packet is in the air
+     * while the ue changes master.
+     * Event timing:      TTI x: packet scheduled and sent by the UE (tx time = 1ms)
+     *                     TTI x+0.1: ue changes master
+     *                     TTI x+1: packet from UE arrives at the old master
+     */
+    if (binder_->getNextHop(lteInfo->getSourceId()) != nodeId_)
+    {
+        EV << "WARNING: frame from a UE that is leaving this cell (handover): deleted " << endl;
+        EV << "Source MacNodeId: " << lteInfo->getSourceId() << endl;
+        EV << "Master MacNodeId: " << nodeId_ << endl;
+        delete lteInfo;
+        delete frame;
+        return;
+    }
+
     connectedNodeId_ = lteInfo->getSourceId();
     //handle all control pkt
     if (handleControlPkt(lteInfo, frame))
         return; // If frame contain a control pkt no further action is needed
 
-    if ((lteInfo->getUserTxParams()) != NULL)
-    {
-        double cqi = lteInfo->getUserTxParams()->readCqiVector()[lteInfo->getCw()];
-        tSample_->sample_ = cqi;
-        tSample_->id_ = lteInfo->getSourceId();
-        tSample_->module_ = getMacByMacNodeId(lteInfo->getSourceId());
-        emit(averageCqiUl_, tSample_);
-        emit(averageCqiUlvect_,cqi);
-    }
     bool result = true;
     RemoteSet r = lteInfo->getUserTxParams()->readAntennaSet();
     if (r.size() > 1)

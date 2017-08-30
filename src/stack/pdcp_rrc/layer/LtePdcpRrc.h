@@ -66,7 +66,8 @@ class LtePdcpRrcBase : public cSimpleModule
      * gates, delay, compression
      * and watches
      */
-    virtual void initialize();
+    virtual void initialize(int stage);
+    virtual int numInitStages() const { return inet::NUM_INIT_STAGES; }
 
     /**
      * Analyze gate of incoming packet
@@ -265,8 +266,6 @@ class LtePdcpRrcBase : public cSimpleModule
      */
     LtePdcpEntity* getEntity(LogicalCid lcid);
 
-    TaggedSample* tSample_;
-
     simsignal_t pdcpdrop0_;
     simsignal_t pdcpdrop1_;
     simsignal_t pdcpdrop2_;
@@ -302,6 +301,8 @@ class LtePdcpRrcUe : public LtePdcpRrcBase
         // Data coming from Dataport on UE are always Uplink
         return UL;
     }
+  public:
+    virtual void initialize(int stage);
 };
 
 class LtePdcpRrcEnb : public LtePdcpRrcBase
@@ -330,6 +331,8 @@ class LtePdcpRrcEnb : public LtePdcpRrcBase
         // Data coming from Dataport on ENB are always Downlink
         return DL;
     }
+  public:
+    virtual void initialize(int stage);
 };
 
 class LtePdcpRrcRelayEnb : public LtePdcpRrcBase
@@ -364,9 +367,9 @@ class LtePdcpRrcRelayUe : public LtePdcpRrcBase
     /// Node id
     MacNodeId destId_;
 
-    virtual void initialize()
+    virtual void initialize(int stage)
     {
-        LtePdcpRrcBase::initialize();
+        LtePdcpRrcBase::initialize(stage);
         destId_ = getAncestorPar("masterId");
         WATCH(destId_);
     }

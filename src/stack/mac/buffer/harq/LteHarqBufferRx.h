@@ -37,20 +37,23 @@ class LteHarqBufferRx
     unsigned int numHarqProcesses_;
 
     MacNodeId nodeId_; // UE nodeId for which this buffer has been created
+    LteMacBase *macUe_;
 
     /// processes vector
     std::vector<LteHarqProcessRx *> processes_;
 
+    /// flag for multicast flows
+    bool isMulticast_;
+
     //Statistics
+    static unsigned int totalCellRcvdBytes_;
+    unsigned int totalRcvdBytes_ = 0;
     simsignal_t macDelay_;
     simsignal_t macCellThroughput_;
     simsignal_t macThroughput_;
 
     // reference to the eNB module
     cModule* nodeB_;
-
-    TaggedSample *tSample_;
-    TaggedSample *tSampleCell_;
 
   public:
     LteHarqBufferRx() {}
@@ -102,6 +105,11 @@ class LteHarqBufferRx
      * @return  a list of acid and their units  to be used for reception
      */
     UnitList firstAvailable();
+
+    /*
+     * returns true if the corresponding flow is a multicast one
+     */
+    bool isMulticast() { return isMulticast_; }
 
     virtual ~LteHarqBufferRx();
 

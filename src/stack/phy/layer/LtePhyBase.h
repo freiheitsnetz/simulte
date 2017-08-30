@@ -91,6 +91,12 @@ class LtePhyBase : public ChannelAccess
 
     /// Reference to LteDeployer
     LteDeployer* deployer_;
+
+    /*
+     * If true, UEs associate to the best serving cell at initialization
+     */
+    bool dynamicCellAssociation_;
+
     //Ue  Tx Power
     double ueTxPower_;
     // eNodeB Tx Power
@@ -115,12 +121,6 @@ class LtePhyBase : public ChannelAccess
     simsignal_t averageCqiDl_;
     simsignal_t averageCqiUl_;
     simsignal_t averageCqiD2D_;
-
-    simsignal_t averageCqiDlvect_;
-    simsignal_t averageCqiUlvect_;
-    simsignal_t averageCqiD2Dvect_;
-
-    TaggedSample *tSample_;
 
     // User that are trasmitting (uplink)
     //receiveng(downlink) current packet
@@ -184,7 +184,7 @@ class LtePhyBase : public ChannelAccess
     virtual void initialize(int stage);
 
     virtual int numInitStages() const {
-        return std::max(INITSTAGE_PHYSICAL_LAYER + 1, ChannelAccess::numInitStages());
+        return std::max(INITSTAGE_LAST+1, ChannelAccess::numInitStages());
     }
 
     /**
@@ -329,7 +329,7 @@ class LtePhyBase : public ChannelAccess
     /*
      * Returns the current position of the node
      */
-    const Coord& getCoord() { return getRadioPosition(); }
+    const inet::Coord& getCoord() { return getRadioPosition(); }
     /*
      * Returns the time of the last transmission performed
      */

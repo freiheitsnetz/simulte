@@ -40,24 +40,12 @@ simple LtePhyBase like LtePhy {
         string txDirection = default("OMNI");
         double txAngle = default(0);       
         
+        bool dynamicCellAssociation = default(false);
+        
         // switch for handover messages handling on UEs
         bool enableHandover = default(false);
         double handoverLatency @unit(s) = default(0.05s);
-        
-        //# CQI statistics
-        @signal[averageCqiDl];
-        @statistic[averageCqiDl](title="Average Cqi reported in DL"; unit="cqi"; source="averageCqiDl"; record=lteAvg);
-        @signal[averageCqiDlvect];
-        @statistic[averageCqiDlvect](title="Average Cqi reported in DL"; unit="cqi"; source="averageCqiDlvect"; record=vector);
-        @signal[averageCqiUl];
-        @statistic[averageCqiUl](title="Average Cqi reported in UL"; unit="cqi"; source="averageCqiUl"; record=lteAvg);
-        @signal[averageCqiUlvect];
-        @statistic[averageCqiUlvect](title="Average Cqi reported in UL"; unit="cqi"; source="averageCqiUlvect"; record=vector);
-        @signal[averageCqiD2D];
-        @statistic[averageCqiD2D](title="Average Cqi reported in D2D"; unit="cqi"; source="averageCqiD2D"; record=lteAvg);
-        @signal[averageCqiD2Dvect];
-        @statistic[averageCqiD2Dvect](title="Average Cqi reported in D2D"; unit="cqi"; source="averageCqiD2Dvect"; record=vector);
-        
+               
     gates:
         input upperGateIn;       // from upper layer
         output upperGateOut;    // to upper layer
@@ -70,8 +58,15 @@ simple LtePhyBase like LtePhy {
 simple LtePhyUe extends LtePhyBase {
      parameters:
          @class("LtePhyUe");
+         
          @signal[servingCell];
          @statistic[servingCell](title="ID of the serving eNodeB for the UE"; unit=""; source="servingCell"; record=vector);
+        
+         //# CQI statistics
+         @signal[averageCqiDl];
+         @statistic[averageCqiDl](title="Average Cqi reported in DL"; unit="cqi"; source="averageCqiDl"; record=mean,vector);
+         @signal[averageCqiUl];
+         @statistic[averageCqiUl](title="Average Cqi reported in UL"; unit="cqi"; source="averageCqiUl"; record=mean,vector);
 }
 
 // 
@@ -83,6 +78,10 @@ simple LtePhyUeD2D extends LtePhyUe {
          double d2dTxPower =default(26);
          bool d2dMulticastCaptureEffect = default(true);
          string d2dMulticastCaptureEffectFactor = default("RSRP");  // or distance
+         
+         //# D2D CQI statistic
+         @signal[averageCqiD2D];
+         @statistic[averageCqiD2D](title="Average Cqi reported in D2D"; unit="cqi"; source="averageCqiD2D"; record=mean,vector);
 }
 
 // 

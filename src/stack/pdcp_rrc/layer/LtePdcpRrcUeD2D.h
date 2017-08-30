@@ -22,12 +22,13 @@
  */
 class LtePdcpRrcUeD2D : public LtePdcpRrcUe
 {
-//    std::map<MacNodeId, LteD2DMode> peeringMap_;
+    // initialization flag for each D2D peer
+    // it is set to true when the first IP datagram for that peer reaches the PDCP layer
+    std::map<const char*, bool> d2dPeeringInit_;
 
   protected:
 
     virtual void initialize(int stage);
-    virtual int numInitStages() const { return inet::NUM_INIT_STAGES; }
     virtual void handleMessage(cMessage *msg);
 
     void handleControlInfo(cPacket* upPkt, FlowControlInfo* lteInfo)

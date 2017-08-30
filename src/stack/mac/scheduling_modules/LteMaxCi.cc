@@ -14,6 +14,9 @@ void LteMaxCi::prepareSchedule()
 {
     EV << NOW << " LteMaxCI::schedule " << eNbScheduler_->mac_->getMacNodeId() << endl;
 
+    if (binder_ == NULL)
+        binder_ = getBinder();
+
     activeConnectionTempSet_ = activeConnectionSet_;
 
     // Build the score list by cycling through the active connections.
@@ -30,7 +33,7 @@ void LteMaxCi::prepareSchedule()
         ++it1;
 
         MacNodeId nodeId = MacCidToNodeId(cid);
-        OmnetId id = getBinder()->getOmnetId(nodeId);
+        OmnetId id = binder_->getOmnetId(nodeId);
         if(nodeId == 0 || id == 0){
                 // node has left the simulation - erase corresponding CIDs
                 activeConnectionSet_.erase(cid);
@@ -41,7 +44,7 @@ void LteMaxCi::prepareSchedule()
         // if we are allocating the UL subframe, this connection may be either UL or D2D
         Direction dir;
         if (direction_ == UL)
-            dir = (MacCidToLcid(cid) == D2D_SHORT_BSR) ? D2D : direction_;
+            dir = (MacCidToLcid(cid) == D2D_SHORT_BSR) ? D2D : (MacCidToLcid(cid) == D2D_MULTI_SHORT_BSR) ? D2D_MULTI : direction_;
         else
             dir = DL;
 

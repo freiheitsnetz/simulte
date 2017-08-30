@@ -627,16 +627,23 @@ void LteBinder::attachAppModule(cModule *parentModule, std::string IPAddr,
 //    }
 }
 
-void LteBinder::unregisterNode(MacNodeId id){
+void LteBinder::unregisterNode(MacNodeId id)
+{
+    EV << NOW << " LteBinder::unregisterNode - unregistering node " << id << endl;
+
     if(nodeIds_.erase(id) != 1){
         EV_ERROR << "Cannot unregister node - node id \"" << id << "\" - not found";
     }
     std::map<IPv4Address, MacNodeId>::iterator it;
-    for(it = macNodeIdToIPAddress_.begin(); it != macNodeIdToIPAddress_.end(); ){
-        if(it->second == id){
+    for(it = macNodeIdToIPAddress_.begin(); it != macNodeIdToIPAddress_.end(); )
+    {
+        if(it->second == id)
+        {
             macNodeIdToIPAddress_.erase(it++);
-        } else {
-                it++;
+        }
+        else
+        {
+            it++;
         }
     }
 }
@@ -701,8 +708,10 @@ void LteBinder::registerNextHop(MacNodeId masterId, MacNodeId slaveId)
 
 void LteBinder::initialize(int stage)
 {
-    if (stage == 0)
+    if (stage == inet::INITSTAGE_LOCAL)
     {
+        numBands_ = par("numBands");
+
         const char * stringa;
 
         std::vector<int> apppriority;
@@ -726,22 +735,6 @@ void LteBinder::initialize(int stage)
 
         // execute node creation and setup.
         // nodesConfiguration();
-    }
-    if (stage == 1)
-    {
-        // all UEs completed registration, so build the table of D2D capabilities
-
-        // build and initialize the matrix of D2D peering capabilities
-        MacNodeId maxUe = macNodeIdCounter_[2];
-        d2dPeeringCapability_ = new bool*[maxUe];
-        for (int i=0; i<maxUe; i++)
-        {
-            d2dPeeringCapability_[i] = new bool[maxUe];
-            for (int j=0; j<maxUe; j++)
-            {
-                d2dPeeringCapability_[i][j] = false;
-            }
-        }
     }
 }
 
@@ -781,21 +774,35 @@ void LteBinder::unregisterNextHop(MacNodeId masterId, MacNodeId slaveId)
 OmnetId LteBinder::getOmnetId(MacNodeId nodeId)
 {
     std::map<int, OmnetId>::iterator it = nodeIds_.find(nodeId);
-    if(it != nodeIds_.end()){
+    if(it != nodeIds_.end())
         return it->second;
-    } else {
-        return 0;
-    }
+    return 0;
 }
 
 MacNodeId LteBinder::getMacNodeIdFromOmnetId(OmnetId id){
 	std::map<int, OmnetId>::iterator it;
-	for (it = nodeIds_.begin(); it != nodeIds_.end(); ++it ){
-	    if (it->second == id){
+	for (it = nodeIds_.begin(); it != nodeIds_.end(); ++it )
+	    if (it->second == id)
 	        return it->first;
-	    }
-	}
 	return 0;
+}
+
+LteMacBase* LteBinder::getMacFromMacNodeId(MacNodeId id)
+{
+    if (id == 0)
+        return NULL;
+
+    LteMacBase* mac;
+    if (macNodeIdToModule_.find(id) == macNodeIdToModule_.end())
+    {
+        mac = check_and_cast<LteMacBase*>(getMacByMacNodeId(id));
+        macNodeIdToModule_[id] = mac;
+    }
+    else
+    {
+        mac = macNodeIdToModule_[id];
+    }
+    return mac;
 }
 
 MacNodeId LteBinder::getNextHop(MacNodeId slaveId)
@@ -876,9 +883,14 @@ void LteBinder::addD2DCapability(MacNodeId src, MacNodeId dst)
 
     // insert initial communication mode
     // TODO make it configurable from NED
-    d2dPeeringMode_[src][dst] = DM;
 
-    EV << "LteBinder::addD2DCapability - UE " << src << " may transmit to UE " << dst << " using D2D" << endl;
+    // enable DM only if the two endpoints are served by the same cell
+    if (nextHop_[src] == nextHop_[dst])
+        d2dPeeringMode_[src][dst] = DM;
+    else
+        d2dPeeringMode_[src][dst] = IM;
+
+    EV << "LteBinder::addD2DCapability - UE " << src << " may transmit to UE " << dst << " using D2D (current mode " << ((d2dPeeringMode_[src][dst] == DM) ? "DM)" : "IM)") << endl;
 }
 
 bool LteBinder::checkD2DCapability(MacNodeId src, MacNodeId dst)
@@ -886,7 +898,9 @@ bool LteBinder::checkD2DCapability(MacNodeId src, MacNodeId dst)
     if (src < UE_MIN_ID || src >= macNodeIdCounter_[2] || dst < UE_MIN_ID || dst >= macNodeIdCounter_[2])
         throw cRuntimeError("LteBinder::checkD2DCapability - Node Id not valid. Src %d Dst %d", src, dst);
 
-    return d2dPeeringCapability_[src][dst];
+    if (d2dPeeringCapability_.find(src) != d2dPeeringCapability_.end() && d2dPeeringCapability_[src].find(dst) != d2dPeeringCapability_[src].end())
+        return d2dPeeringCapability_[src][dst];
+    return false;
 }
 
 std::map<MacNodeId, std::map<MacNodeId, LteD2DMode> >* LteBinder::getD2DPeeringModeMap()
@@ -901,6 +915,26 @@ LteD2DMode LteBinder::getD2DMode(MacNodeId src, MacNodeId dst)
 
     return d2dPeeringMode_[src][dst];
 }
+
+bool LteBinder::isFrequencyReuseEnabled(MacNodeId nodeId)
+{
+    // a d2d-enabled UE can use frequency reuse if it can communicate using DM with all its peers
+    // in fact, the scheduler does not know to which UE it will communicate when it grants some RBs
+    if (d2dPeeringMode_.find(nodeId) == d2dPeeringMode_.end())
+        return false;
+
+    std::map<MacNodeId, LteD2DMode>::iterator it = d2dPeeringMode_[nodeId].begin();
+    if (it == d2dPeeringMode_[nodeId].end())
+        return false;
+
+    for (; it != d2dPeeringMode_[nodeId].end(); ++it)
+    {
+        if (it->second == IM)
+            return false;
+    }
+    return true;
+}
+
 
 void LteBinder::registerMulticastGroup(MacNodeId nodeId, int32 groupId)
 {

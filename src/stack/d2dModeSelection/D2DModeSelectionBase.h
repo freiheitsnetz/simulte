@@ -50,7 +50,7 @@ protected:
 
     // run the mode selection algorithm. To be implemented by derived classes
     // it must build a switch list (see above)
-    virtual void doModeSelection() = 0;
+    virtual void doModeSelection() {}
 
     // for each pair of UEs in the switch list, send the notification to do the
     // switch to the transmitter UE
@@ -64,7 +64,12 @@ public:
     virtual int numInitStages() const { return inet::NUM_INIT_STAGES; }
     virtual void handleMessage(cMessage *msg);
 
-    void doModeSwitchAtHandover(MacNodeId nodeId);
+    // this method triggers possible switches after handover
+    // if handoverCompleted is false, move all the connections for nodeId to IM
+    // if handoverCompleted is true, move the connections for nodeId to DM only if the endpoint is under the same cell
+    //
+    // NOTE: re-implement this method in derived classes
+    virtual void doModeSwitchAtHandover(MacNodeId nodeId, bool handoverCompleted);
 };
 
 #endif /* LTE_D2DMODESELECTIONBASE_H_ */

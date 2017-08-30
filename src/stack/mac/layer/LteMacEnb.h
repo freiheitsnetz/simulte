@@ -14,10 +14,12 @@
 #include "corenetwork/deployer/LteDeployer.h"
 #include "stack/mac/amc/LteAmc.h"
 #include "common/LteCommon.h"
+#include "stack/mac/conflict_graph_utilities/meshMaster.h"
 
 class MacBsr;
 class LteSchedulerEnbDl;
 class LteSchedulerEnbUl;
+class MeshMaster;
 
 class LteMacEnb : public LteMacBase
 {
@@ -36,27 +38,6 @@ class LteMacEnb : public LteMacBase
     simsignal_t activatedFrames_;
     simsignal_t sleepFrames_;
     simsignal_t wastedFrames_;
-    simsignal_t cqiDlSpmux0_;
-    simsignal_t cqiDlSpmux1_;
-    simsignal_t cqiDlSpmux2_;
-    simsignal_t cqiDlSpmux3_;
-    simsignal_t cqiDlSpmux4_;
-    simsignal_t cqiDlTxDiv0_;
-    simsignal_t cqiDlTxDiv1_;
-    simsignal_t cqiDlTxDiv2_;
-    simsignal_t cqiDlTxDiv3_;
-    simsignal_t cqiDlTxDiv4_;
-    simsignal_t cqiDlMuMimo0_;
-    simsignal_t cqiDlMuMimo1_;
-    simsignal_t cqiDlMuMimo2_;
-    simsignal_t cqiDlMuMimo3_;
-    simsignal_t cqiDlMuMimo4_;
-    simsignal_t cqiDlSiso0_;
-    simsignal_t cqiDlSiso1_;
-    simsignal_t cqiDlSiso2_;
-    simsignal_t cqiDlSiso3_;
-    simsignal_t cqiDlSiso4_;
-    TaggedSample* tSample_;
 
     /**
      * Variable used for Downlink energy consumption computation
@@ -93,6 +74,9 @@ class LteMacEnb : public LteMacBase
 
     /// Number of RB Ul
     int numRbUl_;
+
+    // conflict graph builder
+    MeshMaster* meshMaster_;
 
     /**
      * Reads MAC parameters for eNb and performs initialization.
@@ -326,6 +310,15 @@ class LteMacEnb : public LteMacBase
     // get band occupation for this/previous TTI. Used for interference computation purposes
     unsigned int getBandStatus(Band b);
     unsigned int getPrevBandStatus(Band b);
+
+    /**
+     * Return a reference of the Mesh Master
+     */
+    MeshMaster* getMeshMaster()
+    {
+        return meshMaster_;
+    }
+
 };
 
 #endif

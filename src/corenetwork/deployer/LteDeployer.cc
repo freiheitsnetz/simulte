@@ -74,7 +74,7 @@ void LteDeployer::preInitialize()
     rbPilotUl_ = par("rbPilotUl");
     signalDl_ = par("signalDl");
     signalUl_ = par("signalUl");
-    numBands_ = par("numBands");
+    numBands_ = binder_->getNumBands();
     numRus_ = par("numRus");
 
     numPreferredBands_ = par("numPreferredBands");
@@ -213,7 +213,7 @@ void LteDeployer::attachMobilityModule(cModule *parentModule,
     {
         cModuleType *mt = cModuleType::get("inet.mobility.models.CircleMobility");
         cModule *module = mt->create("mobility",
-            parentModule->getSubmodule("nic"));
+            parentModule->getSubmodule("lteNic"));
         module->par("debug") = false;
         module->par("cx") = centerX;
         module->par("cy") = centerY;
@@ -236,7 +236,7 @@ void LteDeployer::attachMobilityModule(cModule *parentModule,
     {
         cModuleType *mt = cModuleType::get("inet.mobility.models.ConstSpeedMobility");
         cModule *module = mt->create("mobility",
-            parentModule->getSubmodule("nic"));
+            parentModule->getSubmodule("lteNic"));
         module->par("initialX") = x;
         module->par("initialY") = y;
         module->par("initialZ") = 0;
@@ -343,7 +343,7 @@ void LteDeployer::detachUser(MacNodeId nodeId)
 {
     // remove UE from deployer's structures
 
-    std::map<MacNodeId, Coord>::iterator pt = uePosition.find(nodeId);
+    std::map<MacNodeId, inet::Coord>::iterator pt = uePosition.find(nodeId);
     if (pt != uePosition.end())
         uePosition.erase(pt);
 

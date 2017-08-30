@@ -42,6 +42,7 @@ module LteNicBase like ILteNic
     parameters:
         @display("i=block/ifcard;bgb=250,444;bgl=3");
         string interfaceTableModule;
+        string routingTableModule;
         string LtePdcpRrcType;      // One of: "LtePdcpRrcUe", "LtePdcpRrcEnb", "LtePdcpRrcRelayUe", "LtePdcpRrcRelayEnb"
         string LteMacType;          // One of: "LteMacUe", "LteMacEnb", "LteMacEnbExperimental", "LteMacRelayUe", "LteMacRelayEnb"
         string LtePhyType;
@@ -64,6 +65,7 @@ module LteNicBase like ILteNic
         ip2lte: IP2lte {
             nodeType = nodeType;
             interfaceTableModule = interfaceTableModule;
+            routingTableModule = routingTableModule;
             @display("p=150,68");
         }
         // PDCP-RRC Layer
@@ -211,8 +213,7 @@ module LteNicEnbD2D extends LteNicBase
         LtePhyType = "LtePhyEnbD2D";
         bool compEnabled = default(false);
         string LteCompManagerType = default("LteCompManagerProportional");
-        bool d2dMode = default(false);
-        string d2dModeSelectionType = default("D2DModeSelectionBestCqi");
+        string d2dModeSelectionType = default("D2DModeSelectionBase");
 
     submodules:
         //#
@@ -231,7 +232,8 @@ module LteNicEnbD2D extends LteNicBase
         handoverManager: LteHandoverManager {
             @display("p=60,142,row");
         }
-        d2dModeSelection: <d2dModeSelectionType> like D2DModeSelection if d2dMode {
+
+        d2dModeSelection: <d2dModeSelectionType> like D2DModeSelection {
             @display("p=60,68,row");
         }
     connections:

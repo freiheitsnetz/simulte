@@ -820,7 +820,7 @@ std::vector<double> LteRealisticChannelModel::getSINR(LteAirFrame *frame, UserCo
         //get tx angle
         LtePhyBase* ltePhy = check_and_cast<LtePhyBase*>(
                 getSimulation()->getModule(binder_->getOmnetId(eNbId))->getSubmodule(
-                        "nic")->getSubmodule("phy"));
+                        "lteNic")->getSubmodule("phy"));
 
         if (ltePhy->getTxDirection() == ANISOTROPIC)
         {
@@ -971,7 +971,7 @@ std::vector<double> LteRealisticChannelModel::getRSRP_D2D(LteAirFrame *frame, Us
 {
     AttenuationVector::iterator it;
     // Get Tx power
-    double recvPower = lteInfo_1->getTxPower(); // dBm
+    double recvPower = lteInfo_1->getD2dTxPower(); // dBm
 
     // Coordinate of the Sender of the Feedback packet
     Coord sourceCoord =  lteInfo_1->getCoord();
@@ -1017,14 +1017,14 @@ std::vector<double> LteRealisticChannelModel::getRSRP_D2D(LteAirFrame *frame, Us
        << " - DIR=" << dirToA(dir)
        << " - frameType=" << ((lteInfo_1->getFrameType()==FEEDBACKPKT)?"feedback":"other")
        << endl
-       << " - txPwr " << lteInfo_1->getTxPower()
+       << " - txPwr " << recvPower
        << " - ue1_Coord[" << sourceCoord << "] - ue2_Coord[" << destCoord << "] - ue1_Id[" << sourceId << "] - ue2_Id[" << destId << "]" <<
     endl;
     //=================== END PARAMETERS SETUP =======================
 
     //=============== PATH LOSS + SHADOWING + FADING =================
     EV << "\t using parameters - noiseFigure=" << noiseFigure << " - antennaGainTx=" << antennaGainTx << " - antennaGainRx=" << antennaGainRx <<
-    " - txPwr=" << lteInfo_1->getTxPower() << " - for ueId=" << sourceId << endl;
+    " - txPwr=" << recvPower << " - for ueId=" << sourceId << endl;
 
     // attenuation for the desired signal
     double attenuation = getAttenuation_D2D(sourceId, dir, sourceCoord, destId, destCoord); // dB
@@ -1094,15 +1094,7 @@ std::vector<double> LteRealisticChannelModel::getSINR_D2D(LteAirFrame *frame, Us
 {
     AttenuationVector::iterator it;
     // Get Tx power
-    double recvPower;
-    if (lteInfo->getFrameType()==FEEDBACKPKT)
-    {
-        recvPower = lteInfo->getD2dTxPower(); // dBm
-    }
-    else
-    {
-        recvPower = lteInfo->getTxPower(); // dBm
-    }
+    double recvPower = lteInfo->getD2dTxPower(); // dBm
 
     // Coordinate of the Sender of the Feedback packet
     Coord sourceCoord =  lteInfo->getCoord();
@@ -2300,7 +2292,7 @@ LteRealisticChannelModel::JakesFadingMap * LteRealisticChannelModel::obtainUeJak
 {
     // obtain a reference to UE phy
     LtePhyBase * ltePhy = check_and_cast<LtePhyBase*>(
-            getSimulation()->getModule(binder_->getOmnetId(id))->getSubmodule("nic")->getSubmodule("phy"));
+            getSimulation()->getModule(binder_->getOmnetId(id))->getSubmodule("lteNic")->getSubmodule("phy"));
 
     // get the associated channel and get a reference to its Jakes Map
     LteRealisticChannelModel * re = dynamic_cast<LteRealisticChannelModel *>(ltePhy->getChannelModel());
@@ -2339,7 +2331,7 @@ bool LteRealisticChannelModel::computeMultiCellInterference(MacNodeId eNbId, Mac
         if(!(*it)->init)
         {
             // obtain a reference to enb phy and obtain tx power
-            ltePhy = check_and_cast<LtePhyBase*>(getSimulation()->getModule(binder_->getOmnetId(id))->getSubmodule("nic")->getSubmodule("phy"));
+            ltePhy = check_and_cast<LtePhyBase*>(getSimulation()->getModule(binder_->getOmnetId(id))->getSubmodule("lteNic")->getSubmodule("phy"));
             (*it)->txPwr = ltePhy->getTxPwr();//dBm
 
             // get tx direction
@@ -2433,7 +2425,7 @@ bool LteRealisticChannelModel::computeInCellD2DInterference(MacNodeId eNbId, Mac
     band_status.resize(band_,false);
 
     // Get PhyData from the destId
-    ltePhy_destId = check_and_cast<LtePhyBase*>(getSimulation()->getModule(binder_->getOmnetId(destId))->getSubmodule("nic")->getSubmodule("phy"));
+    ltePhy_destId = check_and_cast<LtePhyBase*>(getSimulation()->getModule(binder_->getOmnetId(destId))->getSubmodule("lteNic")->getSubmodule("phy"));
     EV<<NOW<<"ComputeInCellD2DInterference for Node: "<<destId<<endl;
 
     // Get the list of all UEs
