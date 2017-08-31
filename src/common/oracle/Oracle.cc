@@ -283,10 +283,10 @@ void Oracle::initialize() {
     mMemory = new Memory(mUpdateInterval, maxSimTime, this);
     scheduleAt(mConfigTimepoint, mConfigMsg);
     // Schedule first update.
-    scheduleAt(mConfigTimepoint + mUpdateInterval, mSnapshotMsg);
+//    scheduleAt(mConfigTimepoint + mUpdateInterval, mSnapshotMsg);
 
     // Schedule saving allocation history to file at end of simulation.
-    scheduleAt(maxSimTime, mSaveAllocationHistoryMsg);
+//    scheduleAt(maxSimTime, mSaveAllocationHistoryMsg);
 }
 
 /**
@@ -300,6 +300,9 @@ void Oracle::configure() {
     if (enbInfo->size() == 0)
         throw cRuntimeError("Oracle::configure can't get AMC pointer because I couldn't find an eNodeB!");
     // -> its ID -> the node -> cast to the eNodeB class
+    EV << "Oracle::configure enbInfo.size()=" << enbInfo->size() << std::endl;
+    for (size_t i = 0; i < enbInfo->size(); i++)
+    	EV << "Oracle::configure enbInfo->at(" << i << ")->id=" << enbInfo->at(i)->id << std::endl;
     mENodeBId = enbInfo->at(0)->id;
     ExposedLteMacEnb *eNodeB = (ExposedLteMacEnb*) getMacByMacNodeId(mENodeBId);
     // -> get the AMC.
@@ -310,7 +313,7 @@ void Oracle::configure() {
         EV << "\tFound AMC." << endl;
 
     // Remember eNodeB position.
-    mENodeBPosition = getPosition(mENodeBId);
+//    mENodeBPosition = getPosition(mENodeBId);
 
     // Get deployer pointer.
     mDeployer = eNodeB->getDeployer();
@@ -338,17 +341,17 @@ void Oracle::configure() {
     for (size_t i = 0; i < ueInfo->size(); i++) {
         Coord position = getPosition(ueInfo->at(i)->id);
         EV << "\t\t#" << i+1 << ": has MacNodeId " << ueInfo->at(i)->id << " and OmnetID " << getId(ueInfo->at(i)->id)
-           << " and sits at position (" << position.x << ", " << position.y << ") and has a mean SINR to the eNB of "
+           /*<< " and sits at position (" << position.x << ", " << position.y << ") and has a mean SINR to the eNB of "
            << getMean(getSINR(ueInfo->at(i)->id, mENodeBId, NOW, getTransmissionPower(ueInfo->at(i)->id, Direction::UL)))
-           << " which is " << euclideanDistance(position, mENodeBPosition) << "m away" << std::endl;
+           << " which is " << euclideanDistance(position, mENodeBPosition) << "m away" */<< std::endl;
     }
     // eNodeB...
     std::vector<EnbInfo*>* EnbInfo = getEnbInfo();
     EV << "\tThere are " << EnbInfo->size() << " EnBs in the network: " << std::endl;
     for (size_t i = 0; i < EnbInfo->size(); i++) {
-        Coord position = getPosition(EnbInfo->at(i)->id);
+//        Coord position = getPosition(EnbInfo->at(i)->id);
         EV << "\t\t#" << i+1 << ": has MacNodeId " << EnbInfo->at(i)->id << " and OmnetID " << getId(EnbInfo->at(i)->id)
-           << " and sits at position (" << position.x << ", " << position.y << ")." << std::endl;
+           /*<< " and sits at position (" << position.x << ", " << position.y << ")." */<< std::endl;
     }
 
     }
