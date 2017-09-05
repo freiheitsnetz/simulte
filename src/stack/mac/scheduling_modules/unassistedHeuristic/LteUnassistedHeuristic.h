@@ -15,14 +15,36 @@
 #include <stack/mac/scheduling_modules/maxDatarate/MaxDatarateSorter.h>
 #include <common/oracle/SchedulingMemory.h>
 
+typedef std::map<MacCid, unsigned int> ScheduleList;
 
-class LteUnassistedHeuristic : public virtual LteScheduler {
+class LteMacUeD2D;
+class LteSchedulerUeAutoD2D;
+
+class LteUnassistedHeuristic: public virtual LteScheduler {
+
 public:
+
+    // last execution time
+    simtime_t lastExecutionTime_;
+
+    /// MAC module, used to get parameters from NED
+    LteMacUeD2D *mac_;
+
+    /// Associated LteSchedulerUeUl (it is the one who creates the LteScheduler)
+    LteSchedulerUeAutoD2D* ueScheduler_;
+
+    // schedule List - returned by reference on scheduler invocation
+    ScheduleList scheduleList_;
+
+    /// Cid List
+    typedef std::list<MacCid> CidList;
+
     enum SchedulingResult {
         OK = 0, TERMINATE, INACTIVE, INELIGIBLE
     };
 
     LteUnassistedHeuristic();
+
     virtual ~LteUnassistedHeuristic();
 
     /**
@@ -40,10 +62,15 @@ public:
      * It is essential to save this information. (I think this should be the default behaviour and be done in the LteScheduler class)
      */
     void notifyActiveConnection(MacCid cid) override {
-        EV_STATICCONTEXT;
+        EV_STATICCONTEXT
+        ;
         Oracle* oracle = Oracle::get();
-        std::string name = (oracle == nullptr ? std::to_string(MacCidToNodeId(cid)) : Oracle::get()->getUeName(MacCidToNodeId(cid)));
-        EV << NOW << " LteReassignment::notifyActiveConnection(" << name << ")" << std::endl;
+        std::string name = (
+                oracle == nullptr ?
+                        std::to_string(MacCidToNodeId(cid)) :
+                        Oracle::get()->getUeName(MacCidToNodeId(cid)));
+        EV << NOW << " LteReassignment::notifyActiveConnection(" << name << ")"
+                  << std::endl;
         activeConnectionSet_.insert(cid);
     }
 
@@ -51,10 +78,15 @@ public:
      * When the LteSchedulerEnb learns of a connection going inactive it notifies the LteScheduler.
      */
     void removeActiveConnection(MacCid cid) override {
-        EV_STATICCONTEXT;
+        EV_STATICCONTEXT
+        ;
         Oracle* oracle = Oracle::get();
-        std::string name = (oracle == nullptr ? std::to_string(MacCidToNodeId(cid)) : Oracle::get()->getUeName(MacCidToNodeId(cid)));
-        EV << NOW << " LteReassignment::removeActiveConnection(" << name << ")" << std::endl;
+        std::string name = (
+                oracle == nullptr ?
+                        std::to_string(MacCidToNodeId(cid)) :
+                        Oracle::get()->getUeName(MacCidToNodeId(cid)));
+        EV << NOW << " LteReassignment::removeActiveConnection(" << name << ")"
+                  << std::endl;
         activeConnectionSet_.erase(cid);
     }
 
@@ -64,9 +96,11 @@ protected:
 
     MaxDatarateSorter* sortBandsByDatarate(SchedulingMemory* memory);
 
-    std::vector<Band> phase1_cellular(MaxDatarateSorter* sorter, SchedulingMemory* memory);
+    std::vector<Band> phase1_cellular(MaxDatarateSorter* sorter,
+            SchedulingMemory* memory);
 
-    void phase1_d2d(MaxDatarateSorter* sorter, SchedulingMemory* memory, std::vector<Band>& alreadyAssignedBands);
+    void phase1_d2d(MaxDatarateSorter* sorter, SchedulingMemory* memory,
+            std::vector<Band>& alreadyAssignedBands);
 
     /**
      * Double-assigns resource blocks to devices that left the first round empty-handed.
@@ -86,7 +120,47 @@ protected:
     /**
      * Helper method that requests a grant for the specified connection.
      */
-    LteUnassistedHeuristic::SchedulingResult schedule(MacCid connectionId, Band band);
+    LteUnassistedHeuristic::SchedulingResult schedule(MacCid connectionId,
+            Band band);
+
+    /**
+     * Score-based schedulers descriptor.
+     */
+    template<typename T, typename S>
+    struct SortedDesc {
+        /// Connection identifier.
+        T x_;
+        /// Score value.
+        S score_;
+
+        /// Comparison operator to enable sorting.
+        bool operator<(const SortedDesc& y) const {
+            return score_ < y.score_;
+        }
+
+    public:
+        SortedDesc(const T x, const S score) {
+            x_ = x;
+            score_ = score;
+        }
+    };
+
+    struct StatusElem {
+        unsigned int occupancy_;
+        unsigned int bucket_;
+        unsigned int sentData_;
+        unsigned int sentSdus_;
+    };
+
+    // scheduling status map
+    std::map<MacCid, StatusElem> statusMap_;
+
+
+public:
+    /**
+     * Helper method that requests a grant for the specified connection.
+     */
+    ScheduleList& schedule(unsigned int availableBytes, Direction grantDir);
 };
 
 #endif /* STACK_MAC_SCHEDULING_MODULES_MAXDATARATE_LTEMAXDATARATE_H_ */

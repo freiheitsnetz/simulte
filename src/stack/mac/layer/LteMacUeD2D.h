@@ -14,12 +14,16 @@
 #include "stack/mac/layer/LteMacEnbD2D.h"
 #include "stack/mac/buffer/harq_d2d/LteHarqBufferTxD2D.h"
 
+class LteSchedulerUeAutoD2D;
+
 class LteMacUeD2D : public LteMacUe
 {
   protected:
 
     // reference to the eNB
     LteMacEnbD2D* enb_;
+
+    LteSchedulerUeAutoD2D* lteSchedulerUeAutoD2D_;
 
     // if true, use the preconfigured TX params for transmission, else use that signaled by the eNB
     bool usePreconfiguredTxParams_;
