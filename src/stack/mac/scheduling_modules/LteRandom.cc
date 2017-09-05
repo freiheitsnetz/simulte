@@ -9,9 +9,8 @@ void LteRandom::prepareSchedule()
     int activeSetSize = activeConnectionTempSet_.size();
     eNbScheduler_->mac_->emit(numActiveConnections_, activeSetSize);
 
-    try{
-
-
+    try
+    {
         for(int i = 0; i < activeSetSize; i++)
         {
             //Draw a random CID to schedule
@@ -39,7 +38,8 @@ void LteRandom::prepareSchedule()
             MacNodeId nodeId = MacCidToNodeId(chosenCid);
             const UserTxParams& info = eNbScheduler_->mac_->getAmc()->computeTxParams(nodeId,dir);
 
-            try{
+            try
+            {
                 unsigned int granted = requestGrant (chosenCid, randomBytes, terminate, active, eligible);
                 EV << NOW << "LteRandom::schedule granted " << granted << " bytes to connection " << chosenCid << endl;
                 // Exit immediately if the terminate flag is set.
