@@ -8,9 +8,18 @@
 //
 
 #include "stack/mac/allocator/LteAllocationModule.h"
+#include "stack/mac/layer/LteMacBase.h"
 #include "stack/mac/layer/LteMacEnb.h"
+#include "stack/mac/layer/LteMacUeRealisticD2D.h"
 
 LteAllocationModule::LteAllocationModule(LteMacEnb *mac, Direction direction)
+{
+    mac_ = mac;
+    dir_ = direction;
+    bands_ = 0;
+}
+
+LteAllocationModule::LteAllocationModule(LteMacUeRealisticD2D *mac, Direction direction)
 {
     mac_ = mac;
     dir_ = direction;

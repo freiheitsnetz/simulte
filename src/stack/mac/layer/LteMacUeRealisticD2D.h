@@ -13,15 +13,38 @@
 #include "stack/mac/layer/LteMacUeRealistic.h"
 #include "stack/mac/layer/LteMacEnbRealisticD2D.h"
 #include "stack/mac/buffer/harq_d2d/LteHarqBufferTxD2D.h"
+#include "common/LteCommon.h"
 
 class LteSchedulingGrant;
 class LteSchedulerUeUl;
 class LteBinder;
 
+class LteSchedulerUeAutoD2D;
+
+class ExposedLteMacEnb : public LteMacEnbRealisticD2D {
+public:
+    LteDeployer* getDeployer() {
+        return LteMacEnb::deployer_;
+    }
+};
+
 class LteMacUeRealisticD2D : public LteMacUeRealistic
 {
+    /// Local LteDeployer
+    LteDeployer *deployer_;
+
+    /// Lte AMC module
+    LteAmc *amc_;
+
+    /// Number of antennas (MACRO included)
+    int numAntennas_;
+
     // reference to the eNB
     LteMacEnbRealisticD2D* enb_;
+    ExposedLteMacEnb* eNodeBFunctions;
+
+    LteSchedulerUeAutoD2D* lteSchedulerUeAutoD2DSLRx_;
+    LteSchedulerUeAutoD2D* lteSchedulerUeAutoD2DSLTx_;
 
     // RAC Handling variables
     bool racD2DMulticastRequested_;
@@ -33,8 +56,37 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
     UserTxParams* preconfiguredTxParams_;
     UserTxParams* getPreconfiguredTxParams();  // build and return new user tx params
 
-  protected:
+    struct RacVariables
+    {
+        bool racRequested_ = false;
+        unsigned int racBackoffTimer_;
+        unsigned int maxRacTryouts_;
+        unsigned int currentRacTry_;
+        unsigned int minRacBackoff_;
+        unsigned int maxRacBackoff_;
 
+        unsigned int raRespTimer_;
+        unsigned int raRespWinStart_;
+
+        RacVariables()
+        {
+
+        }
+    };
+
+    std::map<uint16_t,RacVariables> RacMap;
+
+  protected:
+    //number of resource block allcated in last tti
+    unsigned int lastTtiAllocatedRb_;
+    // Current subframe type
+    LteSubFrameType currentSubFrameType_;
+    /*
+     * Map associating a nodeId with the corresponding RX H-ARQ buffer.
+     * Used in eNB for D2D communications. The key value of the map is
+     * the *receiver* of the D2D flow
+     */
+    HarqRxBuffersMirror harqRxBuffersD2DMirror_;
     /**
      * Reads MAC parameters for ue and performs initialization.
      */
@@ -59,9 +111,19 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
     virtual void checkRAC();
 
     /*
+     * Checks RAC status
+     */
+    virtual void checkRAC(uint16_t ueRxD2DId);
+
+    /*
      * Receives and handles RAC responses
      */
     virtual void macHandleRac(cPacket* pkt);
+
+    /*
+     * Receives and handles RAC requests
+     */
+    virtual void macHandleRacRequest(cPacket* pkt);
 
     void macHandleD2DModeSwitch(cPacket* pkt);
 
@@ -77,8 +139,71 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
      * containing the size of its buffer (for that CID)
      */
     virtual void macPduMake();
-
   public:
+    /**
+     * Getter for AMC module
+     */
+    virtual LteAmc *getAmc()
+    {
+        return amc_;
+    }
+
+    // Power Model Parameters
+    /* minimum depleted power (W)
+     * @par dir link direction
+     */
+    double getZeroLevel(Direction dir, LteSubFrameType type);
+    /* idle state depleted power (W)
+     * @par dir link direction
+     */
+    double getIdleLevel(Direction dir, LteSubFrameType type);
+    /*
+     * Update the number of allocatedRb in last tti
+     * @par number of resource block
+     */
+    void allocatedRB(unsigned int rb);
+    /*
+      * getter for current sub-frame type.
+      * It sould be NORMAL_FRAME_TYPE, MBSFN, SYNCRO
+      * BROADCAST, PAGING and ABS
+      * It is used in order to compute the energy consumption
+      */
+     LteSubFrameType getCurrentSubFrameType() const
+     {
+         return currentSubFrameType_;
+     }
+     /* per-block depletion unit (W)
+      * @par dir link direction
+      */
+     double getPowerUnit(Direction dir, LteSubFrameType type);
+    //
+    // Getter for associated ENodeb
+    //
+    virtual  LteMacEnbRealisticD2D* getENodeB()
+    {
+        return eNodeBFunctions;
+    }
+
+    virtual LteDeployer* getDeployer(MacNodeId nodeId)
+    {
+        LteBinder* temp = getBinder();
+        // Check if nodeId is a relay, if nodeId is a eNodeB
+        // function GetNextHop returns nodeId
+        // TODO change this behavior (its not needed unless we don't implement relays)
+        MacNodeId id = temp->getNextHop(nodeId);
+        OmnetId omnetid = temp->getOmnetId(id);
+        return check_and_cast<LteDeployer*>(getSimulation()->getModule(omnetid)->getSubmodule("deployer"));
+    }
+
+    LteDeployer* getDeployer()
+    {
+        // Get local deployer
+        if (deployer_ != NULL)
+            return deployer_;
+
+        return check_and_cast<LteDeployer*>(getParentModule()-> getParentModule()-> getParentModule()-> getSubmodule("eNodeB")->getSubmodule("deployer")); // Deployer
+    }
+
     LteMacUeRealisticD2D();
     virtual ~LteMacUeRealisticD2D();
 
@@ -94,6 +219,18 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
         else
             bsrTriggered_ = true;
     }
+    // update the status of the "mirror" RX-Harq Buffer for this node
+    void storeRxHarqBufferMirror(MacNodeId id, LteHarqBufferRxD2DMirror* mirbuff);
+    // get the reference to the "mirror" buffers
+    HarqRxBuffersMirror* getRxHarqBufferMirror();
+    // delete the "mirror" RX-Harq Buffer for this node (useful at mode switch)
+    void deleteRxHarqBufferMirror(MacNodeId id);
+
+    /**
+     * creates scheduling grants (one for each nodeId) according to the Schedule List.
+     * It sends them to the  lower layer
+     */
+    virtual void sendGrants(LteMacScheduleList* scheduleList);
 };
 
 #endif

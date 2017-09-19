@@ -53,9 +53,8 @@ network SingleCell_D2D
             nodeType = "PGW";
             @display("p=519,175;is=l");
         }
-        ueAutoD2D: eNodeB {
-            @display("i=device/pocketpc;bgb=400,518");
-            @display("p=391,259;is=vl");
+        eNodeB: eNodeB {
+			@display("p=391,259;is=vl");
         }
         ueCell[numUeCell]: Ue {
             @display("p=292,367");
@@ -69,5 +68,5 @@ network SingleCell_D2D
     connections:
         server.pppg++ <--> Eth10G <--> router.pppg++;
         router.pppg++ <--> Eth10G <--> pgw.filterGate;
-        pgw.pppg++ <--> Eth10G <--> ueAutoD2D.ppp;
+        pgw.pppg++ <--> Eth10G <--> eNodeB.ppp;
 }

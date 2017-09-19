@@ -8,7 +8,9 @@
 //
 
 #include "stack/mac/amc/LteAmc.h"
+#include "stack/mac/layer/LteMacBase.h"
 #include "stack/mac/layer/LteMacEnb.h"
+#include "stack/mac/layer/LteMacUeRealisticD2D.h"
 
 // NOTE: AMC Pilots header file inclusions must go here
 #include "stack/mac/amc/AmcPilotAuto.h"
@@ -197,6 +199,15 @@ void LteAmc::printMuMimoMatrix(const char* s)
  ********************/
 
 LteAmc::LteAmc(LteMacEnb *mac, LteBinder *binder, LteDeployer *deployer, int numAntennas)
+{
+    mac_ = mac;
+    binder_ = binder;
+    deployer_ = deployer;
+    numAntennas_ = numAntennas;
+    initialize();
+}
+
+LteAmc::LteAmc(LteMacUeRealisticD2D *mac, LteBinder *binder, LteDeployer *deployer, int numAntennas)
 {
     mac_ = mac;
     binder_ = binder;

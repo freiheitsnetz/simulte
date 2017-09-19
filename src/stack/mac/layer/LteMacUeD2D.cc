@@ -13,8 +13,6 @@
 #include "stack/mac/buffer/LteMacBuffer.h"
 #include "stack/mac/amc/UserTxParams.h"
 #include "stack/mac/scheduler/LteSchedulerUeUl.h"
-#include "stack/mac/scheduler/LteSchedulerUeAutoD2D.h"
-#include <stack/mac/scheduling_modules/unassistedHeuristic/LteUnassistedHeuristic.h>
 #include "stack/mac/buffer/harq/LteHarqBufferRx.h"
 #include "stack/mac/buffer/harq_d2d/LteHarqBufferRxD2DMirror.h"
 #include "corenetwork/deployer/LteDeployer.h"
@@ -27,29 +25,15 @@ LteMacUeD2D::LteMacUeD2D() : LteMacUe()
 {
     racD2DMulticastRequested_ = false;
     bsrD2DMulticastTriggered_ = false;
-
-    lteSchedulerUeAutoD2D_ = NULL;
 }
 
 LteMacUeD2D::~LteMacUeD2D()
 {
-    if (par("UnassistedD2D")) {
-        delete lteSchedulerUeAutoD2D_;
-    } else {
-        delete lcgScheduler_;
-    }
 }
 
 void LteMacUeD2D::initialize(int stage)
 {
     LteMacUe::initialize(stage);
-    if (stage == INITSTAGE_LOCAL){
-        if (par("UnassistedD2D")) {
-            lteSchedulerUeAutoD2D_ = new LteSchedulerUeAutoD2D(this); // Should handle SL-Tx and SL-Rx
-
-        } else {
-            lcgScheduler_ = new LteSchedulerUeUl(this); // Handles Tx only
-        }}
     if (stage == 1)
     {
         usePreconfiguredTxParams_ = par("usePreconfiguredTxParams");
@@ -100,7 +84,7 @@ void LteMacUeD2D::handleMessage(cMessage* msg)
     cPacket* pkt = check_and_cast<cPacket *>(msg);
     cGate* incoming = pkt->getArrivalGate();
 
-    if (incoming == down_[IN]) //Packet came from Phy to MAC
+    if (incoming == down_[IN])
     {
         UserControlInfo *userInfo = check_and_cast<UserControlInfo *>(pkt->getControlInfo());
         if (userInfo->getFrameType() == D2DMODESWITCHPKT)
@@ -116,20 +100,7 @@ void LteMacUeD2D::handleMessage(cMessage* msg)
 
             return;
         }
-        else if (userInfo->getFrameType() == GRANTPKT)
-        {
-            // Allow grant
-            EV << NOW << "LteMacUeD2D::handleMessage node " << nodeId_ << " Received Scheduling Grant pkt" << endl;
-            macHandleGrant(pkt);
-        }
     }
-    else
-    {
-        // message from RLC_to_MAC gate (from upper layer)
-        emit(receivedPacketFromUpperLayer, pkt);
-        //fromRlc(pkt);
-    }
-    return;
 
     LteMacUe::handleMessage(msg);
 }
@@ -284,11 +255,7 @@ void LteMacUeD2D::handleSelfMessage()
         // if no retx is needed, proceed with normal scheduling
         if(!retx)
         {
-            if (par("UnassistedD2D")) {
-                scheduleList = lteSchedulerUeAutoD2D_->schedule();
-            } else {
-                scheduleList = lcgScheduler_->schedule();
-            }
+            scheduleList = lcgScheduler_->schedule();
             macPduMake(scheduleList);
         }
 
