@@ -207,6 +207,13 @@ class LteAmc
     std::vector<Cqi>  readMultiBandCqi(MacNodeId id, const Direction dir);
 
     int getSystemNumBands() { return numBands_; }
+
+    void setConnectedUEsMap ()
+    {
+        dlConnectedUe_ = binder_->getDeployedUes(nodeId_, UL); // TODO be checked
+        ulConnectedUe_ = binder_->getDeployedUes(nodeId_, UL); // TODO be checked
+        d2dConnectedUe_ = binder_->getDeployedUes(nodeId_, UL); // TODO be checked
+    }
 };
 
 #endif

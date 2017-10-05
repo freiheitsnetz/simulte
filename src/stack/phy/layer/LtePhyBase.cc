@@ -103,6 +103,7 @@ void LtePhyBase::handleControlMsg(LteAirFrame *frame,
     cPacket *pkt = frame->decapsulate();
     delete frame;
     pkt->setControlInfo(userInfo);
+    EV << "User Info Frame type::"<< userInfo->getFrameType() <<endl;
     send(pkt, upperGateOut_);
     return;
 }

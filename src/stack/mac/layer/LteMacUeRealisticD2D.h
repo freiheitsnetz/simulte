@@ -43,8 +43,8 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
     LteMacEnbRealisticD2D* enb_;
     ExposedLteMacEnb* eNodeBFunctions;
 
-    LteSchedulerUeAutoD2D* lteSchedulerUeAutoD2DSLRx_;
-    LteSchedulerUeAutoD2D* lteSchedulerUeAutoD2DSLTx_;
+    LteSchedulerUeAutoD2D* lteSchedulerUeAutoD2DSLRx_; // Similar to eNB scheduler for DL
+    LteSchedulerUeAutoD2D* lteSchedulerUeAutoD2DSLTx_; // Similar to eNB Scheduler for UL
 
     // RAC Handling variables
     bool racD2DMulticastRequested_;
@@ -74,13 +74,15 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
         }
     };
 
-    std::map<uint16_t,RacVariables> RacMap;
+    std::map<MacCid,RacVariables> RacMap;
 
   protected:
     //number of resource block allcated in last tti
     unsigned int lastTtiAllocatedRb_;
     // Current subframe type
     LteSubFrameType currentSubFrameType_;
+    /// Buffer for the BSRs
+    LteMacBufferMap bsrbuf_;
     /*
      * Map associating a nodeId with the corresponding RX H-ARQ buffer.
      * Used in eNB for D2D communications. The key value of the map is
@@ -97,6 +99,29 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
      * and call proper handler
      */
     virtual void handleMessage(cMessage *msg);
+    /**
+     * bufferizeBsr() works much alike bufferizePacket()
+     * but only saves the BSR in the corresponding virtual
+     * buffer, eventually creating it if a queue for that
+     * cid does not exists yet.
+     *
+     * @param bsr bsr to store
+     * @param cid connection id for this bsr
+     */
+    void bufferizeBsr(MacBsr* bsr, MacCid cid);
+
+    /**
+     * macPduUnmake() extracts SDUs from a received MAC
+     * PDU and sends them to the upper layer.
+     *
+     * For unassissted D2D it also extracts the BSR Control Element
+     * and stores it in the BSR buffer (for the cid from
+     * which packet was received)
+     *
+     *
+     * @param pkt container packet
+     */
+    virtual void macPduUnmake(cPacket* pkt);
 
     /**
      * Main loop
@@ -113,7 +138,7 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
     /*
      * Checks RAC status
      */
-    virtual void checkRAC(uint16_t ueRxD2DId);
+    virtual void checkRAC(MacCid ueRxD2DId);
 
     /*
      * Receives and handles RAC responses
@@ -139,6 +164,14 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
      * containing the size of its buffer (for that CID)
      */
     virtual void macPduMake();
+
+    /**
+     * macPduMake() creates MAC PDUs (one for each CID)
+     * by extracting SDUs from Real Mac Buffers according
+     * to the Schedule List.
+     * It sends them to H-ARQ
+     */
+    virtual void macPduMakeSLTX(LteMacScheduleList* scheduleList);
   public:
     /**
      * Getter for AMC module
@@ -231,6 +264,11 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
      * It sends them to the  lower layer
      */
     virtual void sendGrants(LteMacScheduleList* scheduleList);
+    /// Upper Layer Handler
+    void fromRlc(cPacket *pkt);
+
+    /// Lower Layer Handler
+    void fromPhy(cPacket *pkt);
 };
 
 #endif

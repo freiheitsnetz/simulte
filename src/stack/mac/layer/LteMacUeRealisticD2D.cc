@@ -17,7 +17,8 @@
 #include "stack/d2dModeSelection/D2DModeSwitchNotification_m.h"
 #include "stack/mac/packet/LteRac_m.h"
 #include "stack/mac/scheduler/LteSchedulerUeAutoD2D.h"
-#include <stack/mac/scheduling_modules/unassistedHeuristic/LteUnassistedHeuristic.h>
+#include "stack/mac/scheduling_modules/unassistedHeuristic/LteUnassistedHeuristic.h"
+#include "stack/mac/amc/AmcPilotD2D.h"
 
 Define_Module(LteMacUeRealisticD2D);
 
@@ -111,6 +112,12 @@ void LteMacUeRealisticD2D::initialize(int stage)
 
             /* Create and initialize AMC module */
             amc_ = new LteAmc(this, binder_, deployer_, numAntennas_);
+            (amc_->getPilot())->setUnassistedD2DMode(par("unassistedD2D")); // To handle Tx Params in unassissted D2D mode
+            amc_->setConnectedUEsMap();
+
+            Cqi d2dCqi = par("d2dCqi");
+            if (usePreconfiguredTxParams_)
+                check_and_cast<AmcPilotD2D*>(amc_->getPilot())->setPreconfiguredTxParams(d2dCqi);
            }
 
         // get the reference to the eNB
@@ -139,11 +146,45 @@ LteMacPdu* LteMacUeRealisticD2D::makeBsr(int size){
     return macPkt;
 }
 
+void LteMacUeRealisticD2D::bufferizeBsr(MacBsr* bsr, MacCid cid)
+{
+    PacketInfo vpkt(bsr->getSize(), bsr->getTimestamp());
+
+    LteMacBufferMap::iterator it = bsrbuf_.find(cid);
+    if (it == bsrbuf_.end())
+    {
+        // Queue not found for this cid: create
+        LteMacBuffer* bsrqueue = new LteMacBuffer();
+
+        bsrqueue->pushBack(vpkt);
+        bsrbuf_[cid] = bsrqueue;
+
+        EV << "LteBsrBuffers : Added new BSR buffer for node: "
+           << MacCidToNodeId(cid) << " for Lcid: " << MacCidToLcid(cid)
+           << " Current BSR size: " << bsr->getSize() << "\n";
+    }
+    else
+    {
+        // Found
+        LteMacBuffer* bsrqueue = it->second;
+        bsrqueue->pushBack(vpkt);
+
+        EV << "LteBsrBuffers : Using old buffer for node: " << MacCidToNodeId(
+            cid) << " for Lcid: " << MacCidToLcid(cid)
+           << " Current BSR size: " << bsr->getSize() << "\n";
+    }
+
+        // signal backlog to Uplink scheduler
+    lteSchedulerUeAutoD2DSLTx_->backlog(cid);
+}
+
 void LteMacUeRealisticD2D::macPduMake()
 {
     int64 size = 0;
 
     macPduList_.clear();
+
+    macPduMakeSLTX(scheduleList_);
 
     bool bsrAlreadyMade = false;
     // UE is in D2D-mode but it received an UL grant (for BSR)
@@ -318,7 +359,7 @@ void LteMacUeRealisticD2D::macPduMake()
             LteHarqBufferTx* hb;
             // FIXME: hb is never deleted
             UserControlInfo* info = check_and_cast<UserControlInfo*>(pit->second->getControlInfo());
-            if (info->getDirection() == UL)
+            if ((info->getDirection() == UL) && (!par("unassistedD2D")))
                 hb = new LteHarqBufferTx((unsigned int) ENB_TX_HARQ_PROCESSES, this, (LteMacBase*) getMacByMacNodeId(destId));
             else // D2D or D2D_MULTI
             {
@@ -435,31 +476,77 @@ void LteMacUeRealisticD2D::macPduMake()
     }
 }
 
+void LteMacUeRealisticD2D::macPduUnmake(cPacket* pkt)
+{
+    LteMacPdu* macPkt = check_and_cast<LteMacPdu*>(pkt);
+    while (macPkt->hasSdu())
+    {
+        // Extract and send SDU
+        cPacket* upPkt = macPkt->popSdu();
+        take(upPkt);
+
+        /* TODO: upPkt->info() */
+        EV << "LteMacUeRealisticD2D: pduUnmaker extracted SDU" << endl;
+
+        // store descriptor for the incoming connection, if not already stored
+        FlowControlInfo* lteInfo = check_and_cast<FlowControlInfo*>(upPkt->getControlInfo());
+        MacNodeId senderId = lteInfo->getSourceId();
+        LogicalCid lcid = lteInfo->getLcid();
+        MacCid cid = idToMacCid(senderId, lcid);
+        if (connDescIn_.find(cid) == connDescIn_.end())
+        {
+            FlowControlInfo toStore(*lteInfo);
+            connDescIn_[cid] = toStore;
+        }
+        sendUpperPackets(upPkt);
+    }
+    while (macPkt->hasCe())
+        {
+            // Extract CE
+            // TODO: vedere se   per cid o lcid
+            MacBsr* bsr = check_and_cast<MacBsr*>(macPkt->popCe());
+            UserControlInfo* lteInfo = check_and_cast<UserControlInfo*>(macPkt->getControlInfo());
+            LogicalCid lcid = lteInfo->getLcid();  // one of SHORT_BSR or D2D_MULTI_SHORT_BSR
+
+            MacCid cid = idToMacCid(lteInfo->getSourceId(), lcid); // this way, different connections from the same UE (e.g. one UL and one D2D)
+                                                                   // obtain different CIDs. With the inverse operation, you can get
+                                                                   // the LCID and discover if the connection is UL or D2D
+            bufferizeBsr(bsr, cid);
+            EV << "LteMacUeRealisticD2D: pduUnmaker bufferized BSR" << endl;
+        }
+
+    ASSERT(macPkt->getOwner() == this);
+    delete macPkt;
+}
+
 void LteMacUeRealisticD2D::handleMessage(cMessage* msg)
 {
     if (msg->isSelfMessage())
     {
         LteMacUeRealistic::handleMessage(msg);
+        EV << "LteMacUeRealisticD2D::handleMessage - Self Message:: "<< endl;
         return;
     }
 
     cPacket* pkt = check_and_cast<cPacket *>(msg);
     cGate* incoming = pkt->getArrivalGate();
-
+    EV << "LteMacUeRealisticD2D::handleMessage - Processing with packet:: "<< pkt->getName() << endl;
 
     // Get device lists.
-    std::vector<EnbInfo*>* enbInfo = getBinder()->getEnbList();
+ /*   std::vector<EnbInfo*>* enbInfo = getBinder()->getEnbList();
     std::vector<UeInfo*>* ueInfo = getBinder()->getUeList();
     if (enbInfo->size() == 0)
         throw cRuntimeError("LteMacUeRealisticD2D::handleMessage can't get AMC pointer because I couldn't find an eNodeB!");
     // -> its ID -> the node -> cast to the eNodeB class
     MacNodeId mENodeBId = enbInfo->at(0)->id;
     ExposedLteMacEnb *eNodeBFunctions = (ExposedLteMacEnb*) getMacByMacNodeId(mENodeBId);
-
+  */
     if (incoming == down_[IN])
     {
+        EV << "LteMacUeRealisticD2D::handleMessage - Received packet from physical Layer" << endl;
         UserControlInfo *userInfo = check_and_cast<UserControlInfo *>(pkt->getControlInfo());
         MacNodeId src = userInfo->getSourceId();
+
         if (userInfo->getFrameType() == D2DMODESWITCHPKT)
         {
             EV << "LteMacUeRealisticD2D::handleMessage - Received packet " << pkt->getName() <<
@@ -473,13 +560,14 @@ void LteMacUeRealisticD2D::handleMessage(cMessage* msg)
 
             return;
         }
-        else if ((userInfo->getFrameType() == GRANTPKT) && (par("unassistedD2D"))) // Created for Unassisted D2D grants
+        else if ((userInfo->getFrameType() == GRANTPKT) && (par("unassistedD2D"))) // Created for Unassisted D2D grants by Rx D2D for Tx D2D
          {
             // Allow grant
             EV << NOW << "LteMacUeRealisticD2D::handleMessage node " << nodeId_ << " Received Scheduling Grant pkt" << endl;
             macHandleGrant(pkt); // Does it have to be enhanced to do FD schedulling??
+            return;
          }
-        else if ((userInfo->getFrameType() == HARQPKT) && (par("unassistedD2D"))) // Created for Unassisted D2D HARQ
+        else if ((userInfo->getFrameType() == HARQPKT) && (par("unassistedD2D"))) // Created for both Unassisted D2D Rx and TX HARQ
          {
             // H-ARQ feedback, send it to TX buffer of source
             HarqTxBuffers::iterator htit = harqTxBuffers_.find(src);
@@ -497,7 +585,7 @@ void LteMacUeRealisticD2D::handleMessage(cMessage* msg)
             LteHarqFeedback *hfbpkt = check_and_cast<LteHarqFeedback *>(pkt);
             htit->second->receiveHarqFeedback(hfbpkt);
          }
-        else if ((userInfo->getFrameType() == RACPKT) && (par("unassistedD2D")))
+        else if ((userInfo->getFrameType() == RACPKT) && (par("unassistedD2D"))) // Created for both Unassisted D2D Rx and TX HARQ
         {
             EV << NOW << "LteMacUeRealisticD2D::handleMessage():node " << nodeId_ << " Received RAC packet" << endl;
             LteRac* racPkt = check_and_cast<LteRac*>(pkt);
@@ -505,24 +593,36 @@ void LteMacUeRealisticD2D::handleMessage(cMessage* msg)
 
             //To Do: This has to be verified
 
-            if((racPkt->getName() == "RacRequest") && (uinfo->getDirection() == 1)) // Checking for UL
+            if((pkt->getName() == "RacRequest") || (uinfo->getDirection() == 1)) // Checking for SL UL i.e. Created for Rx D2D
             {
                 EV << NOW << "LteMacUeRealisticD2D::handleMessage():node " << nodeId_ << " Received RAC packet request" << endl;
                 macHandleRacRequest(pkt);
+                return;
             }
-            else
-            { //response
-                EV << NOW << "LteMacUeRealisticD2D::handleMessage():node " << nodeId_ << " Received RAC response" << endl;
-                macHandleRac(pkt);
+            else // Checking for SL DL i.e. Created for Tx D2D
+            {
+                if ((RacMap.find(src))  == RacMap.end())
+                {
+                    EV << "LteMacUeRealisticD2D::macHandleRac - UE " << nodeId_ << " won RAC from unknown UE" << endl;
+                    return;
+                }
+                else{
+                    //response
+                    EV << NOW << "LteMacUeRealisticD2D::handleMessage():node " << nodeId_ << " Received RAC response" << endl;
+                    macHandleRac(pkt);
+                    return;
+                }
+
             }
         }
     }
-
+    EV << "LteMacUeRealisticD2D::handleMessage - Shifting to LteMacUeRealistic::handleMessage with packet "<< endl;
     LteMacUeRealistic::handleMessage(msg);
 }
 
-void
-LteMacUeRealisticD2D::macHandleGrant(cPacket* pkt)
+
+// Handled in Tx D2D. Stores grant
+void LteMacUeRealisticD2D::macHandleGrant(cPacket* pkt)
 {
     EV << NOW << " LteMacUeRealisticD2D::macHandleGrant - UE [" << nodeId_ << "] - Grant received " << endl;
 
@@ -554,6 +654,7 @@ LteMacUeRealisticD2D::macHandleGrant(cPacket* pkt)
     racD2DMulticastRequested_=false;
 }
 
+//if user has backlogged data, this will trigger scheduling request
 void LteMacUeRealisticD2D::checkRAC()
 {
     EV << NOW << " LteMacUeRealisticD2D::checkRAC , Ue  " << nodeId_ << ", racTimer : " << racBackoffTimer_ << " maxRacTryOuts : " << maxRacTryouts_
@@ -627,11 +728,12 @@ void LteMacUeRealisticD2D::checkRAC()
     }
 }
 
-void LteMacUeRealisticD2D::checkRAC(uint16_t ueRxD2DId)
+//if Tx D2D UE has backlogged data, it will trigger scheduling request to the Rx D2D UE
+void LteMacUeRealisticD2D::checkRAC(MacCid ueRxD2DId)
 {
     // Find the rx UE in the RACMAP
     // Create a new entry into the Map if the UE is not present
-    if ((RacMap.find(ueRxD2DId))  == RacMap.end())
+    if ((RacMap.find(MacCidToNodeId(ueRxD2DId)))  == RacMap.end())
     {
         RacVariables tempRacVariables;
         tempRacVariables.racBackoffTimer_ = 0;
@@ -642,36 +744,36 @@ void LteMacUeRealisticD2D::checkRAC(uint16_t ueRxD2DId)
 
         tempRacVariables.raRespTimer_ = 0;
         tempRacVariables.raRespWinStart_ = 3;
-        RacMap[ueRxD2DId] = tempRacVariables;
+        RacMap[MacCidToNodeId(ueRxD2DId)] = tempRacVariables;
     }
-    EV << NOW << " LteMacUeRealisticD2D::checkRAC , Ue  " << nodeId_ << ", racTimer : " << RacMap[ueRxD2DId].racBackoffTimer_ << " maxRacTryOuts : " << RacMap[ueRxD2DId].maxRacTryouts_
-       << ", raRespTimer:" << RacMap[ueRxD2DId].raRespTimer_ << endl;
+    EV << NOW << " LteMacUeRealisticD2D::checkRAC , Tx D2D Ue :: " << nodeId_ << " and Rx D2D Ue::" << MacCidToNodeId(ueRxD2DId) <<", racTimer : " << RacMap[MacCidToNodeId(ueRxD2DId)].racBackoffTimer_ << " maxRacTryOuts : " << RacMap[MacCidToNodeId(ueRxD2DId)].maxRacTryouts_
+       << ", raRespTimer:" << RacMap[MacCidToNodeId(ueRxD2DId)].raRespTimer_ << endl;
 
-    if (RacMap[ueRxD2DId].racBackoffTimer_>0)
+    if (RacMap[MacCidToNodeId(ueRxD2DId)].racBackoffTimer_>0)
     {
-        RacMap[ueRxD2DId].racBackoffTimer_--;
+        RacMap[MacCidToNodeId(ueRxD2DId)].racBackoffTimer_--;
         return;
     }
 
-    if(RacMap[ueRxD2DId].raRespTimer_>0)
+    if(RacMap[MacCidToNodeId(ueRxD2DId)].raRespTimer_>0)
     {
         // decrease RAC response timer
-        RacMap[ueRxD2DId].raRespTimer_--;
-        EV << NOW << " LteMacUeRealisticD2D::checkRAC - waiting for previous RAC requests to complete (timer=" << RacMap[ueRxD2DId].raRespTimer_ << ")" << endl;
+        RacMap[MacCidToNodeId(ueRxD2DId)].raRespTimer_--;
+        EV << NOW << " LteMacUeRealisticD2D::checkRAC - waiting for previous RAC requests sent to Rx D2D Ue:: "<< MacCidToNodeId(ueRxD2DId) <<" to complete (timer=" << RacMap[MacCidToNodeId(ueRxD2DId)].raRespTimer_ << ")" << endl;
         return;
     }
 
     // Avoids double requests within same TTI window
-    if (RacMap[ueRxD2DId].racRequested_)
+    if (RacMap[MacCidToNodeId(ueRxD2DId)].racRequested_)
     {
         EV << NOW << " LteMacUeRealisticD2D::checkRAC - double RAC request" << endl;
-        RacMap[ueRxD2DId].racRequested_=false;
+        RacMap[MacCidToNodeId(ueRxD2DId)].racRequested_=false;
         return;
     }
-//    if (RacMap[ueRxD2DId].racD2DMulticastRequested_)
+//    if (RacMap[MacCidToNodeId(ueRxD2DId)].racD2DMulticastRequested_)
 //    {
 //        EV << NOW << " LteMacUeRealisticD2D::checkRAC - double RAC request" << endl;
-//        RacMap[ueRxD2DId].racD2DMulticastRequested_=false;
+//        RacMap[MacCidToNodeId(ueRxD2DId)].racD2DMulticastRequested_=false;
 //        return;
 //    }
 
@@ -696,67 +798,113 @@ void LteMacUeRealisticD2D::checkRAC(uint16_t ueRxD2DId)
     if (!trigger && !triggerD2DMulticast)
         EV << NOW << "Ue " << nodeId_ << ",RAC aborted, no data in queues " << endl;
 
-    if ((RacMap[ueRxD2DId].racRequested_=trigger) && (par("unassistedD2D"))) // Unassisted mode send the packet to ENodeB
+    if ((RacMap[MacCidToNodeId(ueRxD2DId)].racRequested_=trigger) && (par("unassistedD2D"))) // Unassisted mode send the packet to ENodeB
     {
         LteRac* racReq = new LteRac("RacRequest");
         UserControlInfo* uinfo = new UserControlInfo();
         uinfo->setSourceId(getMacNodeId());
-        uinfo->setDestId(ueRxD2DId);
+        uinfo->setDestId(MacCidToNodeId(ueRxD2DId));
         uinfo->setDirection(UL);
         uinfo->setFrameType(RACPKT);
         racReq->setControlInfo(uinfo);
 
         sendLowerPackets(racReq);
 
-        EV << NOW << " Ue  " << nodeId_ << " cell " << cellId_ << " ,RAC request sent to RxUED2D with ID:: "<< ueRxD2DId <<" through PHY " << endl;
+        EV << NOW << " Ue  " << nodeId_ << " cell " << cellId_ << " ,RAC request sent to Rx D2D UE with ID:: "<< MacCidToNodeId(ueRxD2DId) <<" through PHY " << endl;
 
         // wait at least  "raRespWinStart_" TTIs before another RAC request
-        RacMap[ueRxD2DId].raRespTimer_ = RacMap[ueRxD2DId].raRespWinStart_;
+        RacMap[MacCidToNodeId(ueRxD2DId)].raRespTimer_ = RacMap[MacCidToNodeId(ueRxD2DId)].raRespWinStart_;
     }
 }
 
+//To handle RAC packets by Tx D2D UE from Rx D2D UE
 void LteMacUeRealisticD2D::macHandleRac(cPacket* pkt)
 {
     LteRac* racPkt = check_and_cast<LteRac*>(pkt);
+    UserControlInfo *userInfo = check_and_cast<UserControlInfo *>(pkt->getControlInfo());
+    MacNodeId src = userInfo->getSourceId();
 
     if (racPkt->getSuccess())
     {
-        EV << "LteMacUeRealisticD2D::macHandleRac - Ue " << nodeId_ << " won RAC" << endl;
-        // is RAC is won, BSR has to be sent
-        if (racD2DMulticastRequested_)
-            bsrD2DMulticastTriggered_=true;
-        else
-            bsrTriggered_ = true;
-
-        // reset RAC counter
-        currentRacTry_=0;
-        //reset RAC backoff timer
-        racBackoffTimer_=0;
-    }
-    else
-    {
-        // RAC has failed
-        if (++currentRacTry_ >= maxRacTryouts_)
+        if(par("unassisted") && ((RacMap.find(src))  != RacMap.end()))
         {
-            EV << NOW << " Ue " << nodeId_ << ", RAC reached max attempts : " << currentRacTry_ << endl;
-            // no more RAC allowed
-            //! TODO flush all buffers here
-            //reset RAC counter
+            EV << "LteMacUeRealisticD2D::macHandleRac - Ue " << nodeId_ << " won RAC" << endl;
+           // is RAC is won, BSR has to be sent
+           if (racD2DMulticastRequested_)
+               bsrD2DMulticastTriggered_=true;
+           else
+               bsrTriggered_ = true;
+
+           // reset RAC counter
+           RacMap[src].currentRacTry_=0;
+           //reset RAC backoff timer
+           RacMap[src].racBackoffTimer_=0;
+           //set the RAC parameter to true
+        }
+        else
+        {
+            EV << "LteMacUeRealisticD2D::macHandleRac - Ue " << nodeId_ << " won RAC" << endl;
+            // is RAC is won, BSR has to be sent
+            if (racD2DMulticastRequested_)
+                bsrD2DMulticastTriggered_=true;
+            else
+                bsrTriggered_ = true;
+            // reset RAC counter
             currentRacTry_=0;
             //reset RAC backoff timer
             racBackoffTimer_=0;
         }
+    }
+    else
+    {
+        if(par("unassisted") && ((RacMap.find(src))  != RacMap.end()))
+        {
+            // RAC has failed
+            if (++(RacMap[src].currentRacTry_) >= RacMap[src].maxRacTryouts_)
+            {
+                EV << NOW << " Ue " << nodeId_ << ", RAC reached max attempts : " << currentRacTry_ << "for Rx D2D UE "<< MacCidToNodeId(src)<< endl;
+                // no more RAC allowed
+                //! TODO flush all buffers here
+                //reset RAC counter
+                RacMap[src].currentRacTry_=0;
+                //reset RAC backoff timer
+                RacMap[src].racBackoffTimer_=0;
+            }
+            else
+            {
+                // recompute backoff timer
+                racBackoffTimer_= uniform(minRacBackoff_,maxRacBackoff_);
+                EV << NOW << " Ue " << nodeId_ << " RAC attempt failed, backoff extracted : " << racBackoffTimer_ << endl;
+            }
+        }
         else
         {
-            // recompute backoff timer
-            racBackoffTimer_= uniform(minRacBackoff_,maxRacBackoff_);
-            EV << NOW << " Ue " << nodeId_ << " RAC attempt failed, backoff extracted : " << racBackoffTimer_ << endl;
+            // RAC has failed
+            if (++currentRacTry_ >= maxRacTryouts_)
+            {
+                EV << NOW << " Ue " << nodeId_ << ", RAC reached max attempts : " << currentRacTry_ << endl;
+                // no more RAC allowed
+                //! TODO flush all buffers here
+                //reset RAC counter
+                currentRacTry_=0;
+                //reset RAC backoff timer
+                racBackoffTimer_=0;
+            }
+            else
+            {
+                // recompute backoff timer
+                racBackoffTimer_= uniform(minRacBackoff_,maxRacBackoff_);
+                EV << NOW << " Ue " << nodeId_ << " RAC attempt failed, backoff extracted : " << racBackoffTimer_ << endl;
+            }
+
         }
+
     }
     delete racPkt;
 }
 
-void LteMacUeRealisticD2D::macHandleRacRequest(cPacket* pkt) //To handle RAC Requests from D2D Tx UE
+//To handle RAC Requests by Rx D2D UE from Tx D2D UE
+void LteMacUeRealisticD2D::macHandleRacRequest(cPacket* pkt)
 {
     EV << NOW << " LteMacUeRealisticD2D::macHandleRacRequest" << endl;
 
@@ -764,17 +912,143 @@ void LteMacUeRealisticD2D::macHandleRacRequest(cPacket* pkt) //To handle RAC Req
     UserControlInfo* uinfo = check_and_cast<UserControlInfo*> (
         racPkt->getControlInfo());
     // To signal RAC request to the scheduler (called by Rx D2D Ue)
+    EV << NOW << " LteMacUeRealisticD2D::macHandleRacRequest Signal Rac for UE::" << uinfo->getSourceId() <<endl;
     lteSchedulerUeAutoD2DSLRx_->signalRac(uinfo->getSourceId());
 
 
     // TODO all RACs are marked are successful
     racPkt->setSuccess(true);
-
+    // Should set the ID of the D2D TX UE
     uinfo->setDestId(uinfo->getSourceId());
     uinfo->setSourceId(nodeId_);
     uinfo->setDirection(DL);
 
     sendLowerPackets(racPkt);
+}
+
+void LteMacUeRealisticD2D::macPduMakeSLTX(LteMacScheduleList* scheduleList)
+{
+    EV << "----- START LteMacUeRealisticD2D::macPduMakeSLTX -----\n";
+    // Finalizes the scheduling decisions according to the schedule list,
+    // detaching sdus from real buffers.
+
+    macPduList_.clear();
+
+
+    //  Build a MAC pdu for each scheduled user on each codeword
+    LteMacScheduleList::const_iterator it;
+    for (it = scheduleList->begin(); it != scheduleList->end(); it++)
+    {
+        LteMacPdu* macPkt;
+        cPacket* pkt;
+        MacCid destCid = it->first.first;
+        Codeword cw = it->first.second;
+        MacNodeId destId = MacCidToNodeId(destCid);
+        std::pair<MacNodeId, Codeword> pktId = std::pair<MacNodeId, Codeword>(
+            destId, cw);
+        unsigned int sduPerCid = it->second;
+        unsigned int grantedBlocks = 0;
+        TxMode txmode;
+        while (sduPerCid > 0)
+        {
+            if ((mbuf_[destCid]->getQueueLength()) < (int) sduPerCid)
+            {
+                throw cRuntimeError("Abnormal queue length detected while building MAC PDU for cid %d "
+                    "Queue real SDU length is %d  while scheduled SDUs are %d",
+                    destCid, mbuf_[destCid]->getQueueLength(), sduPerCid);
+            }
+
+            // Add SDU to PDU
+            // FIXME *move outside cycle* Find Mac Pkt
+            MacPduList::iterator pit = macPduList_.find(pktId);
+
+            // No packets for this user on this codeword
+            if (pit == macPduList_.end())
+            {
+                UserControlInfo* uinfo = new UserControlInfo();
+                uinfo->setSourceId(getMacNodeId());
+                uinfo->setDestId(destId);
+                uinfo->setDirection(DL);
+
+                const UserTxParams& txInfo = amc_->computeTxParams(destId, DL);
+
+                UserTxParams* txPara = new UserTxParams(txInfo);
+
+                uinfo->setUserTxParams(txPara);
+                txmode = txInfo.readTxMode();
+                RbMap rbMap;
+                uinfo->setTxMode(txmode);
+                uinfo->setCw(cw);
+                grantedBlocks = lteSchedulerUeAutoD2DSLTx_->readRbOccupation(destId, rbMap);
+
+                uinfo->setGrantedBlocks(rbMap);
+                uinfo->setTotalGrantedBlocks(grantedBlocks);
+
+                macPkt = new LteMacPdu("LteMacPdu");
+                macPkt->setHeaderLength(MAC_HEADER);
+                macPkt->setControlInfo(uinfo);
+                macPkt->setTimestamp(NOW);
+                macPduList_[pktId] = macPkt;
+            }
+            else
+            {
+                macPkt = pit->second;
+            }
+            if (mbuf_[destCid]->getQueueLength() == 0)
+            {
+                throw cRuntimeError("Abnormal queue length detected while building MAC PDU for cid %d "
+                    "Queue real SDU length is %d  while scheduled SDUs are %d",
+                    destCid, mbuf_[destCid]->getQueueLength(), sduPerCid);
+            }
+            pkt = mbuf_[destCid]->popFront();
+
+            ASSERT(pkt != NULL);
+
+            take(pkt);
+            macPkt->pushSdu(pkt);
+            sduPerCid--;
+        }
+    }
+
+    MacPduList::iterator pit;
+    for (pit = macPduList_.begin(); pit != macPduList_.end(); pit++)
+    {
+        MacNodeId destId = pit->first.first;
+        Codeword cw = pit->first.second;
+
+        LteHarqBufferTx* txBuf;
+        HarqTxBuffers::iterator hit = harqTxBuffers_.find(destId);
+        if (hit != harqTxBuffers_.end())
+        {
+            txBuf = hit->second;
+        }
+        else
+        {
+            // FIXME: possible memory leak
+            LteHarqBufferTx* hb = new LteHarqBufferTx(ENB_TX_HARQ_PROCESSES,
+                this,(LteMacBase*)getMacUe(destId));
+            harqTxBuffers_[destId] = hb;
+            txBuf = hb;
+        }
+        UnitList txList = (txBuf->firstAvailable());
+
+        LteMacPdu* macPkt = pit->second;
+        EV << "LteMacUeRealisticD2D::macPduMakeSLTX: pduMaker created PDU: " << macPkt->info() << endl;
+
+        // pdu transmission here (if any)
+        if (txList.second.empty())
+        {
+            EV << "LteMacUeRealisticD2D::macPduMakeSLTX : no available process for this MAC pdu in TxHarqBuffer" << endl;
+            delete macPkt;
+        }
+        else
+        {
+            if (txList.first == HARQ_NONE)
+            throw cRuntimeError("LteMacBase: pduMaker sending to uncorrect void H-ARQ process. Aborting");
+            txBuf->insertPdu(txList.first, cw, macPkt);
+        }
+    }
+    EV << "------ END LteMacUeRealisticD2D::macPduMakeSLTX ------\n";
 }
 
 void LteMacUeRealisticD2D::handleSelfMessage()
@@ -801,7 +1075,8 @@ void LteMacUeRealisticD2D::handleSelfMessage()
         {
             // Get device lists.
             std::vector<EnbInfo*>* enbInfo = getBinder()->getEnbList();
-            std::vector<UeInfo*>* ueInfo = getBinder()->getUeList();
+//            std::vector<UeInfo*>* ueInfo = getBinder()->getUeList();
+
             if (enbInfo->size() == 0)
                 throw cRuntimeError("LteMacUeRealisticD2D::handleSelfMessage can't get AMC pointer because I couldn't find an eNodeB!");
             // -> its ID -> the node -> cast to the eNodeB class
@@ -811,17 +1086,37 @@ void LteMacUeRealisticD2D::handleSelfMessage()
             //sendGrants
 
             /*To be performed by Rx D2d UE to schedule TX D2D UEs for Sidelink UPLINK*/
-            EV << "==============================================SIDELINK DOWNLINK ==============================================" << endl;
+            EV << "==============================================SIDELINK DOWNLINK i.e. Recieving mode ==============================================" << endl;
             //TODO enable sleep mode also for SIDELINK DOWNLINK ???
             //TODO Check Assumption that the UE knows the RB in UL
             (lteSchedulerUeAutoD2DSLRx_->resourceBlocks()) = (eNodeBFunctions->getDeployer())->getNumRbUl();
 
             lteSchedulerUeAutoD2DSLRx_->updateHarqDescs();
 
-            LteMacScheduleList* scheduleListUl = lteSchedulerUeAutoD2DSLRx_->scheduleTxD2Ds();
+            LteMacScheduleList* scheduleListSLRx = lteSchedulerUeAutoD2DSLRx_->scheduleTxD2Ds();
             // send uplink grants to PHY layer
-            sendGrants(scheduleListUl);
-            EV << "============================================ END SIDELINK DOWNLINK  ============================================" << endl;
+            sendGrants(scheduleListSLRx);
+            EV << "============================================ END SIDELINK DOWNLINK i.e. Recieving mode ============================================" << endl;
+//
+//            EV << "==============================================SIDELINK UPLINK i.e. Transmitting mode ==============================================" << endl;
+//            /*DOWNLINK*/
+//            // Set current available OFDM space
+//            //GetN
+//            (lteSchedulerUeAutoD2DSLTx_->resourceBlocks()) = enb_->getNumRbDl();
+//
+//            // use this flag to enable/disable scheduling...don't look at me, this is very useful!!!
+//            bool activation = true;
+//
+//            if (activation)
+//            {
+//                // perform SIDELINK UPLINK  scheduling
+//                LteMacScheduleList* scheduleListSLUl = lteSchedulerUeAutoD2DSLTx_->scheduleTxD2Ds();
+//                // creates pdus from schedule list and puts them in harq buffers
+//                macPduMakeSLTX(scheduleListSLUl);
+//            }
+//            EV << "========================================== END SIDELINK UPLINK i.e. Transmitting mode ============================================" << endl;
+
+
         }
 
     // For each D2D communication, the status of the HARQRxBuffer must be known to the eNB
@@ -861,18 +1156,16 @@ void LteMacUeRealisticD2D::handleSelfMessage()
         // if necessary, a RAC request will be sent to obtain a grant
         if (par("unassistedD2D"))
             {
-                for(LteMacBuffers::iterator iter = mbuf_.begin(); iter != mbuf_.end(); ++iter)
+                if (!(macBuffers_.empty()))
                 {
-
-                    LteMacQueue* txQueue= iter->second;
-                    cPacket* txPacket = txQueue->popFront();
                     // Iterate through the buffer and check RAC for all the destination UEs
-                    FlowControlInfo* lteInfo = check_and_cast<FlowControlInfo*>(txPacket->getControlInfo());
-                    uint16_t ueRxD2DId = lteInfo->getDestId();
-
-                    EV << "LteMacUeRealisticD2D::handleSelfMessage: checking RAC for the destination rxD2DUE node: " << ueRxD2DId;
-
-                    checkRAC(ueRxD2DId);
+                    for(LteMacBufferMap::const_iterator iter = macBuffers_.begin(); iter != macBuffers_.end(); ++iter)
+                    {
+                        LteMacBuffer* vTxQueue= iter->second;
+                        MacCid ueRxD2DId = iter->first;
+                        EV << "LteMacUeRealisticD2D::handleSelfMessage: checking RAC for the destination Rx D2D UE node: " << MacCidToNodeId(ueRxD2DId)<< endl;
+                        checkRAC(ueRxD2DId);
+                    }
                 }
             }
         else
@@ -890,7 +1183,21 @@ void LteMacUeRealisticD2D::handleSelfMessage()
             delete schedulingGrant_;
             schedulingGrant_ = NULL;
             // if necessary, a RAC request will be sent to obtain a grant
-            checkRAC();
+            if (par("unassistedD2D"))
+                {
+                // Iterate through the buffer and check RAC for all the destination UEs
+                for(LteMacBufferMap::iterator iter = macBuffers_.begin(); iter != macBuffers_.end(); ++iter)
+                    {
+                        LteMacBuffer* vTxQueue= iter->second;
+                        MacCid ueRxD2DId = iter->first;
+                        EV << "LteMacUeRealisticD2D::handleSelfMessage: checking RAC for the destination rxD2DUE node: " <<  MacCidToNodeId(ueRxD2DId)<< endl;
+                        checkRAC(ueRxD2DId);
+                    }
+                }
+            else
+                {
+                    checkRAC();
+                }
         }
         else if (--periodCounter_>0)
         {
@@ -969,6 +1276,7 @@ void LteMacUeRealisticD2D::handleSelfMessage()
         if(!retx)
         {
             if (par("unassistedD2D")) {
+                EV << "============================================ END SIDELINK UPLINK i.e. ReTransmitting mode ============================================" << endl;
                 // SL-UL-TX scheduling done by Tx D2D UE
                 scheduleList_ = lteSchedulerUeAutoD2DSLTx_->scheduleData();// Data packets
             } else {
@@ -1333,8 +1641,8 @@ void LteMacUeRealisticD2D::sendGrants(LteMacScheduleList* scheduleList)
         if (granted == 0)
             continue; // avoiding transmission of 0 grant (0 grant should not be created)
 
-        EV << NOW << " LteMacUeRealisticD2D::sendGrants Node[" << getMacNodeId() << "] - "
-           << granted << " blocks to grant for user " << nodeId << " on "
+        EV << NOW << " LteMacUeRealisticD2D::sendGrants Rx D2D UE Node[" << getMacNodeId() << "] - "
+           << granted << " blocks to grant for Tx D2D UE user " << nodeId << " on "
            << codewords << " codewords. CW[" << cw << "\\" << otherCw << "]" << endl;
 
         // get the direction of the grant, depending on which connection has been scheduled by the eNB
@@ -1350,6 +1658,7 @@ void LteMacUeRealisticD2D::sendGrants(LteMacScheduleList* scheduleList)
 
         UserControlInfo* uinfo = new UserControlInfo();
         uinfo->setSourceId(getMacNodeId());
+        // Should set the ID of the Tx D2D UE and not eNB
         uinfo->setDestId(nodeId);
         uinfo->setFrameType(GRANTPKT);
 
@@ -1378,7 +1687,7 @@ void LteMacUeRealisticD2D::sendGrants(LteMacScheduleList* scheduleList)
                {
                     bandAllocatedBlocks += lteSchedulerUeAutoD2DSLRx_->readPerUeAllocatedBlocks(nodeId,*antenna_it, b);
                }
-               grantedBytes += amc_->computeBytesOnNRbs(nodeId, b, cw, bandAllocatedBlocks, dir );
+               grantedBytes += getAmc()->computeBytesOnNRbs(nodeId, b, cw, bandAllocatedBlocks, dir );
             }
 
             grant->setGrantedCwBytes(cw, grantedBytes);

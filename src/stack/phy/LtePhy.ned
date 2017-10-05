@@ -83,6 +83,7 @@ simple LtePhyUeD2D extends LtePhyUe {
          double d2dTxPower =default(26);
          bool d2dMulticastCaptureEffect = default(true);
          string d2dMulticastCaptureEffectFactor = default("RSRP");  // or distance
+         bool unassistedD2D = default(false);
 }
 
 // 

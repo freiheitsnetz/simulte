@@ -49,7 +49,21 @@ class AmcPilot
     // specifies how the final CQI will be computed from the per band CQIs (e.g. AVG, MAX, MIN)
     PilotComputationModes mode_;
 
+
+
   public:
+
+    bool unassisstedD2D_;
+
+    bool getUnassistedD2DMode()
+    {
+        return unassisstedD2D_;
+    }
+
+    void setUnassistedD2DMode(bool value)
+    {
+        unassisstedD2D_ = value;
+    }
 
     /**
      * Constructor

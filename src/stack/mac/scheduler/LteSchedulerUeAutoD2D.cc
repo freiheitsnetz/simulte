@@ -150,10 +150,10 @@ void LteSchedulerUeAutoD2D::initialize(Direction dir,
 
 }
 
-//SL-DL-TX Scheduling done by Rx D2D UE
+//SL-Rx Scheduling of Tx D2D done by Rx D2D UE
 LteMacScheduleList* LteSchedulerUeAutoD2D::scheduleTxD2Ds() {
     // 1) Environment Setup
-    EV << "LteSchedulerUeAutoD2D::schedule performed by Node: "
+    EV << "LteSchedulerUeAutoD2D::scheduleTxD2Ds performed by Node: "
               << ueMac_->getMacNodeId() << endl;
     // clean up old scheduling decisions
     scheduleList_.clear();
@@ -408,8 +408,8 @@ bool LteSchedulerUeAutoD2D::rtxschedule() {
         EV << NOW
                   << " LteSchedulerUeAutoD2D::rtxschedule --------------------::[ START RTX-SCHEDULE ]::--------------------"
                   << endl;
-        EV << NOW << " LteSchedulerUeAutoD2D::rtxschedule Rx D2D UE: "
-                  << ueMac_->getMacCellId() << endl;
+        EV << NOW << " LteSchedulerUeAutoD2D::rtxschedule for Rx mode of D2D UE: "
+                  << ueMac_->getMacNodeId() << endl;
 
         HarqRxBuffers::iterator it = harqRxBuffers_->begin(), et =
                 harqRxBuffers_->end();
@@ -1145,10 +1145,10 @@ bool LteSchedulerUeAutoD2D::racschedule() {
     EV << NOW
               << " LteSchedulerUeAutoD2D::racschedule --------------------::[ START RAC-SCHEDULE ]::--------------------"
               << endl;
-    EV << NOW << " LteSchedulerUeAutoD2D::racschedule Rx D2D UE : "
-              << ueMac_->getMacCellId() << endl;
+    EV << NOW << " LteSchedulerUeAutoD2D::racschedule Rx mode of D2D UE : "
+              << ueMac_->getMacNodeId() << endl;
     EV << NOW
-              << " LteSchedulerUeAutoD2D::racschedule Direction (probably D2D): "
+              << " LteSchedulerUeAutoD2D::racschedule Direction in sidelink (probably D2D): "
               << (direction_ == UL ? "UL" : "DL") << endl;
 
     RacStatus::iterator it = racStatus_.begin(), et = racStatus_.end();
@@ -1467,6 +1467,7 @@ void LteSchedulerUeAutoD2D::updateHarqDescs() {
     }
 }
 
+// Same as LteSchedulerUeUL
 //SL-UL-TX Scheduling done by Tx D2D UE
 LteMacScheduleList*
 LteSchedulerUeAutoD2D::scheduleData() {

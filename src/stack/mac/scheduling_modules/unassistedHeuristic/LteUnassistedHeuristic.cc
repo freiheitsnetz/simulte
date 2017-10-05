@@ -167,6 +167,8 @@ void LteUnassistedHeuristic::removeActiveConnection(MacCid cid) {
     activeConnectionSet_.erase(cid);
 }
 
+
+// Same as LCG Scheduler
 ScheduleList& LteUnassistedHeuristic::scheduleData(unsigned int availableBytes,
         Direction grantDir) {
 

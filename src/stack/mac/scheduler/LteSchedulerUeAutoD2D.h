@@ -39,9 +39,6 @@ protected:
     // Inner Scheduler - default to Standard LCG
     LteUnassistedHeuristic* lteUnassistedHeuristic_;
 
-    // System allocator, carries out the block-allocation functions.
-    LteAllocationModule *allocator_;
-
     typedef std::map<MacNodeId, unsigned char> HarqStatus;
 
     typedef std::map<MacNodeId, bool> RacStatus;
