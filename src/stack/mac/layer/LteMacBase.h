@@ -237,6 +237,10 @@ class LteMacBase : public cSimpleModule
     {
         return false;
     }
+    virtual bool getUnassisstedD2DMode()
+    {
+        return false;
+    }
 
     // check whether HARQ processes have been aborted during this TTI
     bool isHarqReset(MacNodeId srcId)

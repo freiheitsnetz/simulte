@@ -42,7 +42,7 @@ void LteSchedulerUeAutoD2D::initialize(Direction dir,
     ueMac_ = mac;
 
     vbuf_ = ueMac_->getMacBuffers();
-//    bsrbuf_ = ueMac_->getBsrVirtualBuffers();
+    bsrbuf_ = ueMac_->getBsrVirtualBuffers();
 
     harqTxBuffers_ = ueMac_->getHarqTxBuffers();
     harqRxBuffers_ = ueMac_->getHarqRxBuffers();
@@ -572,6 +572,7 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
     MacNodeId nodeId = MacCidToNodeId(cid);
     LogicalCid flowId = MacCidToLcid(cid);
 
+//    direction_ = UL; // To handle Unassisted D2D direction of both UL iand DL is out from the UE and so is same
     Direction dir = direction_;
     if (dir == UL)
     {
@@ -624,7 +625,8 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
     // Perform normal operation for grant
 
     // Get virtual buffer reference
-    LteMacBuffer* conn = ((dir == DL) ? vbuf_->at(cid) : bsrbuf_->at(cid));
+    //    LteMacBuffer* conn = ((dir == DL) ? vbuf_->at(cid) : bsrbuf_->at(cid)); as direction is immaterial in Unassissted D2D mode
+    LteMacBuffer* conn = bsrbuf_->at(cid);
 
     EV << "LteSchedulerUeAutoD2D::scheduleGrant --------------------::[ START GRANT ]::--------------------" << endl;
     EV << "LteSchedulerUeAutoD2D::scheduleGrant Cell: " << ueMac_->getMacCellId() << endl;
@@ -1637,4 +1639,32 @@ void LteSchedulerUeAutoD2D::resourceBlockStatistics(bool sleep)
     {
         throw cRuntimeError("LteSchedulerUeAutoD2D::resourceBlockStatistics(): Unrecognized direction %d", direction_);
     }
+}
+
+void LteSchedulerUeAutoD2D::backlog(MacCid cid)
+{
+    EV << "LteSchedulerUeAutoD2D::backlog - backlogged data for Logical Cid " << cid << endl;
+    if(cid == 1){   //HACK
+        return;
+    }
+    lteUnassistedHeuristic_->notifyActiveConnection(cid);
+}
+
+
+unsigned int LteSchedulerUeAutoD2D::availableBytes(const MacNodeId id,
+    Remote antenna, Band b, Codeword cw, Direction dir, int limit)
+{
+    EV << "LteSchedulerUeAutoD2D::availableBytes MacNodeId " << id << " Antenna " << dasToA(antenna) << " band " << b << " cw " << cw << endl;
+    // Retrieving this user available resource blocks
+    int blocks = allocator_->availableBlocks(id,antenna,b);
+    //Consistency Check
+    if (limit>blocks && limit!=-1)
+    throw cRuntimeError("LteSchedulerUeAutoD2D::availableBytes signaled limit inconsistency with available space band b %d, limit %d, available blocks %d",b,limit,blocks);
+
+    if (limit!=-1)
+    blocks=(blocks>limit)?limit:blocks;
+    unsigned int bytes = ueMac_->getAmc()->computeBytesOnNRbs(id, b, cw, blocks, dir);
+    EV << "LteSchedulerUeAutoD2D::availableBytes MacNodeId " << id << " blocks [" << blocks << "], bytes [" << bytes << "]" << endl;
+
+    return bytes;
 }

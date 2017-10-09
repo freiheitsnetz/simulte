@@ -204,7 +204,7 @@ ScheduleList& LteUnassistedHeuristic::scheduleData(unsigned int availableBytes,
     // phase), if false, provide a best effort service (LCP second phase)
     bool priorityService = true;
 
-    LcgMap& lcgMap = mac_->getLcgMap();
+    LcgMap& lcgMap = ueScheduler_->ueMac_->getLcgMap();
 
     if (lcgMap.empty())
         return scheduleList_;
@@ -217,7 +217,7 @@ ScheduleList& LteUnassistedHeuristic::scheduleData(unsigned int availableBytes,
         LcgMap::iterator it = it_pair.first, et = it_pair.second;
 
         EV << NOW << " LteUnassistedHeuristic::scheduleData - Node  "
-                  << mac_->getMacNodeId()
+                  << ueScheduler_->ueMac_->getMacNodeId()
                   << ", Starting priority service for traffic class " << i
                   << endl;
 
@@ -232,18 +232,18 @@ ScheduleList& LteUnassistedHeuristic::scheduleData(unsigned int availableBytes,
             MacCid cid = it->second.first;
 
             // get the Flow descriptor
-            FlowControlInfo connDesc = mac_->getConnDesc().at(cid);
+            FlowControlInfo connDesc = ueScheduler_->ueMac_->getConnDesc().at(cid);
 
-            if (connDesc.getDirection() != grantDir) // if the connection has different direction from the grant direction, skip it
-                    {
-                EV << NOW
-                          << " LteUnassistedHeuristic::scheduleData - Connection "
-                          << cid << " is "
-                          << dirToA((Direction) connDesc.getDirection())
-                          << " whereas grant is " << dirToA(grantDir)
-                          << ". Skip. " << endl;
-                continue;
-            }
+//            if (connDesc.getDirection() != grantDir) // if the connection has different direction from the grant direction, skip it
+//                    {
+//                EV << NOW
+//                          << " LteUnassistedHeuristic::scheduleData - Connection "
+//                          << cid << " is "
+//                          << dirToA((Direction) connDesc.getDirection())
+//                          << " whereas grant is " << dirToA(grantDir)
+//                          << ". Skip. " << endl;
+//                continue;
+//            }
 
             // TODO get the QoS parameters
 
@@ -265,7 +265,7 @@ ScheduleList& LteUnassistedHeuristic::scheduleData(unsigned int availableBytes,
             }
 
             EV << NOW << " LteUnassistedHeuristic::scheduleData Node "
-                      << mac_->getMacNodeId() << " , Parameters:" << endl;
+                      << ueScheduler_->ueMac_->getMacNodeId() << " , Parameters:" << endl;
             EV << "\t Logical Channel ID: " << MacCidToLcid(cid) << endl;
             EV << "\t CID: " << cid << endl;
 //                fprintf(stderr, "\tGroup ID: %d\n", desc->parameters_.groupId_);
@@ -319,10 +319,10 @@ ScheduleList& LteUnassistedHeuristic::scheduleData(unsigned int availableBytes,
             }
 
             EV << NOW << " LteUnassistedHeuristic::scheduleData - Node "
-                      << mac_->getMacNodeId() << ", remaining grant: "
+                      << ueScheduler_->ueMac_->getMacNodeId() << ", remaining grant: "
                       << availableBytes << " bytes " << endl;
             EV << NOW << " LteUnassistedHeuristic::scheduleData - Node "
-                      << mac_->getMacNodeId() << " buffer Size: "
+                      << ueScheduler_->ueMac_->getMacNodeId() << " buffer Size: "
                       << vQueue->getQueueOccupancy() << " bytes " << endl;
 
 //
@@ -359,20 +359,20 @@ ScheduleList& LteUnassistedHeuristic::scheduleData(unsigned int availableBytes,
 
 //
                     EV << NOW << " LteUnassistedHeuristic::scheduleData - Node "
-                              << mac_->getMacNodeId() << ",  SDU of size "
+                              << ueScheduler_->ueMac_->getMacNodeId() << ",  SDU of size "
                               << sduSize << " selected for transmission"
                               << endl;
                     EV << NOW << " LteUnassistedHeuristic::scheduleData - Node "
-                              << mac_->getMacNodeId() << ", remaining grant: "
+                              << ueScheduler_->ueMac_->getMacNodeId() << ", remaining grant: "
                               << availableBytes << " bytes" << endl;
                     EV << NOW << " LteUnassistedHeuristic::scheduleData - Node "
-                              << mac_->getMacNodeId() << " buffer Size: "
+                              << ueScheduler_->ueMac_->getMacNodeId() << " buffer Size: "
                               << vQueue->getQueueOccupancy() << " bytes"
                               << endl;
                 } else {
 //
                     EV << NOW << " LteUnassistedHeuristic::scheduleData - Node "
-                              << mac_->getMacNodeId() << ",  SDU of size "
+                              << ueScheduler_->ueMac_->getMacNodeId() << ",  SDU of size "
                               << sduSize << " could not be serviced " << endl;
                     break;                    // sdu can't be serviced
                 }
@@ -430,7 +430,7 @@ ScheduleList& LteUnassistedHeuristic::scheduleData(unsigned int availableBytes,
                 //  reset traffic class
                 i = 0;
                 EV << "LteUnassistedHeuristic::scheduleData - Node"
-                          << mac_->getMacNodeId()
+                          << ueScheduler_->ueMac_->getMacNodeId()
                           << ", Starting best effort service" << endl;
             }
         } // END of connections cycle

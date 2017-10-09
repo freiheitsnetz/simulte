@@ -91,6 +91,17 @@ protected:
      */
     virtual bool checkEligibility(MacNodeId id, Codeword& cw);
 
+    /**
+     * Returns the available space for a given user, antenna, logical band and codeword, in bytes.
+     *
+     * @param id MAC node Id
+     * @param antenna antenna
+     * @param b band
+     * @param cw codeword
+     * @return available space in bytes
+     */
+    unsigned int availableBytes(const MacNodeId id, const Remote antenna, Band b, Codeword cw, Direction dir, int limit = -1);
+
 public:
 
     // Owner MAC module (can be LteMacEnb on eNB or LteMacRelayEnb on Relays). Set via initialize().
@@ -152,6 +163,13 @@ public:
     {
         return allocatedCws_[nodeId];
     }
+
+    /**
+     * Adds an entry (if not already in) to scheduling list.
+     * The function calls the LteScheduler notify().
+     * @param cid connection identifier
+     */
+    void backlog(MacCid cid);
 };
 
 #endif // _LTE_LTE_SCHEDULER_UE_AUTOD2D_H_

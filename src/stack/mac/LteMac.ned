@@ -1052,6 +1052,8 @@ simple LteMacEnbRealisticD2D extends LteMacEnbRealistic
 	
 	bool usePreconfiguredTxParams = default(false);
     int d2dCqi = default(7);
+    
+    bool unassistedD2D = default(false);
 }
 
 //

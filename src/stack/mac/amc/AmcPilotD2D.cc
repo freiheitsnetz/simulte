@@ -122,8 +122,8 @@ const UserTxParams& AmcPilotD2D::computeTxParams(MacNodeId id, const Direction d
                 b.insert(band);
        }
             // Set user transmission parameters
-            info.writeTxMode(txMode);
             UserTxParams info;
+            info.writeTxMode(txMode);
             info.writeRank(sfb.getRi());
             info.writeCqi(std::vector<Cqi>(1,chosenCqi));
             info.writePmi(sfb.getPmi(0));

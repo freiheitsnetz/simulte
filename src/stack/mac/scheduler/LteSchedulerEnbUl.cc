@@ -205,7 +205,7 @@ LteSchedulerEnbUl::rtxschedule()
             EV << NOW << "LteSchedulerEnbUl::rtxschedule user " << nodeId << " allocated bytes : " << allocatedBytes << endl;
         }
 
-        if (mac_->isD2DCapable())
+        if ((mac_->isD2DCapable())&& !(mac_->getUnassisstedD2DMode()))
         {
             // --- START Schedule D2D retransmissions --- //
             Direction dir = D2D;

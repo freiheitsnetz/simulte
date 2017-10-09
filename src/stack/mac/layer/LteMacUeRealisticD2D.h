@@ -155,7 +155,7 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
     virtual LteMacPdu* makeBsr(int size);
 
     /**
-     * macPduMake() creates MAC PDUs (one for each CID)
+     * macPduMakeUnassistedD2D() creates MAC PDUs (one for each CID)
      * by extracting SDUs from Real Mac Buffers according
      * to the Schedule List.
      * It sends them to H-ARQ (at the moment lower layer)
@@ -165,13 +165,6 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
      */
     virtual void macPduMake();
 
-    /**
-     * macPduMake() creates MAC PDUs (one for each CID)
-     * by extracting SDUs from Real Mac Buffers according
-     * to the Schedule List.
-     * It sends them to H-ARQ
-     */
-    virtual void macPduMakeSLTX(LteMacScheduleList* scheduleList);
   public:
     /**
      * Getter for AMC module
@@ -179,6 +172,11 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
     virtual LteAmc *getAmc()
     {
         return amc_;
+    }
+    /// Returns the BSR virtual buffers
+    LteMacBufferMap* getBsrVirtualBuffers()
+    {
+        return &bsrbuf_;
     }
 
     // Power Model Parameters

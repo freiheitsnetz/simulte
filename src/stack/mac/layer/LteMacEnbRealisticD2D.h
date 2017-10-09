@@ -71,6 +71,10 @@ class LteMacEnbRealisticD2D : public LteMacEnbRealistic
     virtual void handleSelfMessage();
 
     virtual void handleMessage(cMessage* msg);
+    virtual bool getUnassisstedD2DMode ()
+    {
+        return par("unassistedD2D");
+    }
 
     virtual bool isD2DCapable()
     {
