@@ -7,13 +7,13 @@
 // and cannot be removed from it.
 //
 
-#include "LteSchedulerEnbUl.h"
-#include "LteMacEnb.h"
-#include "LteMacEnbD2D.h"
-#include "LteMacEnbRealisticD2D.h"
-#include "LteHarqBufferRx.h"
-#include "LteHarqBufferRxD2DMirror.h"
-#include "LteAllocationModule.h"
+#include "stack/mac/scheduler/LteSchedulerEnbUl.h"
+#include "stack/mac/layer/LteMacEnb.h"
+#include "stack/mac/layer/LteMacEnbD2D.h"
+#include "stack/mac/layer/LteMacEnbRealisticD2D.h"
+#include "stack/mac/buffer/harq/LteHarqBufferRx.h"
+#include "stack/mac/buffer/harq_d2d/LteHarqBufferRxD2DMirror.h"
+#include "stack/mac/allocator/LteAllocationModule.h"
 
 // TODO
 bool
@@ -205,7 +205,7 @@ LteSchedulerEnbUl::rtxschedule()
             EV << NOW << "LteSchedulerEnbUl::rtxschedule user " << nodeId << " allocated bytes : " << allocatedBytes << endl;
         }
 
-        if (mac_->isD2DCapable())
+        if ((mac_->isD2DCapable())&& !(mac_->getUnassisstedD2DMode()))
         {
             // --- START Schedule D2D retransmissions --- //
             Direction dir = D2D;

@@ -54,7 +54,7 @@ network SingleCell_D2D
             @display("p=519,175;is=l");
         }
         eNodeB: eNodeB {
-            @display("p=391,259;is=vl");
+			@display("p=391,259;is=vl");
         }
         ueCell[numUeCell]: Ue {
             @display("p=292,367");

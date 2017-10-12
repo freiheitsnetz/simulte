@@ -10,9 +10,11 @@
 #ifndef _LTE_LTEALLOCATIONMODULE_H_
 #define _LTE_LTEALLOCATIONMODULE_H_
 
-#include "LteCommon.h"
+#include "common/LteCommon.h"
 
+class LteMacBase;
 class LteMacEnb;
+class LteMacUeRealisticD2D;
 
 class LteAllocationModule
 {
@@ -23,7 +25,7 @@ class LteAllocationModule
   protected:
 
     /// Owner MAC module (can be LteMacEnb on eNB or LteMacRelayEnb on Relays)
-    LteMacEnb *mac_;
+    LteMacBase *mac_;
 
     /// Number of bands
     unsigned int bands_;
@@ -174,6 +176,10 @@ class LteAllocationModule
 
     /// Default constructor.
     LteAllocationModule(LteMacEnb *mac, const Direction direction);
+
+
+    /// Default constructor.
+    LteAllocationModule(LteMacUeRealisticD2D *mac, const Direction direction);
 
     // reset Allocation Module strucutre
     void initAndReset(const unsigned int resourceBlocks, const unsigned int bands);

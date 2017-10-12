@@ -10,7 +10,7 @@
 #ifndef _LTE_AIRPHYUED2D_H_
 #define _LTE_AIRPHYUED2D_H_
 
-#include "LtePhyUe.h"
+#include "stack/phy/layer/LtePhyUe.h"
 
 class LtePhyUeD2D : public LtePhyUe
 {
@@ -18,7 +18,8 @@ class LtePhyUeD2D : public LtePhyUe
 
     // D2D Tx Power
     double d2dTxPower_;
-
+    //Used for PisaPhy feedback generator
+    LteFeedbackDoubleVector fb_;
     /*
      * Capture Effect for D2D Multicast communications
      */
@@ -38,7 +39,8 @@ class LtePhyUeD2D : public LtePhyUe
     virtual void handleAirFrame(cMessage* msg);
     virtual void handleUpperMessage(cMessage* msg);
     virtual void handleSelfMessage(cMessage *msg);
-
+    void handleFeedbackPkt(UserControlInfo* lteinfo, LteAirFrame* frame);
+    virtual void requestFeedback(UserControlInfo* lteinfo, LteAirFrame* frame, LteFeedbackPkt* pkt);
     virtual void triggerHandover();
     virtual void doHandover();
 

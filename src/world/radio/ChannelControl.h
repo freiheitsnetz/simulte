@@ -21,9 +21,9 @@
 #include <list>
 #include <set>
 
-#include "INETDefs.h"
-#include "Coord.h"
-#include "IChannelControl.h"
+#include "inet/common/INETDefs.h"
+#include "inet/common/geometry/common/Coord.h"
+#include "world/radio/IChannelControl.h"
 
 // Forward declarations
 class AirFrame;
@@ -61,7 +61,7 @@ struct IChannelControl::RadioEntry {
  * @ingroup channelControl
  * @see ChannelAccess
  */
-class INET_API ChannelControl : public cSimpleModule, public IChannelControl
+class ChannelControl : public cSimpleModule, public IChannelControl
 {
   protected:
     typedef std::list<RadioEntry> RadioList;

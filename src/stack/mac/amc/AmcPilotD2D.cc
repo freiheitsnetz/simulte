@@ -7,7 +7,7 @@
 // and cannot be removed from it.
 //
 
-#include "AmcPilotD2D.h"
+#include "stack/mac/amc/AmcPilotD2D.h"
 
 void AmcPilotD2D::setPreconfiguredTxParams(Cqi cqi)
 {
@@ -46,10 +46,25 @@ const UserTxParams& AmcPilotD2D::computeTxParams(MacNodeId id, const Direction d
     }
 
     // Check if user transmission parameters have been already allocated
-    if(amc_->existTxParams(id, dir))
+    if(!getUnassistedD2DMode())
     {
-        EV << NOW << " AmcPilot" << getName() << "::computeTxParams The Information for this user have been already assigned \n";
-        return amc_->getTxParams(id, dir);
+        if (amc_->existTxParams(id, dir))
+        {
+            EV << NOW << " AmcPilot" << getName() << "::computeTxParams The Information for this user have been already assigned \n";
+            return amc_->getTxParams(id, dir);
+
+        }
+    }
+    else if (getUnassistedD2DMode())
+    {
+//        if (amc_->existTxParams(id, dir))
+//        {
+//            EV << NOW << " AmcPilot" << getName() << "::computeTxParams The Information for this user have been already assigned \n";
+//            return amc_->getTxParams(id, dir);
+            EV << NOW << " AmcPilot" << getName() << "::computeTxParams Use preconfigured Tx params for D2D connections\n";
+            return *preconfiguredTxParams_;
+
+//        }
     }
     // TODO make it configurable from NED
     // default transmission mode
@@ -78,54 +93,95 @@ const UserTxParams& AmcPilotD2D::computeTxParams(MacNodeId id, const Direction d
 
     // get a vector of  CQI over first CW
     std::vector<Cqi> summaryCqi = sfb.getCqi(0);
-
     Cqi chosenCqi;
     BandSet b;
     if (mode_ == AVG_CQI)
+        {
+                // MEAN cqi computation method
+                chosenCqi = getBinder()->meanCqi(sfb.getCqi(0),id,dir);
+                for (Band i = 0; i < sfb.getCqi(0).size(); ++i)
+                    b.insert(i);
+        }
+    else
+        {
+                // MIN/MAX cqi computation method
+                Band band = 0;
+                chosenCqi = summaryCqi.at(band);
+                unsigned int bands = summaryCqi.size();// number of bands
+                for(Band b = 1; b < bands; ++b)
+                {
+                    // For all LBs
+                    double s = (double)summaryCqi.at(b);
+                    if((mode_ == MIN_CQI && s < chosenCqi) || (mode_ == MAX_CQI && s > chosenCqi))
+                    {
+                        band = b;
+                        chosenCqi = s;
+                    }
+
+                }
+                b.insert(band);
+       }
+            // Set user transmission parameters
+            UserTxParams info;
+            info.writeTxMode(txMode);
+            info.writeRank(sfb.getRi());
+            info.writeCqi(std::vector<Cqi>(1,chosenCqi));
+            info.writePmi(sfb.getPmi(0));
+            info.writeBands(b);
+            RemoteSet antennas;
+            antennas.insert(MACRO);
+            info.writeAntennas(antennas);
+
+            // DEBUG
+            EV << NOW << " AmcPilot" << getName() << "::computeTxParams NEW values assigned! - CQI =" << chosenCqi << "\n";
+            info.print("AmcPilotD2D::computeTxParams");
+
+            //return amc_->setTxParams(id, dir, info,user_type); OLD solution
+            // Debug
+            const UserTxParams& info2 = amc_->setTxParams(id, dir, info);
+            return info2;
+}
+
+UsableBands* AmcPilotD2D::getUsableBands(MacNodeId id)
+{
+    EV << NOW << " AmcPilotD2D::getUsableBands - getting Usable bands for node " << id;
+
+    bool found = false;
+    UsableBandsList::iterator it = usableBandsList_.find(id);
+    if(it!=usableBandsList_.end())
     {
-        // MEAN cqi computation method
-        chosenCqi = getBinder()->meanCqi(sfb.getCqi(0),id,dir);
-        for (Band i = 0; i < sfb.getCqi(0).size(); ++i)
-            b.insert(i);
+        found = true;
     }
     else
     {
-        // MIN/MAX cqi computation method
-        Band band = 0;
-        chosenCqi = summaryCqi.at(band);
-        unsigned int bands = summaryCqi.size();// number of bands
-        for(Band b = 1; b < bands; ++b)
+        // usable bands for this id not found
+        if (getNodeTypeById(id) == UE)
         {
-            // For all LBs
-            double s = (double)summaryCqi.at(b);
-            if((mode_ == MIN_CQI && s < chosenCqi) || (mode_ == MAX_CQI && s > chosenCqi))
+            // if it is a UE, look for its serving cell
+            MacNodeId cellId = getBinder()->getNextHop(id);
+            it = usableBandsList_.find(cellId);
+            if(it!=usableBandsList_.end())
+                found = true;
+            else if (getUnassistedD2DMode() == true)
             {
-                band = b;
-                chosenCqi = s;
+                found = false;
+//                UsableBands usableBands = {0};
+//                setUsableBands(id,usableBands);
             }
-
         }
-        b.insert(band);
     }
 
-    // Set user transmission parameters
-    UserTxParams info;
-    info.writeTxMode(txMode);
-    info.writeRank(sfb.getRi());
-    info.writeCqi(std::vector<Cqi>(1,chosenCqi));
-    info.writePmi(sfb.getPmi(0));
-    info.writeBands(b);
-    RemoteSet antennas;
-    antennas.insert(MACRO);
-    info.writeAntennas(antennas);
+    if (found)
+    {
+        EV << " [" ;
+        for(unsigned int i = 0 ; i < it->second.size() ; ++i)
+        {
+            EV << it->second[i] << ",";
+        }
+        EV << "]"<<endl;
 
-    // DEBUG
-    EV << NOW << " AmcPilot" << getName() << "::computeTxParams NEW values assigned! - CQI =" << chosenCqi << "\n";
-    info.print("AmcPilotD2D::computeTxParams");
-
-    //return amc_->setTxParams(id, dir, info,user_type); OLD solution
-    // Debug
-    const UserTxParams& info2 = amc_->setTxParams(id, dir, info);
-
-    return info2;
+        return &(it->second);
+    }
+    EV << " [All bands are usable]" << endl ;
+    return NULL;
 }

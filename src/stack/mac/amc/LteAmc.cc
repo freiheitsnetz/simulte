@@ -7,12 +7,17 @@
 // and cannot be removed from it.
 //
 
-#include "LteAmc.h"
-#include "LteMacEnb.h"
+#include "stack/mac/amc/LteAmc.h"
+#include "stack/mac/layer/LteMacBase.h"
+#include "stack/mac/layer/LteMacEnb.h"
+#include "stack/mac/layer/LteMacUeRealisticD2D.h"
 
 // NOTE: AMC Pilots header file inclusions must go here
-#include "AmcPilotAuto.h"
-#include "AmcPilotD2D.h"
+#include "stack/mac/amc/AmcPilotAuto.h"
+#include "stack/mac/amc/AmcPilotD2D.h"
+#include <algorithm>
+#include <vector>
+#include <iostream>
 
 LteAmc::~LteAmc()
 {
@@ -23,7 +28,7 @@ LteAmc::~LteAmc()
  * PRIVATE FUNCTIONS
  *********************/
 
-AmcPilot* LteAmc::getAmcPilot(cPar p)
+AmcPilot* LteAmc::getAmcPilot(const cPar& p)
 {
     EV << "Creating Amc pilot " << p.stringValue() << endl;
     const char* s = p.stringValue();
@@ -38,7 +43,7 @@ MacNodeId LteAmc::getNextHop(MacNodeId dst)
 {
     MacNodeId nh = binder_->getNextHop(dst);
 
-    if (nh == nodeId_)
+    if ((nh == nodeId_) || (pilot_->getUnassistedD2DMode()))
     {
         // I'm the master for this slave (it is directly connected)
         return dst;
@@ -205,6 +210,15 @@ LteAmc::LteAmc(LteMacEnb *mac, LteBinder *binder, LteDeployer *deployer, int num
     initialize();
 }
 
+LteAmc::LteAmc(LteMacUeRealisticD2D *mac, LteBinder *binder, LteDeployer *deployer, int numAntennas)
+{
+    mac_ = mac;
+    binder_ = binder;
+    deployer_ = deployer;
+    numAntennas_ = numAntennas;
+    initialize();
+}
+
 void LteAmc::initialize()
 {
     /** Get MacNodeId and MacCellId **/
@@ -215,6 +229,9 @@ void LteAmc::initialize()
     dlConnectedUe_ = binder_->getDeployedUes(nodeId_, DL);
     ulConnectedUe_ = binder_->getDeployedUes(nodeId_, UL);
     d2dConnectedUe_ = binder_->getDeployedUes(nodeId_, UL);
+    EV << "dlConnectedUe_ " << dlConnectedUe_.size() << endl;
+    EV << "ulConnectedUe_ " << ulConnectedUe_.size() << endl;
+    EV << "d2dConnectedUe_ " << d2dConnectedUe_.size() << endl;
 
     /** Get parameters from Deployer **/
     numBands_ = deployer_->getNumBands();
@@ -233,6 +250,9 @@ void LteAmc::initialize()
     allocationType_ = getRbAllocationType(mac_->par("rbAllocationType").stringValue());
     lb_ = mac_->par("summaryLowerBound");
     ub_ = mac_->par("summaryUpperBound");
+
+
+
 
     printParameters();
 
@@ -290,7 +310,7 @@ void LteAmc::initialize()
     dlTxParams_.resize(dlConnectedUe_.size(), UserTxParams());
 
     /* UPLINK */
-    EV << "UL CONNECTED: " << dlConnectedUe_.size() << endl;
+    EV << "UL CONNECTED: " << ulConnectedUe_.size() << endl;
 
     it = ulConnectedUe_.begin();
     et = ulConnectedUe_.end();
@@ -456,11 +476,41 @@ LteSummaryFeedback LteAmc::getFeedback(MacNodeId id, Remote antenna, TxMode txMo
     if (id != nh)
         EV << NOW << " LteAmc::getFeedback detected " << nh << " as nexthop for " << id << "\n";
     id = nh;
-
     if (dir == DL)
-        return dlFeedbackHistory_.at(antenna).at(dlNodeIndex_.at(id)).at(txMode).get();
-    else if (dir == UL)
-        return ulFeedbackHistory_.at(antenna).at(ulNodeIndex_.at(id)).at(txMode).get();
+    {
+        if (dlNodeIndex_.find(id)!=dlNodeIndex_.end())
+            return dlFeedbackHistory_.at(antenna).at(dlNodeIndex_.at(id)).at(txMode).get();
+        else
+        {
+            dlNodeIndex_[id] = 0;
+            // initialize historical feedback base for this UE (index) for all tx modes and for all RUs
+            dlFeedbackHistory_[antenna].push_back(
+                std::vector<LteSummaryBuffer>(DL_NUM_TXMODE,
+                    LteSummaryBuffer(fbhbCapacityDl_, MAXCW, numBands_, lb_, ub_)));
+
+            return dlFeedbackHistory_.at(antenna).at(dlNodeIndex_.at(id)).at(txMode).get();
+//            throw cRuntimeError("LteAmc::getFeedback(): Unrecognized Node");
+        }
+        //create new with 0
+    }
+    if (dir == UL)
+    {
+        if (ulNodeIndex_.find(id)!=ulNodeIndex_.end())
+            return ulFeedbackHistory_.at(antenna).at(ulNodeIndex_.at(id)).at(txMode).get();
+        else
+        {
+            ulNodeIndex_[id] = 0;
+            // initialize historical feedback base for this UE (index) for all tx modes and for all RUs
+            ulFeedbackHistory_[antenna].push_back(
+                std::vector<LteSummaryBuffer>(UL_NUM_TXMODE,
+                    LteSummaryBuffer(fbhbCapacityUl_, MAXCW, numBands_, lb_, ub_)));
+
+            return ulFeedbackHistory_.at(antenna).at(ulNodeIndex_.at(id)).at(txMode).get();
+//            throw cRuntimeError("LteAmc::getFeedback(): Unrecognized Node");
+        }
+        //create new with 0
+    }
+
     else
     {
         throw cRuntimeError("LteAmc::getFeedback(): Unrecognized direction");
@@ -522,9 +572,19 @@ bool LteAmc::existTxParams(MacNodeId id, const Direction dir)
     id = nh;
 
     if (dir == DL)
-        return dlTxParams_.at(dlNodeIndex_.at(id)).isSet();
+    {
+        if (dlNodeIndex_.find(id)!=dlNodeIndex_.end())
+                return dlTxParams_.at(dlNodeIndex_.at(id)).isSet();
+            else
+                return false;
+    }
     else if (dir == UL)
-        return ulTxParams_.at(ulNodeIndex_.at(id)).isSet();
+    {
+        if (ulNodeIndex_.find(id)!=ulNodeIndex_.end())
+            return ulTxParams_.at(ulNodeIndex_.at(id)).isSet();
+        else
+            return false;
+    }
     else if (dir == D2D)
         return d2dTxParams_.at(d2dNodeIndex_.at(id)).isSet();
     else
@@ -556,12 +616,30 @@ const UserTxParams& LteAmc::setTxParams(MacNodeId id, const Direction dir, UserT
     }
     EV << endl;
 
-    if (dir == DL)
+    if ((dir == DL) /*&& !(pilot_->getUnassistedD2DMode())*/)
+    {
+        if(pilot_->getUnassistedD2DMode())
+        {
+            dlTxParams_.resize(dlConnectedUe_.size(), UserTxParams());
+        }
         return (dlTxParams_.at(dlNodeIndex_.at(id)) = info);
-    else if (dir == UL)
+    }
+    else if ((dir == UL) /*&& !(pilot_->getUnassistedD2DMode())*/)
+    {
+        if(pilot_->getUnassistedD2DMode())
+        {
+            ulTxParams_.resize(ulConnectedUe_.size(), UserTxParams());
+        }
         return (ulTxParams_.at(ulNodeIndex_.at(id)) = info);
-    else if (dir == D2D)
+    }
+    else if ((dir == D2D) /*|| (pilot_->getUnassistedD2DMode())*/)
+    {
+        if(pilot_->getUnassistedD2DMode())
+        {
+            d2dTxParams_.resize(d2dConnectedUe_.size(), UserTxParams());
+        }
         return (d2dTxParams_.at(d2dNodeIndex_.at(id)) = info);
+    }
     else
     {
         throw cRuntimeError("LteAmc::setTxParams(): Unrecognized direction");
@@ -579,11 +657,13 @@ const UserTxParams& LteAmc::computeTxParams(MacNodeId id, const Direction dir)
     EV << NOW << " LteAmc::computeTxParams RB allocation type: " << allocationTypeToA(allocationType_) << "\n";
     EV << NOW << " LteAmc::computeTxParams - - - - - - - - - - - - - - - - - - - - -\n";
 
-    MacNodeId nh = getNextHop(id);
-    if(id != nh)
-    EV << NOW << " LteAmc::computeTxParams detected " << nh << " as nexthop for " << id << "\n";
-    id = nh;
-
+    if(!(pilot_->getUnassistedD2DMode()))
+    {
+        MacNodeId nh = getNextHop(id);
+        if(id != nh)
+            EV << NOW << " LteAmc::computeTxParams detected " << nh << " as nexthop for " << id << "\n";
+        id = nh;
+    }
     const UserTxParams &info = pilot_->computeTxParams(id,dir);
     EV << NOW << " LteAmc::computeTxParams --------------::[  END  ]::--------------\n";
 

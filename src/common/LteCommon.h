@@ -28,9 +28,9 @@
 #include <queue>
 #include <map>
 #include <list>
-#include "Coord.h"
+#include "inet/common/geometry/common/Coord.h"
 #include <algorithm>
-#include "lterecorder.h"
+#include "common/lterecorder.h"
 
 using namespace omnetpp;
 
@@ -104,7 +104,7 @@ typedef unsigned short Tbs;
 /// Logical band
 typedef unsigned short Band;
 
-/// Codeword
+/// Codeword is a transport block with error protection i.e. user data before it is formatted for transmission.
 typedef unsigned short Codeword;
 
 /// Link Directions

@@ -10,7 +10,7 @@
 #ifndef _LTE_LTEMACBASE_H_
 #define _LTE_LTEMACBASE_H_
 
-#include "LteCommon.h"
+#include "common/LteCommon.h"
 
 class LteHarqBufferTx;
 class LteHarqBufferRx;
@@ -234,6 +234,10 @@ class LteMacBase : public cSimpleModule
     }
 
     virtual bool isD2DCapable()
+    {
+        return false;
+    }
+    virtual bool getUnassisstedD2DMode()
     {
         return false;
     }

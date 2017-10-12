@@ -7,17 +7,17 @@
 // and cannot be removed from it.
 //
 
-#include "LteSchedulerEnb.h"
-#include "LteAllocationModule.h"
-#include "LteScheduler.h"
-#include "LteDrr.h"
-#include "LteMaxCi.h"
-#include "LtePf.h"
-#include "LteMaxCiMultiband.h"
-#include "LteMaxCiOptMB.h"
-#include "LteMaxCiComp.h"
-#include "LteMacBuffer.h"
-#include "LteMacQueue.h"
+#include "stack/mac/scheduler/LteSchedulerEnb.h"
+#include "stack/mac/allocator/LteAllocationModule.h"
+#include "stack/mac/scheduler/LteScheduler.h"
+#include "stack/mac/scheduling_modules/LteDrr.h"
+#include "stack/mac/scheduling_modules/LteMaxCi.h"
+#include "stack/mac/scheduling_modules/LtePf.h"
+#include "stack/mac/scheduling_modules/LteMaxCiMultiband.h"
+#include "stack/mac/scheduling_modules/LteMaxCiOptMB.h"
+#include "stack/mac/scheduling_modules/LteMaxCiComp.h"
+#include "stack/mac/buffer/LteMacBuffer.h"
+#include "stack/mac/buffer/LteMacQueue.h"
 
 LteSchedulerEnb::LteSchedulerEnb()
 {
@@ -819,17 +819,18 @@ LteScheduler* LteSchedulerEnb::getScheduler(SchedDiscipline discipline)
     switch(discipline)
     {
         case DRR:
-        return new LteDrr();
+            return new LteDrr();
         case PF:
-        return new LtePf(mac_->par("pfAlpha").doubleValue());
+            return new LtePf(mac_->par("pfAlpha").doubleValue());
         case MAXCI:
-        return new LteMaxCi();
+            return new LteMaxCi();
         case MAXCI_MB:
-        return new LteMaxCiMultiband();
+            return new LteMaxCiMultiband();
         case MAXCI_OPT_MB:
-        return new LteMaxCiOptMB();
+            return new LteMaxCiOptMB();
         case MAXCI_COMP:
-        return new LteMaxCiComp();
+            return new LteMaxCiComp();
+
 
         default:
         throw cRuntimeError("LteScheduler not recognized");

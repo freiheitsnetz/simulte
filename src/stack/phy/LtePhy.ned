@@ -70,6 +70,7 @@ simple LtePhyBase like LtePhy {
 simple LtePhyUe extends LtePhyBase {
      parameters:
          @class("LtePhyUe");
+         @signal[servingCell];
          @statistic[servingCell](title="ID of the serving eNodeB for the UE"; unit=""; source="servingCell"; record=vector);
 }
 
@@ -82,6 +83,7 @@ simple LtePhyUeD2D extends LtePhyUe {
          double d2dTxPower =default(26);
          bool d2dMulticastCaptureEffect = default(true);
          string d2dMulticastCaptureEffectFactor = default("RSRP");  // or distance
+         bool unassistedD2D = default(false);
 }
 
 // 

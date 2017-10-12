@@ -59,15 +59,15 @@ network MultiCell
         ue11: Ue {
             @display("p=275,289");
         }
-        ue12: Ue {
-            @display("p=477,363");
-        }
+//        ue12: Ue {
+//            @display("p=477,363");
+//        }
         ue21: Ue {
             @display("p=789,280");
         }
-        ue22: Ue {
-            @display("p=915,183");
-        }
+//        ue22: Ue {
+//            @display("p=915,183");
+//        }
         extCell[numExtCells]: ExtCell {
             @display("p=100,480;is=vl");
         }

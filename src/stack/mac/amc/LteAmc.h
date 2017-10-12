@@ -11,20 +11,24 @@
 #define _LTE_LTEAMC_H_
 
 #include <omnetpp.h>
-#include "LteFeedback.h"
-//#include "LteCommon.h"
-#include "AmcPilot.h"
-#include "LteMcs.h"
-#include "UserTxParams.h"
-#include "LteBinder.h"
-#include "LteDeployer.h"
+#include "stack/phy/feedback/LteFeedback.h"
+//#include "common/LteCommon.h"
+#include "stack/mac/amc/AmcPilot.h"
+#include "stack/mac/amc/LteMcs.h"
+#include "stack/mac/amc/UserTxParams.h"
+#include "corenetwork/binder/LteBinder.h"
+#include "corenetwork/deployer/LteDeployer.h"
 
 /// Forward declaration of AmcPilot class, used by LteAmc.
 class AmcPilot;
 /// Forward declaration of LteDeployer class, used by LteAmc.
 class LteDeployer;
+/// Forward declaration of LteMacBase class, used by LteAmc.
+class LteMacBase;
 /// Forward declaration of LteMacEnb class, used by LteAmc.
 class LteMacEnb;
+/// Forward declaration of LteMacUeRealisticD2D class, used by LteAmc.
+class LteMacUeRealisticD2D;
 
 /**
  * @class LteAMC
@@ -35,7 +39,7 @@ class LteMacEnb;
 class LteAmc
 {
   private:
-    AmcPilot *getAmcPilot(cPar amcMode);
+    AmcPilot *getAmcPilot(const cPar& amcMode);
     MacNodeId getNextHop(MacNodeId dst);
     public:
     void printParameters();
@@ -43,7 +47,7 @@ class LteAmc
     void printTxParams(Direction dir);
     void printMuMimoMatrix(const char *s);
     protected:
-    LteMacEnb *mac_;
+    LteMacBase *mac_;
     LteBinder *binder_;
     LteDeployer *deployer_;
     AmcPilot *pilot_;
@@ -90,6 +94,7 @@ class LteAmc
     LteMuMimoMatrix muMimoD2DMatrix_;
     public:
     LteAmc(LteMacEnb *mac, LteBinder *binder, LteDeployer *deployer, int numAntennas);
+    LteAmc(LteMacUeRealisticD2D *mac, LteBinder *binder, LteDeployer *deployer, int numAntennas);
     void initialize();
     ~LteAmc();
     void sefType(int f)
@@ -202,6 +207,13 @@ class LteAmc
     std::vector<Cqi>  readMultiBandCqi(MacNodeId id, const Direction dir);
 
     int getSystemNumBands() { return numBands_; }
+
+    void setConnectedUEsMap ()
+    {
+        dlConnectedUe_ = binder_->getDeployedUes(nodeId_, UL); // TODO be checked
+        ulConnectedUe_ = binder_->getDeployedUes(nodeId_, UL); // TODO be checked
+        d2dConnectedUe_ = binder_->getDeployedUes(nodeId_, UL); // TODO be checked
+    }
 };
 
 #endif
