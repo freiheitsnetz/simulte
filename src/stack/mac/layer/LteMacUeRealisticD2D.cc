@@ -8,6 +8,8 @@
 //
 
 #include "stack/mac/layer/LteMacUeRealisticD2D.h"
+
+#include "../scheduling_modules/unassistedHeuristic/LteUnassistedD2DSchedulingAgent.h"
 #include "stack/mac/buffer/harq/LteHarqBufferRx.h"
 #include "stack/mac/buffer/harq_d2d/LteHarqBufferRxD2D.h"
 #include "stack/mac/buffer/LteMacQueue.h"
@@ -17,8 +19,7 @@
 #include "stack/mac/buffer/harq_d2d/LteHarqBufferRxD2DMirror.h"
 #include "stack/d2dModeSelection/D2DModeSwitchNotification_m.h"
 #include "stack/mac/packet/LteRac_m.h"
-#include "stack/mac/scheduler/LteSchedulerUeAutoD2D.h"
-#include "stack/mac/scheduling_modules/unassistedHeuristic/LteUnassistedHeuristic.h"
+#include "stack/mac/scheduler/LteSchedulerUeUnassistedD2D.h"
 #include "stack/mac/amc/AmcPilotD2D.h"
 
 Define_Module(LteMacUeRealisticD2D);
@@ -30,15 +31,15 @@ LteMacUeRealisticD2D::LteMacUeRealisticD2D() :
 {
     racD2DMulticastRequested_ = false;
     bsrD2DMulticastTriggered_ = false;
-    lteSchedulerUeAutoD2DSLTx_ = NULL;
-    lteSchedulerUeAutoD2DSLRx_ = NULL;
+    lteSchedulerUeUnassistedD2DSLTx_ = NULL;
+    lteSchedulerUeUnassistedD2DSLRx_ = NULL;
 }
 
 LteMacUeRealisticD2D::~LteMacUeRealisticD2D()
 {
     if (par("unassistedD2D")) {
-        delete lteSchedulerUeAutoD2DSLRx_;
-        delete lteSchedulerUeAutoD2DSLTx_;
+        delete lteSchedulerUeUnassistedD2DSLRx_;
+        delete lteSchedulerUeUnassistedD2DSLTx_;
     } else {
         delete lcgScheduler_;
     }
@@ -63,11 +64,11 @@ void LteMacUeRealisticD2D::initialize(int stage)
         if (par("unassistedD2D")) {
             deployer_ = getDeployer();
             numAntennas_ = deployer_->getNumRus() + 1;
-            lteSchedulerUeAutoD2DSLTx_ = new LteSchedulerUeAutoD2D(this); // Should handle SL-UL for Tx D2D
-            lteSchedulerUeAutoD2DSLTx_->initialize(UL, this);
+            lteSchedulerUeUnassistedD2DSLTx_ = new LteSchedulerUeUnassistedD2D(this); // Should handle SL-UL for Tx D2D
+            lteSchedulerUeUnassistedD2DSLTx_->initialize(UL, this);
 
-            lteSchedulerUeAutoD2DSLRx_ = new LteSchedulerUeAutoD2D(this); // Should handle SL- DL for Rx D2D
-            lteSchedulerUeAutoD2DSLRx_->initialize(DL, this);
+            lteSchedulerUeUnassistedD2DSLRx_ = new LteSchedulerUeUnassistedD2D(this); // Should handle SL- DL for Rx D2D
+            lteSchedulerUeUnassistedD2DSLRx_->initialize(DL, this);
 
         } else {
             lcgScheduler_ = new LteSchedulerUeUl(this); // Handles Tx only
@@ -796,11 +797,11 @@ void LteMacUeRealisticD2D::handleSelfMessage()
             EV << "==============================================SIDELINK DOWNLINK i.e. Recieving mode ==============================================" << endl;
             //TODO enable sleep mode also for SIDELINK DOWNLINK ???
             //TODO Check Assumption that the UE knows the RB in UL
-            (lteSchedulerUeAutoD2DSLRx_->resourceBlocks()) = (eNodeBFunctions->getDeployer())->getNumRbUl();
+            (lteSchedulerUeUnassistedD2DSLRx_->resourceBlocks()) = (eNodeBFunctions->getDeployer())->getNumRbUl();
 
-            lteSchedulerUeAutoD2DSLRx_->updateHarqDescs();
+            lteSchedulerUeUnassistedD2DSLRx_->updateHarqDescs();
 
-            LteMacScheduleList* scheduleListSLRx = lteSchedulerUeAutoD2DSLRx_->scheduleTxD2Ds();
+            LteMacScheduleList* scheduleListSLRx = lteSchedulerUeUnassistedD2DSLRx_->scheduleTxD2Ds();
             // send uplink grants to PHY layer
             sendGrants(scheduleListSLRx);
             EV << "============================================ END SIDELINK DOWNLINK i.e. Recieving mode ============================================" << endl;
@@ -964,7 +965,7 @@ void LteMacUeRealisticD2D::handleSelfMessage()
             if (par("unassistedD2D")) {
                 EV << "============================================ END SIDELINK UPLINK i.e. ReTransmitting mode ============================================" << endl;
                 // SL-UL-TX scheduling done by Tx D2D UE
-                scheduleList_ = lteSchedulerUeAutoD2DSLTx_->scheduleData();// Data packets
+                scheduleList_ = lteSchedulerUeUnassistedD2DSLTx_->scheduleData();// Data packets
             } else {
                 // SL-UL-TX scheduling done by Tx D2D UE
                 scheduleList_ = lcgScheduler_->schedule();
@@ -1372,7 +1373,7 @@ void LteMacUeRealisticD2D::sendGrants(LteMacScheduleList* scheduleList)
                // for (; antenna_it != antenna_et; ++antenna_it) // OLD FOR
                for (antenna_it = antennas.begin(); antenna_it != antenna_et; ++antenna_it)
                {
-                    bandAllocatedBlocks += lteSchedulerUeAutoD2DSLRx_->readPerUeAllocatedBlocks(nodeId,*antenna_it, b);
+                    bandAllocatedBlocks += lteSchedulerUeUnassistedD2DSLRx_->readPerUeAllocatedBlocks(nodeId,*antenna_it, b);
                }
                grantedBytes += getAmc()->computeBytesOnNRbs(nodeId, b, cw, bandAllocatedBlocks, dir );
             }
@@ -1382,7 +1383,7 @@ void LteMacUeRealisticD2D::sendGrants(LteMacScheduleList* scheduleList)
         }
         RbMap map;
 
-        lteSchedulerUeAutoD2DSLRx_->readRbOccupation(nodeId, map);
+        lteSchedulerUeUnassistedD2DSLRx_->readRbOccupation(nodeId, map);
 
         grant->setGrantedBlocks(map);
         // send grant to PHY layer
@@ -1448,7 +1449,7 @@ void LteMacUeRealisticD2D::bufferizeBsr(MacBsr* bsr, MacCid cid)
     }
 
         // signal backlog to Uplink scheduler
-    lteSchedulerUeAutoD2DSLRx_->backlog(cid);
+    lteSchedulerUeUnassistedD2DSLRx_->backlog(cid);
 }
 
 void LteMacUeRealisticD2D::macPduUnmake(cPacket* pkt)
@@ -1505,7 +1506,7 @@ void LteMacUeRealisticD2D::macHandleRacRequest(cPacket* pkt)
         racPkt->getControlInfo());
     // To signal RAC request to the scheduler (called by Rx D2D Ue)
     EV << NOW << " LteMacUeRealisticD2D::macHandleRacRequest Signal Rac for UE::" << uinfo->getSourceId() <<endl;
-    lteSchedulerUeAutoD2DSLRx_->signalRac(uinfo->getSourceId());
+    lteSchedulerUeUnassistedD2DSLRx_->signalRac(uinfo->getSourceId());
 
 
     // TODO all RACs are marked are successful
@@ -1606,4 +1607,9 @@ void LteMacUeRealisticD2D::checkRAC(MacCid ueRxD2DId)
         // wait at least  "raRespWinStart_" TTIs before another RAC request
         RacMap[MacCidToNodeId(ueRxD2DId)].raRespTimer_ = RacMap[MacCidToNodeId(ueRxD2DId)].raRespWinStart_;
     }
+}
+
+SchedDiscipline LteMacUeRealisticD2D::getSchedDiscipline()
+{
+    return aToSchedDiscipline(par("schedulingDisciplineUl").stdstringValue());
 }

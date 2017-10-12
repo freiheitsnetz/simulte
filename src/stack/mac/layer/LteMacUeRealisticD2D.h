@@ -19,7 +19,7 @@ class LteSchedulingGrant;
 class LteSchedulerUeUl;
 class LteBinder;
 
-class LteSchedulerUeAutoD2D;
+class LteSchedulerUeUnassistedD2D;
 
 class ExposedLteMacEnb : public LteMacEnbRealisticD2D {
 public:
@@ -43,8 +43,8 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
     LteMacEnbRealisticD2D* enb_;
     ExposedLteMacEnb* eNodeBFunctions;
 
-    LteSchedulerUeAutoD2D* lteSchedulerUeAutoD2DSLRx_; // Similar to eNB scheduler for DL
-    LteSchedulerUeAutoD2D* lteSchedulerUeAutoD2DSLTx_; // Similar to eNB Scheduler for UL
+    LteSchedulerUeUnassistedD2D* lteSchedulerUeUnassistedD2DSLRx_; // Similar to eNB scheduler for DL
+    LteSchedulerUeUnassistedD2D* lteSchedulerUeUnassistedD2DSLTx_; // Similar to eNB Scheduler for UL
 
     // RAC Handling variables
     bool racD2DMulticastRequested_;
@@ -267,6 +267,13 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
 
     /// Lower Layer Handler
     void fromPhy(cPacket *pkt);
+
+
+    /**
+     * Returns the scheduling discipline for the given direction.
+     * @par dir link direction
+     */
+    SchedDiscipline getSchedDiscipline();
 };
 
 #endif

@@ -7,7 +7,9 @@
 // and cannot be removed from it.
 //
 
-#include "stack/mac/scheduler/LteSchedulerUeAutoD2D.h"
+#include "stack/mac/scheduler/LteSchedulerUeUnassistedD2D.h"
+
+#include "../scheduling_modules/unassistedHeuristic/LteUnassistedD2DSchedulingAgent.h"
 #include "stack/mac/layer/LteMacEnb.h"
 #include "stack/mac/layer/LteMacUeRealisticD2D.h"
 #include "stack/mac/scheduler/LteScheduler.h"
@@ -17,10 +19,19 @@
 #include "stack/mac/buffer/LteMacBuffer.h"
 #include "stack/mac/buffer/harq/LteHarqBufferRx.h"
 #include "stack/mac/buffer/harq_d2d/LteHarqBufferRxD2DMirror.h"
+#include "stack/mac/scheduling_modules/LteDrr.h"
+#include "stack/mac/scheduling_modules/LteMaxCi.h"
+#include "stack/mac/scheduling_modules/LtePf.h"
+#include "stack/mac/scheduling_modules/LteMaxCiMultiband.h"
+#include "stack/mac/scheduling_modules/LteMaxCiOptMB.h"
+#include "stack/mac/scheduling_modules/LteMaxCiComp.h"
+#include "stack/mac/scheduling_modules/unassistedHeuristic/LteUnassistedD2DPF.h"
+#include "stack/mac/scheduling_modules/unassistedHeuristic/LteUnassistedD2DDRR.h"
+#include "stack/mac/scheduling_modules/unassistedHeuristic/LteUnassistedD2DMaxCI.h"
 
-LteSchedulerUeAutoD2D::LteSchedulerUeAutoD2D(LteMacUeRealisticD2D * mac) {
+LteSchedulerUeUnassistedD2D::LteSchedulerUeUnassistedD2D(LteMacUeRealisticD2D * mac) {
     ueMac_ = mac;
-    lteUnassistedHeuristic_ = 0;
+    lteUnassistedD2DSchedulingAgent_ = 0;
     // Initialization of an Unassisted D2D UE's own resources has not been implemented
     allocator_ = 0;
     //    vbuf_ = 0;
@@ -29,13 +40,13 @@ LteSchedulerUeAutoD2D::LteSchedulerUeAutoD2D(LteMacUeRealisticD2D * mac) {
     resourceBlocks_ = 0;
 }
 
-LteSchedulerUeAutoD2D::~LteSchedulerUeAutoD2D() {
+LteSchedulerUeUnassistedD2D::~LteSchedulerUeUnassistedD2D() {
     delete tSample_;
     delete allocator_;
-    delete lteUnassistedHeuristic_;
+    delete lteUnassistedD2DSchedulingAgent_;
 }
 
-void LteSchedulerUeAutoD2D::initialize(Direction dir,
+void LteSchedulerUeUnassistedD2D::initialize(Direction dir,
         LteMacUeRealisticD2D* mac) {
 
     direction_ = dir;
@@ -51,8 +62,11 @@ void LteSchedulerUeAutoD2D::initialize(Direction dir,
     allocator_ = new LteAllocationModule(ueMac_, direction_);
 
     // Create LteScheduler
-    //    SchedDiscipline discipline = ueMac_->getSchedDiscipline(direction_);
-        lteUnassistedHeuristic_ = new LteUnassistedHeuristic(this); // To DO for multiple scheduling algorithms
+    SchedDiscipline discipline = ueMac_->getSchedDiscipline();
+
+    lteUnassistedD2DSchedulingAgent_ = getScheduler(discipline,this);
+
+//        lteUnassistedD2DSchedulingAgent_ = new LteUnassistedD2DSchedulingAgent(this); // To DO for multiple scheduling algorithms
 
     if (direction_ == DL) {
         grantTypeMap_[CONVERSATIONAL] = aToGrantType(
@@ -151,9 +165,9 @@ void LteSchedulerUeAutoD2D::initialize(Direction dir,
 }
 
 //SL-Rx Scheduling of Tx D2D done by Rx D2D UE
-LteMacScheduleList* LteSchedulerUeAutoD2D::scheduleTxD2Ds() {
+LteMacScheduleList* LteSchedulerUeUnassistedD2D::scheduleTxD2Ds() {
     // 1) Environment Setup
-    EV << "LteSchedulerUeAutoD2D::scheduleTxD2Ds performed by Node: "
+    EV << "LteSchedulerUeUnassistedD2D::scheduleTxD2Ds performed by Node: "
               << ueMac_->getMacNodeId() << endl;
     // clean up old scheduling decisions
     scheduleList_.clear();
@@ -164,7 +178,7 @@ LteMacScheduleList* LteSchedulerUeAutoD2D::scheduleTxD2Ds() {
             ((ueMac_->getENodeB())->getDeployer())->getNumBands());
     //reset AMC structures
     ueMac_->getAmc()->cleanAmcStructures(direction_,
-            lteUnassistedHeuristic_->readActiveSet());
+            lteUnassistedD2DSchedulingAgent_->readActiveSet());
     EV
               << "___________________________start RTX __________________________________"
               << endl;
@@ -175,8 +189,8 @@ LteMacScheduleList* LteSchedulerUeAutoD2D::scheduleTxD2Ds() {
         EV
                   << "___________________________start SCHED ________________________________"
                   << endl;
-        lteUnassistedHeuristic_->updateSchedulingInfo();
-        lteUnassistedHeuristic_->scheduleTxD2Ds();
+        lteUnassistedD2DSchedulingAgent_->updateSchedulingInfo();
+        lteUnassistedD2DSchedulingAgent_->scheduleTxD2Ds();
         EV
                   << "____________________________ end SCHED ________________________________"
                   << endl;
@@ -187,228 +201,196 @@ LteMacScheduleList* LteSchedulerUeAutoD2D::scheduleTxD2Ds() {
     return &scheduleList_;
 }
 
-unsigned int LteSchedulerUeAutoD2D::schedulePerAcidRtx(MacNodeId nodeId,
+unsigned int LteSchedulerUeUnassistedD2D::schedulePerAcidRtx(MacNodeId nodeId,
         Codeword cw, unsigned char acid, // needs to be modified for Direct HARQ
         std::vector<BandLimit>* bandLim, Remote antenna, bool limitBl) {
-    // Get user transmission parameters
-    const UserTxParams& txParams = ueMac_->getAmc()->computeTxParams(nodeId, direction_);    // get the user info
-    // TODO SK Get the number of codewords - FIX with correct mapping
-    unsigned int codewords = txParams.getLayers().size();                // get the number of available codewords
-
-    std::string bands_msg = "BAND_LIMIT_SPECIFIED";
-
-    std::vector<BandLimit> tempBandLim;
-
-    Codeword remappedCw = (codewords == 1) ? 0 : cw;
-
-    if (bandLim == NULL)
+    try
     {
-        bands_msg = "NO_BAND_SPECIFIED";
-        // Create a vector of band limit using all bands
-        bandLim = &tempBandLim;
-
-        unsigned int numBands = ueMac_->getDeployer()->getNumBands();
-        // for each band of the band vector provided
-        for (unsigned int i = 0; i < numBands; i++)
+        std::string bands_msg = "BAND_LIMIT_SPECIFIED";
+        if (bandLim == NULL)
         {
-            BandLimit elem;
-            // copy the band
-            elem.band_ = Band(i);
-            EV << "Putting band " << i << endl;
-            // mark as unlimited
-            for (Codeword i = 0; i < MAX_CODEWORDS; ++i)
+            bands_msg = "NO_BAND_SPECIFIED";
+            // Create a vector of band limit using all bands
+            // FIXME: bandlim is never deleted
+            bandLim = new std::vector<BandLimit>();
+
+            unsigned int numBands = ueMac_->getDeployer()->getNumBands();
+            // for each band of the band vector provided
+            for (unsigned int i = 0; i < numBands; i++)
             {
-                elem.limit_.push_back(-1);
+                BandLimit elem;
+                // copy the band
+                elem.band_ = Band(i);
+                EV << "Putting band " << i << endl;
+                // mark as unlimited
+                for (Codeword i = 0; i < MAX_CODEWORDS; ++i)
+                {
+                    elem.limit_.push_back(-1);
+                }
+                bandLim->push_back(elem);
             }
-            bandLim->push_back(elem);
         }
-    }
-    EV << NOW << "LteSchedulerUeAutoD2D::schedulePerAcidRtx - Node [" << ueMac_->getMacNodeId() << "], User[" << nodeId << "],  Codeword [" << cw << "]  of [" << codewords << "] , ACID [" << (int)acid << "] " << endl;
-    //! \test REALISTIC!!!  Multi User MIMO support
-    if (ueMac_->muMimo() && (txParams.readTxMode() == MULTI_USER))
-    {
-        // request amc for MU_MIMO pairing
-        MacNodeId peer = ueMac_->getAmc()->computeMuMimoPairing(nodeId);
-        if (peer != nodeId)
+
+        EV << NOW << "LteSchedulerUeUnassistedD2D::schedulePerAcidRtx - Node[" << ueMac_->getMacNodeId() << ", User[" << nodeId << ", Codeword[ " << cw << "], ACID[" << (unsigned int)acid << "] " << endl;
+
+        // Get the current active HARQ process
+//        unsigned char currentAcid = harqStatus_.at(nodeId) ;
+
+        unsigned char currentAcid = (harqStatus_.at(nodeId) + 2) % (harqRxBuffers_->at(nodeId)->getProcesses());
+        EV << "\t the acid that should be considered is " << currentAcid << endl;
+
+        // acid e currentAcid sono identici per forza, dato che sono calcolati nello stesso modo
+//        if(acid != currentAcid)
+//        {        // If requested HARQ process is not current for TTI
+//            EV << NOW << " LteSchedulerUeUnassistedD2D::schedulePerAcidRtx User is on ACID " << (unsigned int)currentAcid << " while requested one is " << (unsigned int)acid << ". No RTX scheduled. " << endl;
+//            return 0;
+//        }
+
+        LteHarqProcessRx* currentProcess = harqRxBuffers_->at(nodeId)->getProcess(currentAcid);
+
+        if (currentProcess->getUnitStatus(cw) != RXHARQ_PDU_CORRUPTED)
         {
-            // this user has a valid pairing
-            //1) register pairing  - if pairing is already registered false is returned
-            if (allocator_->configureMuMimoPeering(nodeId, peer))
+            // exit if the current active HARQ process is not ready for retransmission
+            EV << NOW << " LteSchedulerUeUnassistedD2D::schedulePerAcidRtx User is on ACID " << (unsigned int)currentAcid << " HARQ process is IDLE. No RTX scheduled ." << endl;
+            delete(bandLim);
+            return 0;
+        }
+
+        Codeword allocatedCw = 0;
+//        Codeword allocatedCw = MAX_CODEWORDS;
+        // search for already allocated codeword
+        // create "mirror" scList ID for other codeword than current
+        std::pair<unsigned int, Codeword> scListMirrorId = std::pair<unsigned int, Codeword>(idToMacCid(nodeId,SHORT_BSR), MAX_CODEWORDS - cw - 1);
+        if (scheduleList_.find(scListMirrorId) != scheduleList_.end())
+        {
+            allocatedCw = MAX_CODEWORDS - cw - 1;
+        }
+        // get current process buffered PDU byte length
+        unsigned int bytes = currentProcess->getByteLength(cw);
+        // bytes to serve
+        unsigned int toServe = bytes;
+        // blocks to allocate for each band
+        std::vector<unsigned int> assignedBlocks;
+        // bytes which blocks from the preceding vector are supposed to satisfy
+        std::vector<unsigned int> assignedBytes;
+
+        // end loop signal [same as bytes>0, but more secure]
+        bool finish = false;
+        // for each band
+        unsigned int size = bandLim->size();
+        for (unsigned int i = 0; (i < size) && (!finish); ++i)
+        {
+            // save the band and the relative limit
+            Band b = bandLim->at(i).band_;
+            int limit = bandLim->at(i).limit_.at(cw);
+
+            // TODO add support to multi CW
+//            unsigned int bandAvailableBytes = // if a codeword has been already scheduled for retransmission, limit available blocks to what's been  allocated on that codeword
+//                    ((allocatedCw == MAX_CODEWORDS) ? availableBytes(nodeId,antenna, b, cw) : ueMac_->getAmc()->blocks2bytes(nodeId, b, cw, allocator_->getBlocks(antenna,b,nodeId) , direction_));    // available space
+            unsigned int bandAvailableBytes = availableBytes(nodeId, antenna, b, cw, direction_);
+
+            // use the provided limit as cap for available bytes, if it is not set to unlimited
+            if (limit >= 0)
+                bandAvailableBytes = limit < (int) bandAvailableBytes ? limit : bandAvailableBytes;
+
+            EV << NOW << " LteSchedulerUeUnassistedD2D::schedulePerAcidRtx BAND " << b << endl;
+            EV << NOW << " LteSchedulerUeUnassistedD2D::schedulePerAcidRtx total bytes:" << bytes << " still to serve: " << toServe << " bytes" << endl;
+            EV << NOW << " LteSchedulerUeUnassistedD2D::schedulePerAcidRtx Available: " << bandAvailableBytes << " bytes" << endl;
+
+            unsigned int servedBytes = 0;
+            // there's no room on current band for serving the entire request
+            if (bandAvailableBytes < toServe)
             {
-                EV << "LteSchedulerUeAutoD2D::grant MU-MIMO pairing established: main user [" << nodeId << "], paired user [" << peer << "]" << endl;
+                // record the amount of served bytes
+                servedBytes = bandAvailableBytes;
+                // the request can be fully satisfied
             }
             else
             {
-                EV << "LteSchedulerUeAutoD2D::grant MU-MIMO pairing already exists between users [" << nodeId << "] and [" << peer << "]" << endl;
+                // record the amount of served bytes
+                servedBytes = toServe;
+                // signal end loop - all data have been serviced
+                finish = true;
             }
+            unsigned int servedBlocks = ueMac_->getAmc()->computeReqRbs(nodeId, b, cw, servedBytes, direction_);
+            // update the bytes counter
+            toServe -= servedBytes;
+            // update the structures
+            assignedBlocks.push_back(servedBlocks);
+            assignedBytes.push_back(servedBytes);
+        }
+
+        if (toServe > 0)
+        {
+            // process couldn't be served - no sufficient space on available bands
+            EV << NOW << " LteSchedulerUeUnassistedD2D::schedulePerAcidRtx Unavailable space for serving node " << nodeId << " ,HARQ Process " << (unsigned int)currentAcid << " on codeword " << cw << endl;
+            delete(bandLim);
+            return 0;
         }
         else
         {
-            EV << "LteSchedulerUeAutoD2D::grant no MU-MIMO pairing available for user [" << nodeId << "]" << endl;
+            // record the allocation
+            unsigned int size = assignedBlocks.size();
+            unsigned int cwAllocatedBlocks =0;
+
+            // create scList id for current node/codeword
+            std::pair<unsigned int,Codeword> scListId = std::pair<unsigned int,Codeword>(idToMacCid(nodeId, SHORT_BSR), cw);
+
+            for(unsigned int i = 0; i < size; ++i)
+            {
+                // For each LB for which blocks have been allocated
+                Band b = bandLim->at(i).band_;
+
+                cwAllocatedBlocks +=assignedBlocks.at(i);
+                EV << "\t Cw->" << allocatedCw << "/" << MAX_CODEWORDS << endl;
+                //! handle multi-codeword allocation
+                if (allocatedCw!=MAX_CODEWORDS)
+                {
+                    EV << NOW << " LteSchedulerUeUnassistedD2D::schedulePerAcidRtx - adding " << assignedBlocks.at(i) << " to band " << i << endl;
+                    allocator_->addBlocks(antenna,b,nodeId,assignedBlocks.at(i),assignedBytes.at(i));
+                }
+                //! TODO check if ok bandLim->at.limit_.at(cw) = assignedBytes.at(i);
+            }
+
+            // signal a retransmission
+            // schedule list contains number of granted blocks
+
+            scheduleList_[scListId] = cwAllocatedBlocks;
+            // mark codeword as used
+            if (allocatedCws_.find(nodeId)!=allocatedCws_.end())
+            {
+                allocatedCws_.at(nodeId)++;
+            }
+            else
+            {
+                allocatedCws_[nodeId]=1;
+            }
+
+            EV << NOW << " LteSchedulerUeUnassistedD2D::schedulePerAcidRtx HARQ Process " << (unsigned int)currentAcid << " : " << bytes << " bytes served! " << endl;
+
+            delete(bandLim);
+            return bytes;
         }
     }
-                //!\test experimental DAS support
-                // registering DAS spaces to the allocator
-    Plane plane = allocator_->getOFDMPlane(nodeId);
-    allocator_->setRemoteAntenna(plane, antenna);
-
-    // blocks to allocate for each band
-    std::vector<unsigned int> assignedBlocks;
-    // bytes which blocks from the preceding vector are supposed to satisfy
-    std::vector<unsigned int> assignedBytes;
-    LteHarqBufferTx* currHarq = ueMac_->getHarqTxBuffers()->at(nodeId);
-
-    // bytes to serve
-    unsigned int bytes = currHarq->pduLength(acid, cw);
-
-    // check selected process status.
-    std::vector<UnitStatus> pStatus = currHarq->getProcess(acid)->getProcessStatus();
-    std::vector<UnitStatus>::iterator vit = pStatus.begin(), vet = pStatus.end();
-
-    Codeword allocatedCw = 0;
-    // search for already allocated codeword
-//    for (;vit!=vet;++vit)
-//    {
-//        // skip current codeword
-//        if (vit->first==cw) continue;
-//
-//        if (vit->second == TXHARQ_PDU_SELECTED)
-//        {
-//            allocatedCw=vit->first;
-//            break;
-//        }
-//
-//    }
-    if (allocatedCws_.find(nodeId) != allocatedCws_.end())
+    catch(std::exception& e)
     {
-        allocatedCw = allocatedCws_.at(nodeId);
+        throw cRuntimeError("Exception in LteSchedulerUeUnassistedD2D::schedulePerAcidRtx(): %s", e.what());
     }
-    // for each band
-    unsigned int size = bandLim->size();
-
-    for (unsigned int i = 0; i < size; ++i)
-    {
-        // save the band and the relative limit
-        Band b = bandLim->at(i).band_;
-
-        int limit = bandLim->at(i).limit_.at(remappedCw);
-        unsigned int available = 0;
-        // if a codeword has been already scheduled for retransmission, limit available blocks to what's been  allocated on that codeword
-        if ((allocatedCw != 0))
-        {
-            // get band allocated blocks
-            int b1 = allocator_->getBlocks(antenna, b, nodeId);
-
-            // limit eventually allocated blocks on other codeword to limit for current cw
-            //b1 = (limitBl ? (b1>limit?limit:b1) : b1);
-            available = ueMac_->getAmc()->computeBytesOnNRbs(nodeId, b, remappedCw, b1, direction_);
-        }
-        else
-            available = availableBytes(nodeId, antenna, b, remappedCw, direction_, (limitBl) ? limit : -1);    // available space
-
-        // use the provided limit as cap for available bytes, if it is not set to unlimited
-        if (limit >= 0 && !limitBl)
-            available = limit < (int) available ? limit : available;
-
-        EV << NOW << "LteSchedulerUeAutoD2D::schedulePerAcidRtx ----- BAND " << b << "-----" << endl;
-        EV << NOW << "LteSchedulerUeAutoD2D::schedulePerAcidRtx To serve: " << bytes << " bytes" << endl;
-        EV << NOW << "LteSchedulerUeAutoD2D::schedulePerAcidRtx Available: " << available << " bytes" << endl;
-
-        unsigned int allocation = 0;
-        if (available < bytes)
-        {
-            allocation = available;
-            bytes -= available;
-        }
-        else
-        {
-            allocation = bytes;
-            bytes = 0;
-        }
-
-        if ((allocatedCw == 0))
-        {
-            unsigned int blocks = ueMac_->getAmc()->computeReqRbs(nodeId, b, remappedCw, allocation, direction_);
-
-            EV << NOW << "LteSchedulerUeAutoD2D::schedulePerAcidRtx Assigned blocks: " << blocks << "  blocks" << endl;
-
-            // assign only on the first codeword
-            assignedBlocks.push_back(blocks);
-            assignedBytes.push_back(allocation);
-        }
-
-        if (bytes == 0)
-            break;
-    }
-
-    if (bytes > 0)
-    {
-        // process couldn't be served
-        EV << NOW << "LteSchedulerUeAutoD2D::schedulePerAcidRtx Cannot serve HARQ Process" << acid << endl;
-        return 0;
-    }
-
-        // record the allocation if performed
-    size = assignedBlocks.size();
-    // For each LB with assigned blocks
-    for (unsigned int i = 0; i < size; ++i)
-    {
-        if (allocatedCw == 0)
-        {
-            // allocate the blocks
-            allocator_->addBlocks(antenna, bandLim->at(i).band_, nodeId, assignedBlocks.at(i), assignedBytes.at(i));
-        }
-        // store the amount
-        bandLim->at(i).limit_.at(remappedCw) = assignedBytes.at(i);
-    }
-
-    UnitList signal;
-    signal.first = acid;
-    signal.second.push_back(cw);
-
-    EV << NOW << " LteSchedulerUeAutoD2D::schedulePerAcidRtx HARQ Process " << (int)acid << "  codeword  " << cw << " marking for retransmission " << endl;
-
-    // if allocated codewords is not MAX_CODEWORDS, then there's another allocated codeword , update the codewords variable :
-
-    if (allocatedCw != 0)
-    {
-        // TODO fixme this only works if MAX_CODEWORDS ==2
-        --codewords;
-        if (codewords <= 0)
-            throw cRuntimeError("LteSchedulerUeAutoD2D::schedulePerAcidRtx(): erroneus codeword count %d", codewords);
-    }
-
-    // signal a retransmission
-    currHarq->markSelected(signal, codewords);
-
-    // mark codeword as used
-    if (allocatedCws_.find(nodeId) != allocatedCws_.end())
-    {
-        allocatedCws_.at(nodeId)++;
-        }
-    else
-    {
-        allocatedCws_[nodeId] = 1;
-    }
-
-    bytes = currHarq->pduLength(acid, cw);
-
-    EV << NOW << " LteSchedulerUeAutoD2D::schedulePerAcidRtx HARQ Process " << (int)acid << "  codeword  " << cw << ", " << bytes << " bytes served!" << endl;
-
-    return bytes;
+    delete(bandLim);
+    return 0;
 }
 
 // To be used by Rx D2D UE
-bool LteSchedulerUeAutoD2D::rtxschedule() {
+bool LteSchedulerUeUnassistedD2D::rtxschedule() {
     // Check LteSchedulerEnbUl::rtxschedule()
     // try to handle RAC requests first and abort rtx scheduling if no OFDMA space is left after
     if (racschedule())
         return true;
     try {
         EV << NOW
-                  << " LteSchedulerUeAutoD2D::rtxschedule --------------------::[ START RTX-SCHEDULE ]::--------------------"
+                  << " LteSchedulerUeUnassistedD2D::rtxschedule --------------------::[ START RTX-SCHEDULE ]::--------------------"
                   << endl;
-        EV << NOW << " LteSchedulerUeAutoD2D::rtxschedule for Rx mode of D2D UE: "
+        EV << NOW << " LteSchedulerUeUnassistedD2D::rtxschedule for Rx mode of D2D UE: "
                   << ueMac_->getMacNodeId() << endl;
 
         HarqRxBuffers::iterator it = harqRxBuffers_->begin(), et =
@@ -448,7 +430,7 @@ bool LteSchedulerUeAutoD2D::rtxschedule() {
             if (skip)
                 continue;
 
-            EV << NOW << "LteSchedulerUeAutoD2D::rtxschedule UE: " << nodeId
+            EV << NOW << "LteSchedulerUeUnassistedD2D::rtxschedule UE: " << nodeId
                       << "Acid: " << (unsigned int) currentAcid << endl;
 
             // Get user transmission parameters
@@ -466,14 +448,14 @@ bool LteSchedulerUeAutoD2D::rtxschedule() {
                 // FIXME PERFORMANCE: check for rtx status before calling rtxAcid
 
                 // perform a retransmission on available codewords for the selected acid
-                rtxBytes = LteSchedulerUeAutoD2D::schedulePerAcidRtx(nodeId, cw,
+                rtxBytes = LteSchedulerUeUnassistedD2D::schedulePerAcidRtx(nodeId, cw,
                         currentAcid);
                 if (rtxBytes > 0) {
                     --codewords;
                     allocatedBytes += rtxBytes;
                 }
             }
-            EV << NOW << "LteSchedulerUeAutoD2D::rtxschedule user " << nodeId
+            EV << NOW << "LteSchedulerUeUnassistedD2D::rtxschedule user " << nodeId
                       << " allocated bytes : " << allocatedBytes << endl;
         }
         if (ueMac_->isD2DCapable()) {
@@ -485,7 +467,7 @@ bool LteSchedulerUeAutoD2D::rtxschedule() {
                         ueMac_)->getRxHarqBufferMirror();
             else
                 throw cRuntimeError(
-                        "LteSchedulerUeAutoD2D::rtxschedule - unrecognized MAC type %s",
+                        "LteSchedulerUeUnassistedD2D::rtxschedule - unrecognized MAC type %s",
                         ueMac_->getClassName());
             HarqRxBuffersMirror::iterator it_d2d =
                     harqRxBuffersD2DMirror->begin(), et_d2d =
@@ -517,7 +499,7 @@ bool LteSchedulerUeAutoD2D::rtxschedule() {
                 if (skip)
                     continue;
 
-                EV << NOW << " LteSchedulerUeAutoD2D::rtxschedule - D2D UE: "
+                EV << NOW << " LteSchedulerUeUnassistedD2D::rtxschedule - D2D UE: "
                           << senderId << " Acid: " << (unsigned int) currentAcid
                           << endl;
 
@@ -536,14 +518,14 @@ bool LteSchedulerUeAutoD2D::rtxschedule() {
                     // FIXME PERFORMANCE: check for rtx status before calling rtxAcid
 
                     // perform a retransmission on available codewords for the selected acid
-                    rtxBytes = LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D(
+                    rtxBytes = LteSchedulerUeUnassistedD2D::schedulePerAcidRtxD2D(
                             destId, senderId, cw, currentAcid);
                     if (rtxBytes > 0) {
                         --codewords;
                         allocatedBytes += rtxBytes;
                     }
                 }
-                EV << NOW << " LteSchedulerUeAutoD2D::rtxschedule - D2D UE: "
+                EV << NOW << " LteSchedulerUeUnassistedD2D::rtxschedule - D2D UE: "
                           << senderId << " allocated bytes : " << allocatedBytes
                           << endl;
 
@@ -551,21 +533,21 @@ bool LteSchedulerUeAutoD2D::rtxschedule() {
             // --- END Schedule D2D retransmissions --- //
         }
         int availableBlocks = allocator_->computeTotalRbs();
-        EV << NOW << " LteSchedulerUeAutoD2D::rtxschedule residual OFDM Space: "
+        EV << NOW << " LteSchedulerUeUnassistedD2D::rtxschedule residual OFDM Space: "
                   << availableBlocks << endl;
         EV << NOW
-                  << " LteSchedulerUeAutoD2D::rtxschedule --------------------::[  END RTX-SCHEDULE  ]::--------------------"
+                  << " LteSchedulerUeUnassistedD2D::rtxschedule --------------------::[  END RTX-SCHEDULE  ]::--------------------"
                   << endl;
         return (availableBlocks == 0);
     } catch (std::exception& e) {
         throw cRuntimeError(
-                "Exception in LteSchedulerUeAutoD2D::rtxschedule(): %s",
+                "Exception in LteSchedulerUeUnassistedD2D::rtxschedule(): %s",
                 e.what());
     }
     return 0;
 }
 
-unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
+unsigned int LteSchedulerUeUnassistedD2D::scheduleGrant(MacCid cid,
         unsigned int bytes, bool& terminate, bool& active, bool& eligible,
         std::vector<BandLimit>* bandLim, Remote antenna, bool limitBl) {
     // Get the node ID and logical connection ID
@@ -620,7 +602,7 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
             bandLim->push_back(elem);
         }
     }
-    EV << "LteSchedulerUeAutoD2D::scheduleGrant(" << cid << "," << bytes << "," << terminate << "," << active << "," << eligible << "," << bands_msg << "," << dasToA(antenna) << ")" << endl;
+    EV << "LteSchedulerUeUnassistedD2D::scheduleGrant(" << cid << "," << bytes << "," << terminate << "," << active << "," << eligible << "," << bands_msg << "," << dasToA(antenna) << ")" << endl;
 
     // Perform normal operation for grant
 
@@ -628,9 +610,9 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
     //    LteMacBuffer* conn = ((dir == DL) ? vbuf_->at(cid) : bsrbuf_->at(cid)); as direction is immaterial in Unassissted D2D mode
     LteMacBuffer* conn = bsrbuf_->at(cid);
 
-    EV << "LteSchedulerUeAutoD2D::scheduleGrant --------------------::[ START GRANT ]::--------------------" << endl;
-    EV << "LteSchedulerUeAutoD2D::scheduleGrant Cell: " << ueMac_->getMacCellId() << endl;
-    EV << "LteSchedulerUeAutoD2D::scheduleGrant CID: " << cid << "(UE: " << nodeId << ", Flow: " << flowId << ") current Antenna [" << dasToA(antenna) << "]" << endl;
+    EV << "LteSchedulerUeUnassistedD2D::scheduleGrant --------------------::[ START GRANT ]::--------------------" << endl;
+    EV << "LteSchedulerUeUnassistedD2D::scheduleGrant Cell: " << ueMac_->getMacCellId() << endl;
+    EV << "LteSchedulerUeUnassistedD2D::scheduleGrant CID: " << cid << "(UE: " << nodeId << ", Flow: " << flowId << ") current Antenna [" << dasToA(antenna) << "]" << endl;
 
     //! Multiuser MIMO support
     if (ueMac_->muMimo() && (txParams.readTxMode() == MULTI_USER))
@@ -643,16 +625,16 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
             //1) register pairing  - if pairing is already registered false is returned
             if (allocator_->configureMuMimoPeering(nodeId, peer))
             {
-                EV << "LteSchedulerUeAutoD2D::scheduleGrant MU-MIMO pairing established: main user [" << nodeId << "], paired user [" << peer << "]" << endl;
+                EV << "LteSchedulerUeUnassistedD2D::scheduleGrant MU-MIMO pairing established: main user [" << nodeId << "], paired user [" << peer << "]" << endl;
             }
             else
             {
-                EV << "LteSchedulerUeAutoD2D::scheduleGrant MU-MIMO pairing already exists between users [" << nodeId << "] and [" << peer << "]" << endl;
+                EV << "LteSchedulerUeUnassistedD2D::scheduleGrant MU-MIMO pairing already exists between users [" << nodeId << "] and [" << peer << "]" << endl;
             }
         }
         else
         {
-            EV << "LteSchedulerUeAutoD2D::scheduleGrant no MU-MIMO pairing available for user [" << nodeId << "]" << endl;
+            EV << "LteSchedulerUeUnassistedD2D::scheduleGrant no MU-MIMO pairing available for user [" << nodeId << "]" << endl;
         }
     }
 
@@ -675,7 +657,7 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
         (txParams.readTxMode() != MULTI_USER || plane != MU_MIMO_PLANE)))
     {
         terminate = true; // ODFM space ended, issuing terminate flag
-        EV << "LteSchedulerUeAutoD2D::scheduleGrant Space ended, no schedulation." << endl;
+        EV << "LteSchedulerUeUnassistedD2D::scheduleGrant Space ended, no schedulation." << endl;
         return 0;
     }
 
@@ -690,10 +672,10 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
 
     // DEBUG OUTPUT
     if (limitBl)
-        EV << "LteSchedulerUeAutoD2D::scheduleGrant blocks: " << bytes << endl;
+        EV << "LteSchedulerUeUnassistedD2D::scheduleGrant blocks: " << bytes << endl;
         else
-        EV << "LteSchedulerUeAutoD2D::scheduleGrant Bytes: " << bytes << endl;
-    EV << "LteSchedulerUeAutoD2D::scheduleGrant Bands: {";
+        EV << "LteSchedulerUeUnassistedD2D::scheduleGrant Bytes: " << bytes << endl;
+    EV << "LteSchedulerUeUnassistedD2D::scheduleGrant Bands: {";
     unsigned int size = (*bandLim).size();
     if (size > 0)
     {
@@ -703,8 +685,8 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
     }
     EV << "}\n";
 
-    EV << "LteSchedulerUeAutoD2D::scheduleGrant TxMode: " << txModeToA(txParams.readTxMode()) << endl;
-    EV << "LteSchedulerUeAutoD2D::scheduleGrant Available codewords: " << numCodewords << endl;
+    EV << "LteSchedulerUeUnassistedD2D::scheduleGrant TxMode: " << txModeToA(txParams.readTxMode()) << endl;
+    EV << "LteSchedulerUeUnassistedD2D::scheduleGrant Available codewords: " << numCodewords << endl;
 
     bool stop = false;
     unsigned int totalAllocatedBytes = 0; // total allocated data (in bytes)
@@ -716,10 +698,10 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
     {
         eligible = false;
 
-        EV << "LteSchedulerUeAutoD2D::scheduleGrant @@@@@ CODEWORD " << cw << " @@@@@" << endl;
-        EV << "LteSchedulerUeAutoD2D::scheduleGrant Total allocation: " << totalAllocatedBytes << "bytes" << endl;
-        EV << "LteSchedulerUeAutoD2D::scheduleGrant NOT ELIGIBLE!!!" << endl;
-        EV << "LteSchedulerUeAutoD2D::scheduleGrant --------------------::[  END GRANT  ]::--------------------" << endl;
+        EV << "LteSchedulerUeUnassistedD2D::scheduleGrant @@@@@ CODEWORD " << cw << " @@@@@" << endl;
+        EV << "LteSchedulerUeUnassistedD2D::scheduleGrant Total allocation: " << totalAllocatedBytes << "bytes" << endl;
+        EV << "LteSchedulerUeUnassistedD2D::scheduleGrant NOT ELIGIBLE!!!" << endl;
+        EV << "LteSchedulerUeUnassistedD2D::scheduleGrant --------------------::[  END GRANT  ]::--------------------" << endl;
         return totalAllocatedBytes; // return the total number of served bytes
     }
 
@@ -735,7 +717,7 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
 
         // band limit structure
 
-        EV << "LteSchedulerUeAutoD2D::scheduleGrant @@@@@ CODEWORD " << cw << " @@@@@" << endl;
+        EV << "LteSchedulerUeUnassistedD2D::scheduleGrant @@@@@ CODEWORD " << cw << " @@@@@" << endl;
 
         unsigned int size = (*bandLim).size();
 
@@ -750,12 +732,12 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
             Band b = (*bandLim).at(i).band_;
             int limit = (*bandLim).at(i).limit_.at(cw);
 
-            EV << "LteSchedulerUeAutoD2D::scheduleGrant --- BAND " << b << " LIMIT " << limit << "---" << endl;
+            EV << "LteSchedulerUeUnassistedD2D::scheduleGrant --- BAND " << b << " LIMIT " << limit << "---" << endl;
 
             // if the limit flag is set to skip, jump off
             if (limit == -2)
             {
-                EV << "LteSchedulerUeAutoD2D::scheduleGrant skipping logical band according to limit value" << endl;
+                EV << "LteSchedulerUeUnassistedD2D::scheduleGrant skipping logical band according to limit value" << endl;
                 continue;
             }
 
@@ -792,7 +774,7 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
 
             if (bandAvailableBytes == 0)
             {
-                EV << "LteSchedulerUeAutoD2D::scheduleGrant Band " << b << "will be skipped since it has no space left." << endl;
+                EV << "LteSchedulerUeUnassistedD2D::scheduleGrant Band " << b << "will be skipped since it has no space left." << endl;
                 (*bandLim).at(i).limit_.at(cw) = -2;
                 continue;
             }
@@ -803,7 +785,7 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
                 if (limit >= 0 && limit < (int) bandAvailableBytes)
                 {
                     bandAvailableBytes = limit;
-                    EV << "LteSchedulerUeAutoD2D::scheduleGrant Band space limited to " << bandAvailableBytes << " bytes according to limit cap" << endl;
+                    EV << "LteSchedulerUeUnassistedD2D::scheduleGrant Band space limited to " << bandAvailableBytes << " bytes according to limit cap" << endl;
                 }
             }
             else
@@ -812,11 +794,11 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
                 if(limit >= 0 && limit < (int) bandAvailableBlocks)
                 {
                     bandAvailableBlocks=limit;
-                    EV << "LteSchedulerUeAutoD2D::scheduleGrant Band space limited to " << bandAvailableBlocks << " blocks according to limit cap" << endl;
+                    EV << "LteSchedulerUeUnassistedD2D::scheduleGrant Band space limited to " << bandAvailableBlocks << " blocks according to limit cap" << endl;
                 }
             }
 
-            EV << "LteSchedulerUeAutoD2D::scheduleGrant Available Bytes: " << bandAvailableBytes << " available blocks " << bandAvailableBlocks << endl;
+            EV << "LteSchedulerUeUnassistedD2D::scheduleGrant Available Bytes: " << bandAvailableBytes << " available blocks " << bandAvailableBlocks << endl;
 
             // TODO Consider the MAC PDU header size.
 
@@ -827,7 +809,7 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
                 if (conn->isEmpty())
                 {
                     active = false; // all user data have been served
-                    EV << "LteSchedulerUeAutoD2D::scheduleGrant scheduled connection is no more active . Exiting grant " << endl;
+                    EV << "LteSchedulerUeUnassistedD2D::scheduleGrant scheduled connection is no more active . Exiting grant " << endl;
                     stop = true;
                     break;
                 }
@@ -850,7 +832,7 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
                     if (dir == DL)
                     {
                         // can't schedule partial SDUs
-                        EV << "LteSchedulerUeAutoD2D::scheduleGrant available grant is  :  " << bytes - (totalAllocatedBytes + cwAllocatedBytes + bandAllocatedBytes) << ", insufficient for SDU size : " << vQueueFrontSize << endl;
+                        EV << "LteSchedulerUeUnassistedD2D::scheduleGrant available grant is  :  " << bytes - (totalAllocatedBytes + cwAllocatedBytes + bandAllocatedBytes) << ", insufficient for SDU size : " << vQueueFrontSize << endl;
                         stop = true;
                         break;
                     }
@@ -871,7 +853,7 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
                 for (; li != le; ++li)
                 {
                     totalBooked += li->bytes_;
-                    EV << "LteSchedulerUeAutoD2D::scheduleGrant Band " << li->b_ << " can contribute with " << li->bytes_ << " of booked resources " << endl;
+                    EV << "LteSchedulerUeUnassistedD2D::scheduleGrant Band " << li->b_ << " can contribute with " << li->bytes_ << " of booked resources " << endl;
                 }
 
                 // The current SDU may have a size greater than available space. In this case, book the band.
@@ -886,7 +868,7 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
                         throw cRuntimeError("band %d GRANT allocation overflow : avail. blocks %d alloc. blocks %d", b,
                             bandAvailableBlocks, blocksAdded);
 
-                    EV << "LteSchedulerUeAutoD2D::scheduleGrant Booking band available blocks" << (bandAvailableBlocks-blocksAdded) << " [" << bandAvailableBytes << " bytes] for future use, going to next band" << endl;
+                    EV << "LteSchedulerUeUnassistedD2D::scheduleGrant Booking band available blocks" << (bandAvailableBlocks-blocksAdded) << " [" << bandAvailableBytes << " bytes] for future use, going to next band" << endl;
                     // enable booking  here
                     bookedRequests.push_back(Request(b, bandAvailableBytes, bandAvailableBlocks - blocksAdded));
                     //  skipping this band
@@ -894,7 +876,7 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
                 }
                 else
                 {
-                    EV << "LteSchedulerUeAutoD2D::scheduleGrant servicing " << toServe << " bytes with " << bandAvailableBytes << " own bytes and " << totalBooked << " booked bytes " << endl;
+                    EV << "LteSchedulerUeUnassistedD2D::scheduleGrant servicing " << toServe << " bytes with " << bandAvailableBytes << " own bytes and " << totalBooked << " booked bytes " << endl;
 
                     // decrease booking value - if totalBooked is greater than 0, we used booked resources for scheduling the pdu
                     if (totalBooked>0)
@@ -902,14 +884,14 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
                         // reset booked resources iterator.
                         li=bookedRequests.begin();
 
-                        EV << "LteSchedulerUeAutoD2D::scheduleGrant Making use of booked resources [" << totalBooked << "] for inter-band data allocation" << endl;
+                        EV << "LteSchedulerUeUnassistedD2D::scheduleGrant Making use of booked resources [" << totalBooked << "] for inter-band data allocation" << endl;
                         // updating booked requests structure
                         while ((li!=le) && (bookedUsed<=toServe))
                         {
                             Band u = li->b_;
                             unsigned int uBytes = ((li->bytes_ > toServe )? toServe : li->bytes_ );
 
-                            EV << "LteSchedulerUeAutoD2D::scheduleGrant allocating " << uBytes << " prev. booked bytes on band " << (unsigned short)u << endl;
+                            EV << "LteSchedulerUeUnassistedD2D::scheduleGrant allocating " << uBytes << " prev. booked bytes on band " << (unsigned short)u << endl;
 
                             // mark here the usage of booked resources
                             bookedUsed+= uBytes;
@@ -966,11 +948,11 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
                                 // erase element from list
                                 bookedRequests.erase(erase);
 
-                                EV << "LteSchedulerUeAutoD2D::scheduleGrant band " << (unsigned short)u << " depleted all its booked resources " << endl;
+                                EV << "LteSchedulerUeUnassistedD2D::scheduleGrant band " << (unsigned short)u << " depleted all its booked resources " << endl;
                             }
                         }
                     }
-                    EV << "LteSchedulerUeAutoD2D::scheduleGrant band " << (unsigned short)b << " scheduled  " << toServe << " bytes " << " using " << bookedUsed << " resources on other bands and "
+                    EV << "LteSchedulerUeUnassistedD2D::scheduleGrant band " << (unsigned short)b << " scheduled  " << toServe << " bytes " << " using " << bookedUsed << " resources on other bands and "
                        << (toServe-bookedUsed) << " on its own space which was " << bandAvailableBytes << endl;
 
                     if (direction_ == UL || direction_ == D2D || direction_ == D2D_MULTI)
@@ -1018,7 +1000,7 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
 
                     vQueueItemCounter++;
 
-                    EV << "LteSchedulerUeAutoD2D::scheduleGrant Consumed: " << vQueueItemCounter << " MAC-SDU (" << vQueueFrontSize << " bytes) [Available: " << bandAvailableBytes << " bytes] [Allocated: " << bandAllocatedBytes << " bytes]" << endl;
+                    EV << "LteSchedulerUeUnassistedD2D::scheduleGrant Consumed: " << vQueueItemCounter << " MAC-SDU (" << vQueueFrontSize << " bytes) [Available: " << bandAvailableBytes << " bytes] [Allocated: " << bandAllocatedBytes << " bytes]" << endl;
 
                     // if there are no more bands available for UL/D2D scheduling
                     if ((direction_ == UL || direction_ == D2D || direction_ == D2D_MULTI) && b == size-1)
@@ -1030,7 +1012,7 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
                     if(bytes == 0 && vQueueItemCounter>0)
                     {
                         // Allocate only one SDU
-                        EV << "LteSchedulerUeAutoD2D::scheduleGrant ONLY ONE VQUEUE ITEM TO ALLOCATE" << endl;
+                        EV << "LteSchedulerUeUnassistedD2D::scheduleGrant ONLY ONE VQUEUE ITEM TO ALLOCATE" << endl;
                         stop = true;
                         break;
                     }
@@ -1072,7 +1054,7 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
                 {
                     if (limitBl)
                     {
-                        EV << "LteSchedulerUeAutoD2D::scheduleGrant BandLimit decreasing limit on band " << b << " limit " << (*bandLim).at(i).limit_.at(cw) << " blocks " << blocksAdded << endl;
+                        EV << "LteSchedulerUeUnassistedD2D::scheduleGrant BandLimit decreasing limit on band " << b << " limit " << (*bandLim).at(i).limit_.at(cw) << " blocks " << blocksAdded << endl;
                         (*bandLim).at(i).limit_.at(cw) -=blocksAdded;
                     }
                     // signal the amount of allocated bytes in the current band
@@ -1090,7 +1072,7 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
                 break;
         }
 
-        EV << "LteSchedulerUeAutoD2D::scheduleGrant Codeword allocation: " << cwAllocatedBytes << "bytes" << endl;
+        EV << "LteSchedulerUeUnassistedD2D::scheduleGrant Codeword allocation: " << cwAllocatedBytes << "bytes" << endl;
 
         if (cwAllocatedBytes > 0)
         {
@@ -1117,7 +1099,7 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
             // otherwise it contains number of granted blocks
             scheduleList_[scListId] += ((dir == DL) ? vQueueItemCounter : cwAllocatedBlocks);
 
-            EV << "LteSchedulerUeAutoD2D::scheduleGrant CODEWORD IS NOW BUSY: GO TO NEXT CODEWORD." << endl;
+            EV << "LteSchedulerUeUnassistedD2D::scheduleGrant CODEWORD IS NOW BUSY: GO TO NEXT CODEWORD." << endl;
             if (allocatedCws_.at(nodeId) == MAX_CODEWORDS)
             {
                 eligible = false;
@@ -1126,7 +1108,7 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
         }
         else
         {
-            EV << "LteSchedulerUeAutoD2D::scheduleGrant CODEWORD IS FREE: NO ALLOCATION IS POSSIBLE IN NEXT CODEWORD." << endl;
+            EV << "LteSchedulerUeUnassistedD2D::scheduleGrant CODEWORD IS FREE: NO ALLOCATION IS POSSIBLE IN NEXT CODEWORD." << endl;
             eligible = false;
             stop = true;
         }
@@ -1134,23 +1116,23 @@ unsigned int LteSchedulerUeAutoD2D::scheduleGrant(MacCid cid,
             break;
     }
 
-    EV << "LteSchedulerUeAutoD2D::scheduleGrant Total allocation: " << totalAllocatedBytes << " bytes, " << totalAllocatedBlocks << " blocks" << endl;
-    EV << "LteSchedulerUeAutoD2D::scheduleGrant --------------------::[  END GRANT  ]::--------------------" << endl;
+    EV << "LteSchedulerUeUnassistedD2D::scheduleGrant Total allocation: " << totalAllocatedBytes << " bytes, " << totalAllocatedBlocks << " blocks" << endl;
+    EV << "LteSchedulerUeUnassistedD2D::scheduleGrant --------------------::[  END GRANT  ]::--------------------" << endl;
 
     return totalAllocatedBytes;
 }
 
 // Allocator of the bands to Tx UE's
-bool LteSchedulerUeAutoD2D::racschedule() {
+bool LteSchedulerUeUnassistedD2D::racschedule() {
     // Check LteSchedulerEnbUl::racschedule()
 
     EV << NOW
-              << " LteSchedulerUeAutoD2D::racschedule --------------------::[ START RAC-SCHEDULE ]::--------------------"
+              << " LteSchedulerUeUnassistedD2D::racschedule --------------------::[ START RAC-SCHEDULE ]::--------------------"
               << endl;
-    EV << NOW << " LteSchedulerUeAutoD2D::racschedule Rx mode of D2D UE : "
+    EV << NOW << " LteSchedulerUeUnassistedD2D::racschedule Rx mode of D2D UE : "
               << ueMac_->getMacNodeId() << endl;
     EV << NOW
-              << " LteSchedulerUeAutoD2D::racschedule Direction in sidelink (probably D2D): "
+              << " LteSchedulerUeUnassistedD2D::racschedule Direction in sidelink (probably D2D): "
               << (direction_ == UL ? "UL" : "DL") << endl;
 
     RacStatus::iterator it = racStatus_.begin(), et = racStatus_.end();
@@ -1159,7 +1141,7 @@ bool LteSchedulerUeAutoD2D::racschedule() {
         // get current nodeId
         MacNodeId nodeId = it->first;
         EV << NOW
-                  << " LteSchedulerUeAutoD2D::racschedule handling RAC for Tx D2D UE node "
+                  << " LteSchedulerUeUnassistedD2D::racschedule handling RAC for Tx D2D UE node "
                   << nodeId << endl;
 
         // Get number of logical bands
@@ -1182,7 +1164,7 @@ bool LteSchedulerUeAutoD2D::racschedule() {
                     allocator_->addBlocks(MACRO, b, nodeId, 1, bytes);
 
                     EV << NOW
-                              << "LteSchedulerUeAutoD2D::racschedule  Tx D2D UE: "
+                              << "LteSchedulerUeUnassistedD2D::racschedule  Tx D2D UE: "
                               << nodeId << " Handled RAC on band: " << b
                               << endl;
 
@@ -1206,7 +1188,7 @@ bool LteSchedulerUeAutoD2D::racschedule() {
     racStatus_.clear();
 
     EV << NOW
-              << " LteSchedulerUeAutoD2D::racschedule --------------------::[  END RAC-SCHEDULE  ]::--------------------"
+              << " LteSchedulerUeUnassistedD2D::racschedule --------------------::[  END RAC-SCHEDULE  ]::--------------------"
               << endl;
 
     int availableBlocks = allocator_->computeTotalRbs();
@@ -1215,7 +1197,7 @@ bool LteSchedulerUeAutoD2D::racschedule() {
 
 }
 
-bool LteSchedulerUeAutoD2D::checkEligibility(MacNodeId id, Codeword& cw) {
+bool LteSchedulerUeUnassistedD2D::checkEligibility(MacNodeId id, Codeword& cw) {
     // check if harq buffer have already been created for this node
     if (ueMac_->getHarqTxBuffers()->find(id)
             != ueMac_->getHarqTxBuffers()->end()) {
@@ -1231,7 +1213,7 @@ bool LteSchedulerUeAutoD2D::checkEligibility(MacNodeId id, Codeword& cw) {
             // DEBUG check
             if (cw > MAX_CODEWORDS)
                 throw cRuntimeError(
-                        "LteSchedulerUeAutoD2D::checkEligibility(): abnormal codeword id %d",
+                        "LteSchedulerUeUnassistedD2D::checkEligibility(): abnormal codeword id %d",
                         (int) cw);
             return true;
         }
@@ -1239,7 +1221,7 @@ bool LteSchedulerUeAutoD2D::checkEligibility(MacNodeId id, Codeword& cw) {
     return true;
 }
 
-unsigned int LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D(MacNodeId destId,
+unsigned int LteSchedulerUeUnassistedD2D::schedulePerAcidRtxD2D(MacNodeId destId,
         MacNodeId senderId, Codeword cw, unsigned char acid,
         std::vector<BandLimit>* bandLim, Remote antenna, bool limitBl) {
     Direction dir = D2D;
@@ -1267,7 +1249,7 @@ unsigned int LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D(MacNodeId destId,
             }
         }
 
-        EV << NOW << "LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D - Node["
+        EV << NOW << "LteSchedulerUeUnassistedD2D::schedulePerAcidRtxD2D - Node["
                   << ueMac_->getMacNodeId() << ", User[" << senderId
                   << ", Codeword[ " << cw << "], ACID[" << (unsigned int) acid
                   << "] " << endl;
@@ -1279,7 +1261,7 @@ unsigned int LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D(MacNodeId destId,
                     ueMac_)->getRxHarqBufferMirror();
         else
             throw cRuntimeError(
-                    "LteSchedulerUeAutoD2D::rtxschedule - unrecognized MAC type %s",
+                    "LteSchedulerUeUnassistedD2D::rtxschedule - unrecognized MAC type %s",
                     ueMac_->getClassName());
         unsigned char currentAcid = (harqStatus_.at(senderId) + 2)
                 % (harqRxBuffersD2DMirror->at(destId)->numHarqProcesses_);
@@ -1291,7 +1273,7 @@ unsigned int LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D(MacNodeId destId,
         if (currentProcess->status_.at(cw) != RXHARQ_PDU_CORRUPTED) {
             // exit if the current active HARQ process is not ready for retransmission
             EV << NOW
-                      << " LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D User is on ACID "
+                      << " LteSchedulerUeUnassistedD2D::schedulePerAcidRtxD2D User is on ACID "
                       << (unsigned int) currentAcid
                       << " HARQ process is IDLE. No RTX scheduled ." << endl;
 
@@ -1339,14 +1321,14 @@ unsigned int LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D(MacNodeId destId,
                         limit < (int) bandAvailableBytes ?
                                 limit : bandAvailableBytes;
 
-            EV << NOW << " LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D BAND "
+            EV << NOW << " LteSchedulerUeUnassistedD2D::schedulePerAcidRtxD2D BAND "
                       << b << endl;
             EV << NOW
-                      << " LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D total bytes:"
+                      << " LteSchedulerUeUnassistedD2D::schedulePerAcidRtxD2D total bytes:"
                       << bytes << " still to serve: " << toServe << " bytes"
                       << endl;
             EV << NOW
-                      << " LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D Available: "
+                      << " LteSchedulerUeUnassistedD2D::schedulePerAcidRtxD2D Available: "
                       << bandAvailableBytes << " bytes" << endl;
 
             unsigned int servedBytes = 0;
@@ -1361,7 +1343,7 @@ unsigned int LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D(MacNodeId destId,
                 // signal end loop - all data have been serviced
                 finish = true;
                 EV << NOW
-                          << " LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D ALL DATA HAVE BEEN SERVICED"
+                          << " LteSchedulerUeUnassistedD2D::schedulePerAcidRtxD2D ALL DATA HAVE BEEN SERVICED"
                           << endl;
             }
             unsigned int servedBlocks = ueMac_->getAmc()->computeReqRbs(
@@ -1376,7 +1358,7 @@ unsigned int LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D(MacNodeId destId,
         if (toServe > 0) {
             // process couldn't be served - no sufficient space on available bands
             EV << NOW
-                      << " LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D Unavailable space for serving node "
+                      << " LteSchedulerUeUnassistedD2D::schedulePerAcidRtxD2D Unavailable space for serving node "
                       << senderId << " ,HARQ Process "
                       << (unsigned int) currentAcid << " on codeword " << cw
                       << endl;
@@ -1401,7 +1383,7 @@ unsigned int LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D(MacNodeId destId,
                 //! handle multi-codeword allocation
                 if (allocatedCw != MAX_CODEWORDS) {
                     EV << NOW
-                              << " LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D - adding "
+                              << " LteSchedulerUeUnassistedD2D::schedulePerAcidRtxD2D - adding "
                               << assignedBlocks.at(i) << " to band " << i
                               << endl;
                     allocator_->addBlocks(antenna, b, senderId,
@@ -1421,7 +1403,7 @@ unsigned int LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D(MacNodeId destId,
             }
 
             EV << NOW
-                      << " LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D HARQ Process "
+                      << " LteSchedulerUeUnassistedD2D::schedulePerAcidRtxD2D HARQ Process "
                       << (unsigned int) currentAcid << " : " << bytes
                       << " bytes served! " << endl;
 
@@ -1430,15 +1412,15 @@ unsigned int LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D(MacNodeId destId,
         }
     } catch (std::exception& e) {
         throw cRuntimeError(
-                "Exception in LteSchedulerUeAutoD2D::schedulePerAcidRtxD2D(): %s",
+                "Exception in LteSchedulerUeUnassistedD2D::schedulePerAcidRtxD2D(): %s",
                 e.what());
     }
     delete (bandLim);
     return 0;
 }
 
-void LteSchedulerUeAutoD2D::updateHarqDescs() {
-    EV << NOW << "LteSchedulerUeAutoD2D::updateHarqDescs  cell "
+void LteSchedulerUeUnassistedD2D::updateHarqDescs() {
+    EV << NOW << "LteSchedulerUeUnassistedD2D::updateHarqDescs  cell "
               << ueMac_->getMacCellId() << endl;
 
     HarqRxBuffers::iterator it;
@@ -1447,20 +1429,20 @@ void LteSchedulerUeAutoD2D::updateHarqDescs() {
         for (it = harqRxBuffers_->begin(); it != harqRxBuffers_->end(); ++it) {
             if ((currentStatus = harqStatus_.find(it->first))
                     != harqStatus_.end()) {
-                EV << NOW << "LteSchedulerUeAutoD2D::updateHarqDescs UE "
+                EV << NOW << "LteSchedulerUeUnassistedD2D::updateHarqDescs UE "
                           << it->first << " OLD Current Process is  "
                           << (unsigned int) currentStatus->second << endl;
                 // updating current acid id
                 currentStatus->second = (currentStatus->second + 1)
                         % (it->second->getProcesses());
 
-                EV << NOW << "LteSchedulerUeAutoD2D::updateHarqDescs UE "
+                EV << NOW << "LteSchedulerUeUnassistedD2D::updateHarqDescs UE "
                           << it->first << "NEW Current Process is "
                           << (unsigned int) currentStatus->second
                           << "(total harq processes "
                           << it->second->getProcesses() << ")" << endl;
             } else {
-                EV << NOW << "LteSchedulerUeAutoD2D::updateHarqDescs UE "
+                EV << NOW << "LteSchedulerUeUnassistedD2D::updateHarqDescs UE "
                           << it->first << " initialized the H-ARQ status "
                           << endl;
                 harqStatus_[it->first] = 0;
@@ -1472,7 +1454,7 @@ void LteSchedulerUeAutoD2D::updateHarqDescs() {
 // Same as LteSchedulerUeUL
 //SL-UL-TX Scheduling done by Tx D2D UE
 LteMacScheduleList*
-LteSchedulerUeAutoD2D::scheduleData() {
+LteSchedulerUeUnassistedD2D::scheduleData() {
     // 1) Environment Setup
 
     // clean up old scheduling decisions
@@ -1485,7 +1467,7 @@ LteSchedulerUeAutoD2D::scheduleData() {
     // get the nodeId of the mac owner node
     MacNodeId nodeId = ueMac_->getMacNodeId();
 
-    EV << NOW << " LteSchedulerUeAutoD2D::scheduleData - Scheduling node "
+    EV << NOW << " LteSchedulerUeUnassistedD2D::scheduleData - Scheduling node "
               << nodeId << endl;
 
     // retrieve Transmission parameters
@@ -1504,7 +1486,7 @@ LteSchedulerUeAutoD2D::scheduleData() {
     for (Codeword cw = 0; cw < codewords; ++cw) {
         unsigned int availableBytes = grant->getGrantedCwBytes(cw);
 
-        EV << NOW << " LteSchedulerUeAutoD2D::scheduleData - Node "
+        EV << NOW << " LteSchedulerUeUnassistedD2D::scheduleData - Node "
                   << ueMac_->getMacNodeId() << " available data from grant are "
                   << " blocks " << availableBlocks << " [" << availableBytes
                   << " - Bytes]  on codeword " << cw << endl;
@@ -1514,7 +1496,7 @@ LteSchedulerUeAutoD2D::scheduleData() {
         // invoke the schedule() method of the attached LCP scheduler in order to schedule
         // the connections provided
         std::map<MacCid, unsigned int>& sdus =
-                lteUnassistedHeuristic_->scheduleData(availableBytes, dir);
+                lteUnassistedD2DSchedulingAgent_->scheduleData(availableBytes, dir);
 
         // TODO check if this jump is ok
         if (sdus.empty())
@@ -1551,7 +1533,7 @@ LteSchedulerUeAutoD2D::scheduleData() {
 }
 
 
-void LteSchedulerUeAutoD2D::resourceBlockStatistics(bool sleep)
+void LteSchedulerUeUnassistedD2D::resourceBlockStatistics(bool sleep)
 {
     if (sleep)
     {
@@ -1606,7 +1588,7 @@ void LteSchedulerUeAutoD2D::resourceBlockStatistics(bool sleep)
                 + ((double) (*antennaIt) * ueMac_->getPowerUnit(direction_,
                     ueMac_->getCurrentSubFrameType())));
         }
-        EV << "LteSchedulerUeAutoD2D::resourceBlockStatistics collecting utilization for plane" <<
+        EV << "LteSchedulerUeUnassistedD2D::resourceBlockStatistics collecting utilization for plane" <<
         plane << "antenna" << dasToA((Remote)antenna) << " allocated blocks "
            << allocatedBlocks << " depletedPower " << depletedPower << endl;
         antenna++;
@@ -1637,34 +1619,52 @@ void LteSchedulerUeAutoD2D::resourceBlockStatistics(bool sleep)
     }
     else
     {
-        throw cRuntimeError("LteSchedulerUeAutoD2D::resourceBlockStatistics(): Unrecognized direction %d", direction_);
+        throw cRuntimeError("LteSchedulerUeUnassistedD2D::resourceBlockStatistics(): Unrecognized direction %d", direction_);
     }
 }
 
-void LteSchedulerUeAutoD2D::backlog(MacCid cid)
+void LteSchedulerUeUnassistedD2D::backlog(MacCid cid)
 {
-    EV << "LteSchedulerUeAutoD2D::backlog - backlogged data for Logical Cid " << cid << endl;
+    EV << "LteSchedulerUeUnassistedD2D::backlog - backlogged data for Logical Cid " << cid << endl;
     if(cid == 1){   //HACK
         return;
     }
-    lteUnassistedHeuristic_->notifyActiveConnection(cid);
+    lteUnassistedD2DSchedulingAgent_->notifyActiveConnection(cid);
 }
 
 
-unsigned int LteSchedulerUeAutoD2D::availableBytes(const MacNodeId id,
+unsigned int LteSchedulerUeUnassistedD2D::availableBytes(const MacNodeId id,
     Remote antenna, Band b, Codeword cw, Direction dir, int limit)
 {
-    EV << "LteSchedulerUeAutoD2D::availableBytes MacNodeId " << id << " Antenna " << dasToA(antenna) << " band " << b << " cw " << cw << endl;
+    EV << "LteSchedulerUeUnassistedD2D::availableBytes MacNodeId " << id << " Antenna " << dasToA(antenna) << " band " << b << " cw " << cw << endl;
     // Retrieving this user available resource blocks
     int blocks = allocator_->availableBlocks(id,antenna,b);
     //Consistency Check
     if (limit>blocks && limit!=-1)
-    throw cRuntimeError("LteSchedulerUeAutoD2D::availableBytes signaled limit inconsistency with available space band b %d, limit %d, available blocks %d",b,limit,blocks);
+    throw cRuntimeError("LteSchedulerUeUnassistedD2D::availableBytes signaled limit inconsistency with available space band b %d, limit %d, available blocks %d",b,limit,blocks);
 
     if (limit!=-1)
     blocks=(blocks>limit)?limit:blocks;
     unsigned int bytes = ueMac_->getAmc()->computeBytesOnNRbs(id, b, cw, blocks, dir);
-    EV << "LteSchedulerUeAutoD2D::availableBytes MacNodeId " << id << " blocks [" << blocks << "], bytes [" << bytes << "]" << endl;
+    EV << "LteSchedulerUeUnassistedD2D::availableBytes MacNodeId " << id << " blocks [" << blocks << "], bytes [" << bytes << "]" << endl;
 
     return bytes;
+}
+
+LteUnassistedD2DSchedulingAgent* LteSchedulerUeUnassistedD2D::getScheduler(SchedDiscipline discipline, LteSchedulerUeUnassistedD2D* lteSchedulerUeUnassistedD2D_)
+{
+
+    EV << "Creating LteSchedulerUeUnassistedD2D " << schedDisciplineToA(discipline) << endl;
+    switch(discipline)
+    {
+        case DRR:
+            return new LteUnassistedD2DDRR(lteSchedulerUeUnassistedD2D_);
+        case PF:
+            return new LteUnassistedD2DPF(ueMac_->par("pfAlpha").doubleValue(),lteSchedulerUeUnassistedD2D_);
+        case MAXCI:
+            return new LteUnassistedD2DMaxCI(lteSchedulerUeUnassistedD2D_);
+        default:
+            throw cRuntimeError("LteSchedulerUeUnassistedD2D not recognized");
+        return NULL;
+    }
 }

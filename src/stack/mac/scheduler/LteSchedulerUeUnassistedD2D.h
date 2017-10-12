@@ -10,16 +10,16 @@
 #ifndef _LTE_LTE_SCHEDULER_UE_AUTOD2D_H_
 #define _LTE_LTE_SCHEDULER_UE_AUTOD2D_H_
 
+#include "../scheduling_modules/unassistedHeuristic/LteUnassistedD2DSchedulingAgent.h"
 #include "stack/mac/scheduler/LteSchedulerEnb.h"
 #include "stack/mac/layer/LteMacUeRealisticD2D.h"
 #include "stack/mac/scheduler/LteSchedulerUeUl.h"
-#include "stack/mac/scheduling_modules/unassistedHeuristic/LteUnassistedHeuristic.h"
 #include "common/LteCommon.h"
 #include "stack/mac/amc/LteAmc.h"
 #include "stack/mac/amc/UserTxParams.h"
 
 /**
- * @class LteSchedulerUeAutoD2D
+ * @class LteSchedulerUeUnassistedD2D
  *
  * LTE Unassisted/Autonomous D2D UE scheduler.
  */
@@ -28,16 +28,23 @@ class LteScheduler;
 class LteAllocationModule;
 class LteMacUeRealisticD2D;
 
-class LteSchedulerUeAutoD2D: public LteSchedulerEnb {
+class LteSchedulerUeUnassistedD2D: public LteSchedulerEnb {
 
+    /******************
+     * Friend classes
+     ******************/
 
-
+    // Lte Scheduler Modules access grants
+    friend class LteUnassistedD2DSchedulingAgent;
+    friend class LteUnassistedD2DDRR;
+    friend class LteUnassistedD2DPF;
+    friend class LteUnassistedD2DMaxCI;
 
 protected:
 
 
     // Inner Scheduler - default to Standard LCG
-    LteUnassistedHeuristic* lteUnassistedHeuristic_;
+    LteUnassistedD2DSchedulingAgent* lteUnassistedD2DSchedulingAgent_;
 
     typedef std::map<MacNodeId, unsigned char> HarqStatus;
 
@@ -109,12 +116,12 @@ public:
     /*
      * constructor
      */
-    LteSchedulerUeAutoD2D(LteMacUeRealisticD2D * mac);
-    LteSchedulerUeAutoD2D();
+    LteSchedulerUeUnassistedD2D(LteMacUeRealisticD2D * mac);
+    LteSchedulerUeUnassistedD2D();
     /*
      * destructor
      */
-    virtual ~LteSchedulerUeAutoD2D();
+    virtual ~LteSchedulerUeUnassistedD2D();
     /**
      * Set Direction and bind the internal pointers to the MAC objects.
      * @param dir link direction
@@ -170,6 +177,16 @@ public:
      * @param cid connection identifier
      */
     void backlog(MacCid cid);
+    /*****************
+     * UTILITIES
+     *****************/
+
+    /**
+     * Returns a particular LteScheduler subclass,
+     * implementing the given discipline.
+     * @param discipline scheduler discipline
+     */
+    LteUnassistedD2DSchedulingAgent* getScheduler(SchedDiscipline discipline, LteSchedulerUeUnassistedD2D* lteSchedulerUeUnassistedD2D_);
 };
 
 #endif // _LTE_LTE_SCHEDULER_UE_AUTOD2D_H_

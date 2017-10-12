@@ -1,175 +1,24 @@
 /*
- * LteUnassistedHeuristic.cc
+K * LteUnassistedD2DSchedulingAgent.cc
  *
  *  Created on: Aug 21, 2017
  *      Author: Sunil Upardrasta
  */
 
-#include <stack/mac/scheduling_modules/unassistedHeuristic/LteUnassistedHeuristic.h>
+#include <stack/mac/scheduling_modules/unassistedHeuristic/LteUnassistedD2DSchedulingAgent.h>
 #include <stack/mac/scheduler/LteSchedulerEnb.h>
 #include <algorithm>
 #include "stack/mac/buffer/LteMacBuffer.h"
-#include <stack/mac/scheduler/LteSchedulerUeAutoD2D.h>
-#include <stack/mac/layer/LteMacUeD2D.h>
+#include <stack/mac/scheduler/LteSchedulerUeUnassistedD2D.h>
+#include <stack/mac/layer/LteMacUeRealisticD2D.h>
 
-LteUnassistedHeuristic::LteUnassistedHeuristic(LteSchedulerUeAutoD2D* lteSchedulerUeAutoD2D_) {
-
-    ueScheduler_ = lteSchedulerUeAutoD2D_;
-}
-
-LteUnassistedHeuristic::~LteUnassistedHeuristic() {
-}
-
-void LteUnassistedHeuristic::prepareSchedule() {
-    EV << NOW << " LteUnassistedHeuristic::prepareSchedule "
-              << ueScheduler_->ueMac_->getMacNodeId() << endl;
-
-    activeConnectionTempSet_ = activeConnectionSet_;
-
-    // Build the score list by cycling through the active connections.
-    ScoreList score;
-    MacCid cid = 0;
-    unsigned int blocks = 0;
-    unsigned int byPs = 0;
-
-    for (ActiveSet::iterator it1 = activeConnectionTempSet_.begin();
-            it1 != activeConnectionTempSet_.end();) {
-        // Current connection.
-        cid = *it1;
-
-        ++it1;
-
-        MacNodeId nodeId = MacCidToNodeId(cid);
-        OmnetId id = getBinder()->getOmnetId(nodeId);
-        if (nodeId == 0 || id == 0) {
-            // node has left the simulation - erase corresponding CIDs
-            activeConnectionSet_.erase(cid);
-            activeConnectionTempSet_.erase(cid);
-            continue;
-        }
-
-        // if we are allocating the UL subframe, this connection may be either UL or D2D
-        Direction dir;
-        if (direction_ == UL)
-            dir = (MacCidToLcid(cid) == D2D_SHORT_BSR) ? D2D : direction_;
-        else
-            dir = DL;
-
-        // compute available blocks for the current user
-        const UserTxParams& info =
-                ueScheduler_->ueMac_->getAmc()->computeTxParams(nodeId, dir);
-        const std::set<Band>& bands = info.readBands();
-        std::set<Band>::const_iterator it = bands.begin(), et = bands.end();
-        unsigned int codeword = info.getLayers().size();
-        bool cqiNull = false;
-        for (unsigned int i = 0; i < codeword; i++) {
-            if (info.readCqiVector()[i] == 0)
-                cqiNull = true;
-        }
-        if (cqiNull)
-            continue;
-        //no more free cw
-        if (ueScheduler_->allocatedCws(nodeId) == codeword)
-            continue;
-
-        std::set<Remote>::iterator antennaIt = info.readAntennaSet().begin(),
-                antennaEt = info.readAntennaSet().end();
-
-        // compute score based on total available bytes
-        unsigned int availableBlocks = 0;
-        unsigned int availableBytes = 0;
-        // for each antenna
-        for (; antennaIt != antennaEt; ++antennaIt) {
-            // for each logical band
-            for (; it != et; ++it) {
-                availableBlocks += ueScheduler_->readAvailableRbs(nodeId,
-                        *antennaIt, *it);
-                availableBytes +=
-                        ueScheduler_->ueMac_->getAmc()->computeBytesOnNRbs(
-                                nodeId, *it, availableBlocks, dir);
-            }
-        }
-
-        blocks = availableBlocks;
-        // current user bytes per slot
-        byPs = (blocks > 0) ? (availableBytes / blocks) : 0;
-
-        // Create a new score descriptor for the connection, where the score is equal to the ratio between bytes per slot and long term rate
-        ScoreDesc desc(cid, byPs);
-        // insert the cid score
-        score.push(desc);
-
-        EV << NOW
-                  << " LteUnassistedHeuristic::prepareSchedule computed for cid "
-                  << cid << " score of " << desc.score_ << endl;
-    }
-
-    // Schedule the connections in score order.
-    while (!score.empty()) {
-        // Pop the top connection from the list.
-        ScoreDesc current = score.top();
-
-        EV << NOW
-                  << " LteUnassistedHeuristic::prepareSchedule scheduling connection "
-                  << current.x_ << " with score of " << current.score_ << endl;
-
-        // Grant data to that connection.
-        bool terminate = false;
-        bool active = true;
-        bool eligible = true;
-        unsigned int granted = ueScheduler_->scheduleGrant(current.x_, 4294967295U, terminate,
-                active, eligible);
-
-        EV << NOW << "LteUnassistedHeuristic::prepareSchedule granted "
-                  << granted << " bytes to connection " << current.x_ << endl;
-
-        // Exit immediately if the terminate flag is set.
-        if (terminate)
-            break;
-
-        // Pop the descriptor from the score list if the active or eligible flag are clear.
-        if (!active || !eligible) {
-            score.pop();
-            EV << NOW << "LteUnassistedHeuristic::prepareSchedule  connection "
-                      << current.x_ << " was found ineligible" << endl;
-        }
-
-        // Set the connection as inactive if indicated by the grant ().
-        if (!active) {
-            EV << NOW
-                      << "LteUnassistedHeuristic::prepareSchedule scheduling connection "
-                      << current.x_ << " set to inactive " << endl;
-
-            activeConnectionTempSet_.erase(current.x_);
-        }
-    }
-}
-
-void LteUnassistedHeuristic::scheduleTxD2Ds() {
+void LteUnassistedD2DSchedulingAgent::scheduleTxD2Ds() {
     prepareSchedule();
     commitSchedule();
 }
 
-void LteUnassistedHeuristic::commitSchedule() {
-    EV_STATICCONTEXT
-    ;
-    EV << NOW << " LteUnassistedHeuristic::commitSchedule" << std::endl;
-    activeConnectionSet_ = activeConnectionTempSet_;
-}
-
-void LteUnassistedHeuristic::notifyActiveConnection(MacCid cid) {
-    EV << NOW << "LteUnassistedHeuristic::notify CID notified " << cid << endl;
-    activeConnectionSet_.insert(cid);
-}
-
-void LteUnassistedHeuristic::removeActiveConnection(MacCid cid) {
-    EV << NOW << "LteUnassistedHeuristic::remove CID removed " << cid << endl;
-    activeConnectionSet_.erase(cid);
-}
-
-
 // Same as LCG Scheduler
-ScheduleList& LteUnassistedHeuristic::scheduleData(unsigned int availableBytes,
+ScheduleList& LteUnassistedD2DSchedulingAgent::scheduleData(unsigned int availableBytes,
         Direction grantDir) {
 
     /* clean up old schedule decisions
@@ -216,7 +65,7 @@ ScheduleList& LteUnassistedHeuristic::scheduleData(unsigned int availableBytes,
         it_pair = lcgMap.equal_range((LteTrafficClass) i);
         LcgMap::iterator it = it_pair.first, et = it_pair.second;
 
-        EV << NOW << " LteUnassistedHeuristic::scheduleData - Node  "
+        EV << NOW << " LteUnassistedD2DSchedulingAgent::scheduleData - Node  "
                   << ueScheduler_->ueMac_->getMacNodeId()
                   << ", Starting priority service for traffic class " << i
                   << endl;
@@ -237,7 +86,7 @@ ScheduleList& LteUnassistedHeuristic::scheduleData(unsigned int availableBytes,
 //            if (connDesc.getDirection() != grantDir) // if the connection has different direction from the grant direction, skip it
 //                    {
 //                EV << NOW
-//                          << " LteUnassistedHeuristic::scheduleData - Connection "
+//                          << " LteUnassistedD2DSchedulingAgent::scheduleData - Connection "
 //                          << cid << " is "
 //                          << dirToA((Direction) connDesc.getDirection())
 //                          << " whereas grant is " << dirToA(grantDir)
@@ -264,7 +113,7 @@ ScheduleList& LteUnassistedHeuristic::scheduleData(unsigned int availableBytes,
                 elem = &statusMap_[cid];
             }
 
-            EV << NOW << " LteUnassistedHeuristic::scheduleData Node "
+            EV << NOW << " LteUnassistedD2DSchedulingAgent::scheduleData Node "
                       << ueScheduler_->ueMac_->getMacNodeId() << " , Parameters:" << endl;
             EV << "\t Logical Channel ID: " << MacCidToLcid(cid) << endl;
             EV << "\t CID: " << cid << endl;
@@ -281,7 +130,7 @@ ScheduleList& LteUnassistedHeuristic::scheduleData(unsigned int availableBytes,
                 double maximumBucketSize = 10000.0; // TODO  parameters -> maxBurst;
 
                 EV << NOW
-                          << " LteUnassistedHeuristic::scheduleData Bucket size: "
+                          << " LteUnassistedD2DSchedulingAgent::scheduleData Bucket size: "
                           << bucket << " bytes (max size " << maximumBucketSize
                           << " bytes) - BEFORE SERVICE " << endl;
 
@@ -313,15 +162,15 @@ ScheduleList& LteUnassistedHeuristic::scheduleData(unsigned int availableBytes,
 //                // update the tracing element accordingly
                 elem->bucket_ = 100.0; // TODO desc->parameters_.bucket_;
                 EV << NOW
-                          << " LteUnassistedHeuristic::scheduleData Bucket size: "
+                          << " LteUnassistedD2DSchedulingAgent::scheduleData Bucket size: "
                           << bucket << " bytes (max size " << maximumBucketSize
                           << " bytes) - AFTER SERVICE " << endl;
             }
 
-            EV << NOW << " LteUnassistedHeuristic::scheduleData - Node "
+            EV << NOW << " LteUnassistedD2DSchedulingAgent::scheduleData - Node "
                       << ueScheduler_->ueMac_->getMacNodeId() << ", remaining grant: "
                       << availableBytes << " bytes " << endl;
-            EV << NOW << " LteUnassistedHeuristic::scheduleData - Node "
+            EV << NOW << " LteUnassistedD2DSchedulingAgent::scheduleData - Node "
                       << ueScheduler_->ueMac_->getMacNodeId() << " buffer Size: "
                       << vQueue->getQueueOccupancy() << " bytes " << endl;
 
@@ -358,20 +207,20 @@ ScheduleList& LteUnassistedHeuristic::scheduleData(unsigned int availableBytes,
                     elem->sentSdus_++;
 
 //
-                    EV << NOW << " LteUnassistedHeuristic::scheduleData - Node "
+                    EV << NOW << " LteUnassistedD2DSchedulingAgent::scheduleData - Node "
                               << ueScheduler_->ueMac_->getMacNodeId() << ",  SDU of size "
                               << sduSize << " selected for transmission"
                               << endl;
-                    EV << NOW << " LteUnassistedHeuristic::scheduleData - Node "
+                    EV << NOW << " LteUnassistedD2DSchedulingAgent::scheduleData - Node "
                               << ueScheduler_->ueMac_->getMacNodeId() << ", remaining grant: "
                               << availableBytes << " bytes" << endl;
-                    EV << NOW << " LteUnassistedHeuristic::scheduleData - Node "
+                    EV << NOW << " LteUnassistedD2DSchedulingAgent::scheduleData - Node "
                               << ueScheduler_->ueMac_->getMacNodeId() << " buffer Size: "
                               << vQueue->getQueueOccupancy() << " bytes"
                               << endl;
                 } else {
 //
-                    EV << NOW << " LteUnassistedHeuristic::scheduleData - Node "
+                    EV << NOW << " LteUnassistedD2DSchedulingAgent::scheduleData - Node "
                               << ueScheduler_->ueMac_->getMacNodeId() << ",  SDU of size "
                               << sduSize << " could not be serviced " << endl;
                     break;                    // sdu can't be serviced
@@ -385,8 +234,8 @@ ScheduleList& LteUnassistedHeuristic::scheduleData(unsigned int availableBytes,
 //
 //                if ( desc->parameters_.priority_ >= lowestBackloggedPriority_ ) {
 //
-//                    if(LteDebug::trace("LteUnassistedHeuristic::scheduleData"))
-//                        fprintf(stderr,"%.9f LteUnassistedHeuristic::scheduleData - Node %d, this flow priority: %u (old lowest priority %u) - LOWEST FOR NOW\n", NOW, nodeId_, desc->parameters_.priority_, lowestBackloggedPriority_);
+//                    if(LteDebug::trace("LteUnassistedD2DSchedulingAgent::scheduleData"))
+//                        fprintf(stderr,"%.9f LteUnassistedD2DSchedulingAgent::scheduleData - Node %d, this flow priority: %u (old lowest priority %u) - LOWEST FOR NOW\n", NOW, nodeId_, desc->parameters_.priority_, lowestBackloggedPriority_);
 //
 //                    // store the new lowest backlogged flow and its priority
 //                    lowestBackloggedFlow_ = fid;
@@ -396,8 +245,8 @@ ScheduleList& LteUnassistedHeuristic::scheduleData(unsigned int availableBytes,
 //
 //                if ( highestBackloggedPriority_ == -1 || desc->parameters_.priority_ <= highestBackloggedPriority_ ) {
 //
-//                    if(LteDebug::trace("LteUnassistedHeuristic::scheduleData"))
-//                        fprintf(stderr,"%.9f LteUnassistedHeuristic::scheduleData - Node %d, this flow priority: %u (old highest priority %u) - HIGHEST FOR NOW\n", NOW, nodeId_, desc->parameters_.priority_, highestBackloggedPriority_);
+//                    if(LteDebug::trace("LteUnassistedD2DSchedulingAgent::scheduleData"))
+//                        fprintf(stderr,"%.9f LteUnassistedD2DSchedulingAgent::scheduleData - Node %d, this flow priority: %u (old highest priority %u) - HIGHEST FOR NOW\n", NOW, nodeId_, desc->parameters_.priority_, highestBackloggedPriority_);
 //
 //                    // store the new highest backlogged flow and its priority
 //                    highestBackloggedFlow_ = fid;
@@ -429,7 +278,7 @@ ScheduleList& LteUnassistedHeuristic::scheduleData(unsigned int availableBytes,
                 priorityService = false;
                 //  reset traffic class
                 i = 0;
-                EV << "LteUnassistedHeuristic::scheduleData - Node"
+                EV << "LteUnassistedD2DSchedulingAgent::scheduleData - Node"
                           << ueScheduler_->ueMac_->getMacNodeId()
                           << ", Starting best effort service" << endl;
             }
