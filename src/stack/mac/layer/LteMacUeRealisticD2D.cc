@@ -612,6 +612,12 @@ void LteMacUeRealisticD2D::handleSelfMessage()
         // if necessary, a RAC request will be sent to obtain a grant
         checkRAC();
         // TODO ensure all operations done  before return ( i.e. move H-ARQ rx purge before this point)
+
+        // Remember which RBs were granted this TTI.
+    	int numBands = getBinder()->getNumBands();
+    	for (int i = 0; i < numBands; i++) {
+    		emit(rbsGranted.at(i), 0);
+    	}
     }
     else if (schedulingGrant_->getPeriodic())
     {
@@ -639,6 +645,15 @@ void LteMacUeRealisticD2D::handleSelfMessage()
     bool requestSdu = false;
     if (schedulingGrant_!=NULL) // if a grant is configured
     {
+        // Remember which RBs were granted this TTI.
+    	int numBands = getBinder()->getNumBands();
+    	for (int i = 0; i < numBands; i++) {
+    		int numBlocksInBand = schedulingGrant_->getBlocks(Remote::MACRO, Band(i));
+//    		if (numBlocksInBand > 0)
+//    			cout << "Node " << nodeId_  << " was granted " << numBlocksInBand << " blocks on band " << i << "." << endl;
+
+    		emit(rbsGranted.at(i), numBlocksInBand);
+    	}
         if(!firstTx)
         {
             EV << "\t currentHarq_ counter initialized " << endl;

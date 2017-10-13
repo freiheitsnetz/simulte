@@ -127,6 +127,9 @@ simple LteMacBase like LteMac {
         @statistic[sentPacketToLowerLayer](source="sentPacketToLowerLayer"; record=count,"sum(packetBytes)","vector(packetBytes)"; interpolationmode=none);
         @signal[measuredItbs];
         @statistic[measuredItbs](title="TBS index"; unit=""; source="measuredItbs"; record=mean,vector);
+        
+        @signal[rbsGranted*](type=simtime_t); // from: https://stackoverflow.com/questions/37634462/omnet-emit-complex-signals
+		@statisticTemplate[rbsGrantedTemplate](record=vector);
 
         //# signals for indicating buffer overflow
         @signal[macBufferOverflowUl];
