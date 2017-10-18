@@ -20,6 +20,8 @@ class LteBinder;
  */
 class LteRealisticChannelModel : public LteChannelModel
 {
+	friend class Oracle;
+
   private:
     // Carrier Frequency
     double carrierFrequency_;

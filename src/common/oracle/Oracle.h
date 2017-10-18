@@ -42,6 +42,11 @@ public:
     MacNodeId getEnodeBID() const;
 
     /**
+     * @return The number of resources configured in the system.
+     */
+    size_t getNumRBs() const;
+
+    /**
      * @param from
      * @param to
      * @return The transmission direction.
@@ -70,7 +75,16 @@ public:
      */
     std::vector<double> getSINR(const MacNodeId from, const MacNodeId to) const;
 
+    /**
+     * @return Path attenuation between 'from' and 'to'.
+     */
     double getAttenuation(const MacNodeId from, const MacNodeId to) const;
+
+    /**
+     * @param considerThisTTI Whether to consider the current TTI's resource allocation, or the previous one.
+     * @return Received signal of interfering nodes on each resource.
+     */
+    std::vector<double> getInCellInterference(const MacNodeId from, const MacNodeId to, bool considerThisTTI) const;
 
 protected:
     double maxSimTime = 0.0;

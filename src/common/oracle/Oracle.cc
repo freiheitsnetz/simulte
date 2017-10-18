@@ -56,6 +56,8 @@ void Oracle::configure() {
 	EV << "Oracle::Att[1027][1028] = " << getAttenuation(1027, 1028) << std::endl;
 	EV << "Oracle::Att[1028][1029] = " << getAttenuation(1028, 1029) << std::endl;
 	EV << "Oracle::Att[1029][1030] = " << getAttenuation(1029, 1030) << std::endl;
+
+	EV << "Oracle::int[1025][1036] = " << getInCellInterference(1029, 1030, true).at(0) << std::endl;
 }
 
 void Oracle::handleMessage(cMessage *msg) {
@@ -69,6 +71,10 @@ MacNodeId Oracle::getEnodeBID() const {
     if (list->size() == 0)
         throw cRuntimeError("Oracle::getEnodeBID called, but eNodeB list is empty.");
     return list->at(0)->id;
+}
+
+size_t Oracle::getNumRBs() const {
+	return getBinder()->getNumBands();
 }
 
 Direction Oracle::determineDirection(const MacNodeId from, const MacNodeId to) const {
@@ -129,12 +135,21 @@ std::vector<double> Oracle::getSINR(const MacNodeId from, const MacNodeId to) co
     uinfo.setDirection(direction);
     uinfo.setTxPower(getTxPower(from, Direction::UL));
     uinfo.setD2dTxPower(getTxPower(from, Direction::D2D));
-
-    return dynamic_cast<LteRealisticChannelModel *>(getPhyBase(from)->getChannelModel())->getSINR_D2D(&frame, &uinfo, to, getPosition(to), getEnodeBID());
+    LteRealisticChannelModel* channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(from)->getChannelModel());
+    return channelModel->getSINR_D2D(&frame, &uinfo, to, getPosition(to), getEnodeBID());
 }
 
 double Oracle::getAttenuation(const MacNodeId from, const MacNodeId to) const {
 	Direction dir = determineDirection(from, to);
 	LteRealisticChannelModel* channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(from)->getChannelModel());
 	return channelModel->getAttenuation_D2D(from, dir, getPosition(from), to, getPosition(to));
+}
+
+std::vector<double> Oracle::getInCellInterference(const MacNodeId from, const MacNodeId to, bool considerThisTTI) const {
+	std::vector<double> interferences(getNumRBs(), 0.0);
+	Direction dir = determineDirection(from, to);
+	LteRealisticChannelModel* channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(from)->getChannelModel());
+	// Function call modifies 'interferences' vector.
+	channelModel->computeInCellD2DInterference(getEnodeBID(), from, getPosition(from), to, getPosition(to), considerThisTTI, &interferences, dir);
+	return interferences;
 }
