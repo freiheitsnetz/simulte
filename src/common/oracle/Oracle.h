@@ -70,6 +70,8 @@ public:
      */
     std::vector<double> getSINR(const MacNodeId from, const MacNodeId to) const;
 
+    double getAttenuation(const MacNodeId from, const MacNodeId to) const;
+
 protected:
     double maxSimTime = 0.0;
 

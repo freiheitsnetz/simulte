@@ -22,6 +22,7 @@ void Oracle::configure() {
     std::vector<UeInfo*>* ueList = getBinder()->getUeList();
     EV << getPosition(ueList->at(0)->id).x << getPosition(ueList->at(0)->id).y << " txPwr=" << getTxPower(ueList->at(0)->id, Direction::D2D) << endl;
 
+    // Calculate all pair-wise SINRs.
     std::map<MacNodeId, std::map<MacNodeId, std::vector<double>>> SINRMap;
     for (size_t i = 0; i < ueList->size(); i++) {
         for (size_t j = 0; j < ueList->size(); j++) {
@@ -30,11 +31,10 @@ void Oracle::configure() {
             MacNodeId from = ueList->at(i)->id;
             MacNodeId to = ueList->at(j)->id;
             std::vector<double> SINRs = getSINR(from, to);
-            EV << "size=" << SINRs.size() << endl;
             SINRMap[from][to] = SINRs;
         }
     }
-    EV << "Oracle::SINRs" << endl;
+    // And print them.
     for (size_t i = 0; i < ueList->size(); i++) {
             for (size_t j = 0; j < ueList->size(); j++) {
                 if (i == j)
@@ -42,9 +42,20 @@ void Oracle::configure() {
                 MacNodeId from = ueList->at(i)->id;
                 MacNodeId to = ueList->at(j)->id;
                 std::vector<double> SINRs = SINRMap[from][to];
-                EV << "SINR[" << from << "][" << to << "] = " << SINRs.at(0) << " at distance " << endl;
+                EV << "Oracle::SINRs[" << from << "][" << to << "] = " << SINRs.at(0) << " at distance " << getDistance(getPosition(from), getPosition(to)) << endl;
             }
     }
+    EV << "Oracle::SINRs[1025][1026] = " << SINRMap[1025][1026].at(0) << std::endl;
+    EV << "Oracle::SINRs[1026][1027] = " << SINRMap[1026][1027].at(0) << std::endl;
+    EV << "Oracle::SINRs[1027][1028] = " << SINRMap[1027][1028].at(0) << std::endl;
+    EV << "Oracle::SINRs[1028][1029] = " << SINRMap[1028][1029].at(0) << std::endl;
+    EV << "Oracle::SINRs[1029][1030] = " << SINRMap[1029][1030].at(0) << std::endl;
+
+    EV << "Oracle::Att[1025][1026] = " << getAttenuation(1025, 1026) << std::endl;
+	EV << "Oracle::Att[1026][1027] = " << getAttenuation(1026, 1027) << std::endl;
+	EV << "Oracle::Att[1027][1028] = " << getAttenuation(1027, 1028) << std::endl;
+	EV << "Oracle::Att[1028][1029] = " << getAttenuation(1028, 1029) << std::endl;
+	EV << "Oracle::Att[1029][1030] = " << getAttenuation(1029, 1030) << std::endl;
 }
 
 void Oracle::handleMessage(cMessage *msg) {
@@ -120,4 +131,10 @@ std::vector<double> Oracle::getSINR(const MacNodeId from, const MacNodeId to) co
     uinfo.setD2dTxPower(getTxPower(from, Direction::D2D));
 
     return dynamic_cast<LteRealisticChannelModel *>(getPhyBase(from)->getChannelModel())->getSINR_D2D(&frame, &uinfo, to, getPosition(to), getEnodeBID());
+}
+
+double Oracle::getAttenuation(const MacNodeId from, const MacNodeId to) const {
+	Direction dir = determineDirection(from, to);
+	LteRealisticChannelModel* channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(from)->getChannelModel());
+	return channelModel->getAttenuation_D2D(from, dir, getPosition(from), to, getPosition(to));
 }
