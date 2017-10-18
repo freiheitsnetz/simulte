@@ -30,7 +30,7 @@ public:
 	*/
 	void notifyActiveConnection(MacCid cid) override {
 		EV_STATICCONTEXT;
-		EV << NOW << " LteNaiveRoundRobin::notifyActiveConnection(" << cid << ")" << std::endl;
+		EV << NOW << " LteSchedulerBase::notifyActiveConnection(" << cid << ")" << std::endl;
 		activeConnectionSet_.insert(cid);
 	}
 
@@ -39,8 +39,12 @@ public:
 	*/
 	void removeActiveConnection(MacCid cid) override {
 		EV_STATICCONTEXT;
-		EV << NOW << " LteNaiveRoundRobin::removeActiveConnection(" << cid << ")" << std::endl;
+		EV << NOW << " LteSchedulerBase::removeActiveConnection(" << cid << ")" << std::endl;
 		activeConnectionSet_.erase(cid);
+	}
+
+	virtual void commitSchedule() override {
+		activeConnectionSet_ = activeConnectionTempSet_;
 	}
 
 protected:
