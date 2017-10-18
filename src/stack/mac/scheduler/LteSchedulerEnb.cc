@@ -18,6 +18,7 @@
 #include "stack/mac/scheduling_modules/LteMaxCiOptMB.h"
 #include "stack/mac/scheduling_modules/LteMaxCiComp.h"
 #include "stack/mac/scheduling_modules/LteAllocatorBestFit.h"
+#include "stack/mac/scheduling_modules/LteNaiveRoundRobin.h"
 #include "stack/mac/buffer/LteMacBuffer.h"
 #include "stack/mac/buffer/LteMacQueue.h"
 
@@ -803,6 +804,8 @@ LteScheduler* LteSchedulerEnb::getScheduler(SchedDiscipline discipline)
         return new LteMaxCiComp();
         case ALLOCATOR_BESTFIT:
         return new LteAllocatorBestFit();
+        case NAIVE_ROUND_ROBIN:
+		return new LteNaiveRoundRobin();
 
         default:
         throw cRuntimeError("LteScheduler not recognized");

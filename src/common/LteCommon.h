@@ -221,7 +221,7 @@ const ApplicationTable applications[] = {
 
 enum SchedDiscipline
 {
-    DRR, PF, MAXCI, MAXCI_MB, MAXCI_OPT_MB, MAXCI_COMP, ALLOCATOR_BESTFIT, UNKNOWN_DISCIPLINE
+    DRR, PF, MAXCI, MAXCI_MB, MAXCI_OPT_MB, MAXCI_COMP, ALLOCATOR_BESTFIT, NAIVE_ROUND_ROBIN, UNKNOWN_DISCIPLINE
 };
 
 struct SchedDisciplineTable
@@ -238,6 +238,7 @@ const SchedDisciplineTable disciplines[] = {
     ELEM(MAXCI_OPT_MB),
     ELEM(MAXCI_COMP),
     ELEM(ALLOCATOR_BESTFIT),
+	ELEM(NAIVE_ROUND_ROBIN),
     ELEM(UNKNOWN_DISCIPLINE)
 };
 

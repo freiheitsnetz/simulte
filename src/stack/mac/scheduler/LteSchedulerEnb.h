@@ -38,6 +38,7 @@ class LteSchedulerEnb
     friend class LteMaxCiOptMB;
     friend class LteMaxCiComp;
     friend class LteAllocatorBestFit;
+    friend class LteNaiveRoundRobin;
 
   protected:
 
