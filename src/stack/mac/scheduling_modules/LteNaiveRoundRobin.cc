@@ -7,13 +7,6 @@
 
 #include "LteNaiveRoundRobin.h"
 
-LteNaiveRoundRobin::LteNaiveRoundRobin() {
-}
-
-LteNaiveRoundRobin::~LteNaiveRoundRobin() {
-	std::cout << dirToA(direction_) << ": " << numTTIs << " TTIs, of which " << numTTIsWithNoActives << " had no active connections: " << ((double) numTTIsWithNoActives / (double) numTTIs) << std::endl;
-}
-
 void LteNaiveRoundRobin::prepareSchedule() {
 	if (maxId == 0) {
 		std::vector<UeInfo*>* ueList = getBinder()->getUeList();
