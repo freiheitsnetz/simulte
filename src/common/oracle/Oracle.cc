@@ -1,6 +1,7 @@
 #include "common/oracle/Oracle.h"
 #include "corenetwork/binder/LteBinder.h"
 #include "stack/phy/layer/LtePhyBase.h"
+#include <fstream>
 
 Oracle* Oracle::SINGLETON = nullptr;
 
@@ -37,27 +38,31 @@ void Oracle::configure() {
     // And print them.
     for (size_t i = 0; i < ueList->size(); i++) {
             for (size_t j = 0; j < ueList->size(); j++) {
-                if (i == j)
+                if (i >= j)
                     continue;
                 MacNodeId from = ueList->at(i)->id;
                 MacNodeId to = ueList->at(j)->id;
                 std::vector<double> SINRs = SINRMap[from][to];
-                EV << "Oracle::SINRs[" << from << "][" << to << "] = " << SINRs.at(0) << " at distance " << getDistance(getPosition(from), getPosition(to)) << endl;
+
+                ofstream sinrsFile;
+                sinrsFile.open("sinrs", std::ios_base::app);
+                sinrsFile << SINRs.at(0) << endl;
+                sinrsFile.close();
+
+                ofstream attFile;
+                attFile.open("att", std::ios_base::app);
+                attFile << getAttenuation(from, to) << endl;
+                attFile.close();
+
+
+
+//                myfile << "Oracle::SINRs[" << from << "][" << to << "] = " << SINRs.at(0) << " at distance " << getDistance(getPosition(from), getPosition(to)) << endl;
+//                myfile << "Oracle::Att[" << from << "][" << to << "] = " << getAttenuation(from, to) << std::endl;
+//                std::vector<Cqi> cqis = getCQI(from, to);
+//                for (size_t k = 0; k < cqis.size(); k++)
+//                    myfile << "Oracle::Cqi[" << from << "][" << to << "] = " << cqis.at(k) << " ";
             }
     }
-    EV << "Oracle::SINRs[1025][1026] = " << SINRMap[1025][1026].at(0) << std::endl;
-    EV << "Oracle::SINRs[1026][1027] = " << SINRMap[1026][1027].at(0) << std::endl;
-    EV << "Oracle::SINRs[1027][1028] = " << SINRMap[1027][1028].at(0) << std::endl;
-    EV << "Oracle::SINRs[1028][1029] = " << SINRMap[1028][1029].at(0) << std::endl;
-    EV << "Oracle::SINRs[1029][1030] = " << SINRMap[1029][1030].at(0) << std::endl;
-
-    EV << "Oracle::Att[1025][1026] = " << getAttenuation(1025, 1026) << std::endl;
-	EV << "Oracle::Att[1026][1027] = " << getAttenuation(1026, 1027) << std::endl;
-	EV << "Oracle::Att[1027][1028] = " << getAttenuation(1027, 1028) << std::endl;
-	EV << "Oracle::Att[1028][1029] = " << getAttenuation(1028, 1029) << std::endl;
-	EV << "Oracle::Att[1029][1030] = " << getAttenuation(1029, 1030) << std::endl;
-
-	EV << "Oracle::int[1025][1036] = " << getInCellInterference(1029, 1030, true).at(0) << std::endl;
 }
 
 void Oracle::handleMessage(cMessage *msg) {
@@ -152,4 +157,19 @@ std::vector<double> Oracle::getInCellInterference(const MacNodeId from, const Ma
 	// Function call modifies 'interferences' vector.
 	channelModel->computeInCellD2DInterference(getEnodeBID(), from, getPosition(from), to, getPosition(to), considerThisTTI, &interferences, dir);
 	return interferences;
+}
+
+std::vector<Cqi> Oracle::getCQI(const MacNodeId from, const MacNodeId to) const {
+    MacNodeId enodebId = getEnodeBID();
+    LteAmc* amc = ((LteMacEnb*) getMacByMacNodeId(enodebId))->getAmc();
+    Direction dir = determineDirection(from, to);
+    std::vector<Cqi> cqis;
+    if (dir == Direction::D2D) {
+        LteSummaryFeedback feedback = amc->getFeedbackD2D(from, Remote::MACRO, TxMode::SINGLE_ANTENNA_PORT0, to);
+        cqis = feedback.getCqi(0);
+    } else {
+        LteSummaryFeedback feedback = amc->getFeedback(from, Remote::MACRO, TxMode::SINGLE_ANTENNA_PORT0, dir);
+        cqis = feedback.getCqi(0);
+    }
+    return cqis;
 }

@@ -86,6 +86,8 @@ public:
      */
     std::vector<double> getInCellInterference(const MacNodeId from, const MacNodeId to, bool considerThisTTI) const;
 
+    std::vector<Cqi> getCQI(const MacNodeId from, const MacNodeId to) const;
+
 protected:
     double maxSimTime = 0.0;
 
