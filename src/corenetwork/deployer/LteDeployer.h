@@ -309,7 +309,10 @@ class LteDeployer : public cSimpleModule
     {
         return cellId_;
     }
-
+//    LteBinder* getBinder()
+//    {
+//        return binder_;
+//    }
     std::map<Remote, int> getAntennaCws()
     {
         return antennaCws_;

@@ -41,8 +41,6 @@ LteSchedulerUeUnassistedD2D::LteSchedulerUeUnassistedD2D(LteMacUeRealisticD2D * 
 }
 
 LteSchedulerUeUnassistedD2D::~LteSchedulerUeUnassistedD2D() {
-    delete tSample_;
-    delete allocator_;
     delete lteUnassistedD2DSchedulingAgent_;
 }
 

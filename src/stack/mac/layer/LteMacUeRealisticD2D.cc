@@ -76,6 +76,9 @@ void LteMacUeRealisticD2D::initialize(int stage)
     }
     if (stage == 1)
     {
+//        // get the reference to the MAC Layer of eNB
+//        enb_ = check_and_cast<LteMacEnbRealisticD2D*>(getSimulation()->getModule(binder_->getOmnetId(getMacCellId()))->getSubmodule("nic")->getSubmodule("mac"));
+
         // get parameters
         usePreconfiguredTxParams_ = par("usePreconfiguredTxParams");
         preconfiguredTxParams_ = getPreconfiguredTxParams();
@@ -87,12 +90,18 @@ void LteMacUeRealisticD2D::initialize(int stage)
             amc_->setConnectedUEsMap();
 
             Cqi d2dCqi = par("d2dCqi");
-            if (usePreconfiguredTxParams_)
+            if (usePreconfiguredTxParams_){
                 check_and_cast<AmcPilotD2D*>(amc_->getPilot())->setPreconfiguredTxParams(d2dCqi);
            }
+//            else{
+//            /** Get deployed UEs maps from Binder **/
+//            amc_->setConnectedUEsMap(getBinder());
+//            }
+        }
 
-        // get the reference to the eNB
+        // get the reference to the MAC Layer of eNB
         enb_ = check_and_cast<LteMacEnbRealisticD2D*>(getSimulation()->getModule(binder_->getOmnetId(getMacCellId()))->getSubmodule("nic")->getSubmodule("mac"));
+
     }
 }
 
@@ -320,7 +329,7 @@ void LteMacUeRealisticD2D::macPduMake()
                 // FIXME: hb is never deleted
                 UserControlInfo* info = check_and_cast<UserControlInfo*>(pit->second->getControlInfo());
                 if (info->getDirection() == UL)
-                   hb = new LteHarqBufferTxD2D((unsigned int) UE_TX_HARQ_PROCESSES, this, (LteMacBase*) getMacByMacNodeId(destId));
+                   hb = new LteHarqBufferTx((unsigned int) UE_TX_HARQ_PROCESSES, this, (LteMacBase*) getMacByMacNodeId(destId));
                 else // D2D or D2D_MULTI
                 {
                     // Has to be handled for Unassisted D2D
@@ -464,6 +473,13 @@ void LteMacUeRealisticD2D::handleMessage(cMessage* msg)
             // call handler
             macHandleD2DModeSwitch(pkt);
 
+            return;
+        }
+        else if ((userInfo->getFrameType() == FEEDBACKPKT) && (par("unassistedD2D")))
+        {
+            //Feedback pkt
+            EV << NOW << "LteMacUeRealisticD2D::handleMessage node " << nodeId_ << " Received feedback pkt" << endl;
+            macHandleFeedbackPkt(pkt);
             return;
         }
         else if ((userInfo->getFrameType() == GRANTPKT) && (par("unassistedD2D"))) // Created for Unassisted D2D grants by Rx D2D for Tx D2D
@@ -1596,6 +1612,7 @@ void LteMacUeRealisticD2D::checkRAC(MacCid ueRxD2DId)
         UserControlInfo* uinfo = new UserControlInfo();
         uinfo->setSourceId(getMacNodeId());
         uinfo->setDestId(MacCidToNodeId(ueRxD2DId));
+        setLastContactedId(MacCidToNodeId(ueRxD2DId));
         uinfo->setDirection(UL);
         uinfo->setFrameType(RACPKT);
         racReq->setControlInfo(uinfo);
@@ -1613,3 +1630,193 @@ SchedDiscipline LteMacUeRealisticD2D::getSchedDiscipline()
 {
     return aToSchedDiscipline(par("schedulingDisciplineUl").stdstringValue());
 }
+
+// Combines logic for handeling feedback from ENB Realistic D2D and ENB
+void LteMacUeRealisticD2D::macHandleFeedbackPkt(cPacket *pkt)
+{
+    LteFeedbackPkt* fb = check_and_cast<LteFeedbackPkt*>(pkt);
+    std::map<MacNodeId, LteFeedbackDoubleVector> fbMapD2D = fb->getLteFeedbackDoubleVectorD2D();
+
+    // skip if no D2D CQI has been reported
+    if (!fbMapD2D.empty())
+    {
+        //get Source Node Id<
+        MacNodeId id = fb->getSourceNodeId();
+        std::map<MacNodeId, LteFeedbackDoubleVector>::iterator mapIt;
+        LteFeedbackDoubleVector::iterator it;
+        LteFeedbackVector::iterator jt;
+
+        // extract feedback for D2D links
+        for (mapIt = fbMapD2D.begin(); mapIt != fbMapD2D.end(); ++mapIt)
+        {
+            MacNodeId peerId = mapIt->first;
+            for (it = mapIt->second.begin(); it != mapIt->second.end(); ++it)
+            {
+                for (jt = it->begin(); jt != it->end(); ++jt)
+                {
+                    if (!jt->isEmptyFeedback())
+                    {
+                        amc_->pushFeedbackD2D(id, (*jt), peerId);
+                    }
+                }
+            }
+        }
+    }
+
+    LteFeedbackDoubleVector fbMapDl = fb->getLteFeedbackDoubleVectorDl();
+    LteFeedbackDoubleVector fbMapUl = fb->getLteFeedbackDoubleVectorUl();
+    //get Source Node Id<
+    MacNodeId id = fb->getSourceNodeId();
+    LteFeedbackDoubleVector::iterator it;
+    LteFeedbackVector::iterator jt;
+
+    for (it = fbMapDl.begin(); it != fbMapDl.end(); ++it)
+    {
+        unsigned int i = 0;
+        for (jt = it->begin(); jt != it->end(); ++jt)
+        {
+            //            TxMode rx=(TxMode)i;
+            if (!jt->isEmptyFeedback())
+            {
+                amc_->pushFeedback(id, DL, (*jt));
+                cqiStatistics(id, DL, (*jt));
+            }
+            i++;
+        }
+    }
+    for (it = fbMapUl.begin(); it != fbMapUl.end(); ++it)
+    {
+        for (jt = it->begin(); jt != it->end(); ++jt)
+        {
+            if (!jt->isEmptyFeedback())
+                amc_->pushFeedback(id, UL, (*jt));
+        }
+    }
+    delete fb;
+}
+
+void LteMacUeRealisticD2D::cqiStatistics(MacNodeId id, Direction dir, LteFeedback fb)
+{
+    if (dir == DL)
+    {
+        tSample_->id_ = id;
+        if (fb.getTxMode() == SINGLE_ANTENNA_PORT0)
+        {
+            for (unsigned int i = 0; i < fb.getBandCqi(0).size(); i++)
+            {
+                switch (i)
+                {
+                    case 0:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlSiso0_, tSample_);
+                        break;
+                    case 1:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlSiso1_, tSample_);
+                        break;
+                    case 2:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlSiso2_, tSample_);
+                        break;
+                    case 3:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlSiso3_, tSample_);
+                        break;
+                    case 4:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlSiso4_, tSample_);
+                        break;
+                }
+            }
+        }
+        else if (fb.getTxMode() == TRANSMIT_DIVERSITY)
+        {
+            for (unsigned int i = 0; i < fb.getBandCqi(0).size(); i++)
+            {
+                switch (i)
+                {
+                    case 0:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlTxDiv0_, tSample_);
+                        break;
+                    case 1:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlTxDiv1_, tSample_);
+                        break;
+                    case 2:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlTxDiv2_, tSample_);
+                        break;
+                    case 3:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlTxDiv3_, tSample_);
+                        break;
+                    case 4:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlTxDiv4_, tSample_);
+                        break;
+                }
+            }
+        }
+        else if (fb.getTxMode() == OL_SPATIAL_MULTIPLEXING)
+        {
+            for (unsigned int i = 0; i < fb.getBandCqi(0).size(); i++)
+            {
+                switch (i)
+                {
+                    case 0:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlSpmux0_, tSample_);
+                        break;
+                    case 1:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlSpmux1_, tSample_);
+                        break;
+                    case 2:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlSpmux2_, tSample_);
+                        break;
+                    case 3:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlSpmux3_, tSample_);
+                        break;
+                    case 4:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlSpmux4_, tSample_);
+                        break;
+                }
+            }
+        }
+        else if (fb.getTxMode() == MULTI_USER)
+        {
+            for (unsigned int i = 0; i < fb.getBandCqi(0).size(); i++)
+            {
+                switch (i)
+                {
+                    case 0:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlMuMimo0_, tSample_);
+                        break;
+                    case 1:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlMuMimo1_, tSample_);
+                        break;
+                    case 2:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlMuMimo2_, tSample_);
+                        break;
+                    case 3:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlMuMimo3_, tSample_);
+                        break;
+                    case 4:
+                        tSample_->sample_ = fb.getBandCqi(0)[i];
+                        emit(cqiDlMuMimo4_, tSample_);
+                        break;
+                }
+            }
+        }
+    }
+}
+
+

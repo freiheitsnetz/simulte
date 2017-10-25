@@ -52,19 +52,12 @@ const UserTxParams& AmcPilotD2D::computeTxParams(MacNodeId id, const Direction d
         {
             EV << NOW << " AmcPilot" << getName() << "::computeTxParams The Information for this user have been already assigned \n";
             return amc_->getTxParams(id, dir);
-
         }
     }
     else if (getUnassistedD2DMode())
     {
-//        if (amc_->existTxParams(id, dir))
-//        {
-//            EV << NOW << " AmcPilot" << getName() << "::computeTxParams The Information for this user have been already assigned \n";
-//            return amc_->getTxParams(id, dir);
-            EV << NOW << " AmcPilot" << getName() << "::computeTxParams Use preconfigured Tx params for D2D connections\n";
-            return *preconfiguredTxParams_;
-
-//        }
+        //Do what the eNB does
+        computeTxParamsUnassisted(id, dir);
     }
     // TODO make it configurable from NED
     // default transmission mode
@@ -184,4 +177,151 @@ UsableBands* AmcPilotD2D::getUsableBands(MacNodeId id)
     }
     EV << " [All bands are usable]" << endl ;
     return NULL;
+}
+
+const UserTxParams& AmcPilotD2D::computeTxParamsUnassisted(MacNodeId id, const Direction dir)
+{
+    EV << NOW << " AmcPilotD2D" << getName() << "::computeTxParamsUnassisted for UE " << id << ", direction " << dirToA(dir) << endl;
+
+    // Check if user transmission parameters have been already allocated
+    if(amc_->existTxParams(id, dir))
+    {
+        EV << NOW << " AmcPilotD2D" << getName() << "::computeTxParamsUnassisted The Information for this user have been already assigned \n";
+        return amc_->getTxParams(id, dir);
+    }
+
+    // TODO make it configurable from NED
+    // default transmission mode
+    TxMode txMode = TRANSMIT_DIVERSITY;
+
+    /**
+     *  Select the band which has the best summary
+     *  Note: this pilot is not DAS aware, so only MACRO antenna
+     *  is used.
+     */
+    LteSummaryFeedback sfb = amc_->getFeedback(id, MACRO, txMode, dir);
+
+    if (TxMode(txMode)==MULTI_USER) // Initialize MuMiMoMatrix
+    amc_->muMimoMatrixInit(dir,id);
+
+    sfb.print(0,id,dir,txMode,"AmcPilotD2D::computeTxParamsUnassisted");
+
+    // get a vector of  CQI over first CW
+    std::vector<Cqi> summaryCqi = sfb.getCqi(0);
+
+    // get the usable bands for this user
+    UsableBands* usableB = getUsableBands(id);
+
+    Band chosenBand = 0;
+    double chosenCqi = 0;
+    // double max = 0;
+    BandSet bandSet;
+
+    /// TODO collapse the following part into a single part (e.g. do not fork on mode_ or usableBandsList_ size)
+
+    // check which CQI computation policy is to be used
+    if(mode_ == MAX_CQI)
+    {
+        // if there are no usable bands, compute the final CQI through all the bands
+        if (usableB == NULL || usableB->empty())
+        {
+            chosenBand = 0;
+            chosenCqi = summaryCqi.at(chosenBand);
+            unsigned int bands = summaryCqi.size();// number of bands
+            // computing MAX
+            for(Band b = 1; b < bands; ++b)
+            {
+                // For all Bands
+                double s = (double)summaryCqi.at(b);
+                if(chosenCqi < s)
+                {
+                    chosenBand = b;
+                    chosenCqi = s;
+                }
+            }
+            EV << NOW <<" AmcPilotD2D::computeTxParamsUnassisted - no UsableBand available for this user." << endl;
+        }
+        else
+        {
+            // TODO Add MIN and MEAN cqi computation methods
+            int bandIt = 0;
+            unsigned short currBand = (*usableB)[bandIt];
+            chosenBand = currBand;
+            chosenCqi = summaryCqi.at(currBand);
+            for(; bandIt < usableB->size(); ++bandIt)
+            {
+                currBand = (*usableB)[bandIt];
+                // For all available band
+                double s = (double)summaryCqi.at(currBand);
+                if(chosenCqi < s)
+                {
+                    chosenBand = currBand;
+                    chosenCqi = s;
+                }
+            }
+            EV << NOW <<" AmcPilotD2D::computeTxParamsUnassisted - UsableBand of size " << usableB->size() << " available for this user" << endl;
+        }
+    }
+    else if(mode_ == MIN_CQI)
+    {
+        // if there are no usable bands, compute the final CQI through all the bands
+        if (usableB == NULL || usableB->empty())
+        {
+            chosenBand = 0;
+            chosenCqi = summaryCqi.at(chosenBand);
+            unsigned int bands = summaryCqi.size();// number of bands
+            // computing MIN
+            for(Band b = 1; b < bands; ++b)
+            {
+                // For all LBs
+                double s = (double)summaryCqi.at(b);
+                if(chosenCqi > s)
+                {
+                    chosenBand = b;
+                    chosenCqi = s;
+                }
+            }
+            EV << NOW <<" AmcPilotD2D::computeTxParamsUnassisted - no UsableBand available for this user." << endl;
+        }
+        else
+        {
+            int bandIt = 0;
+            unsigned short currBand = (*usableB)[bandIt];
+            chosenBand = currBand;
+            chosenCqi = summaryCqi.at(currBand);
+            for(; bandIt < usableB->size(); ++bandIt)
+            {
+                currBand = (*usableB)[bandIt];
+                // For all available band
+                double s = (double)summaryCqi.at(currBand);
+                if(chosenCqi > s)
+                {
+                    chosenBand = currBand;
+                    chosenCqi = s;
+                }
+            }
+
+            EV << NOW <<" AmcPilotD2D::computeTxParamsUnassisted - UsableBand of size " << usableB->size() << " available for this user" << endl;
+        }
+    }
+
+    // save the chosen band
+    bandSet.insert(chosenBand);
+
+    // Set user transmission parameters only for the best band
+    UserTxParams info;
+    info.writeTxMode(txMode);
+    info.writeRank(sfb.getRi());
+    info.writeCqi(std::vector<Cqi>(1, sfb.getCqi(0, chosenBand)));
+    info.writePmi(sfb.getPmi(chosenBand));
+    info.writeBands(bandSet);
+    RemoteSet antennas;
+    antennas.insert(MACRO);
+    info.writeAntennas(antennas);
+
+    // DEBUG
+    EV << NOW << " AmcPilot" << getName() << "::computeTxParamsUnassisted NEW values assigned! - CQI =" << chosenCqi << "\n";
+    info.print("AmcPilotD2D::computeTxParamsUnassisted");
+
+    return amc_->setTxParams(id, dir, info);
 }

@@ -45,6 +45,13 @@ class AmcPilotD2D : public AmcPilot
      * @return The user transmission parameters computed.
      */
     const UserTxParams& computeTxParams(MacNodeId id, const Direction dir);
+    /**
+     * Assign logical bands for given nodeId and direction
+     * @param id The mobile node ID.
+     * @param dir The link direction.
+     * @return The user transmission parameters computed.
+     */
+    const UserTxParams& computeTxParamsUnassisted(MacNodeId id, const Direction dir);
     //Used with TMS pilot
     void updateActiveUsers(ActiveSet aUser, Direction dir)
     {
