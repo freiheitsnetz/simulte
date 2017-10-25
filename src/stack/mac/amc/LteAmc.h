@@ -214,6 +214,15 @@ class LteAmc
         ulConnectedUe_ = binder_->getDeployedUes(nodeId_, UL); // TODO be checked
         d2dConnectedUe_ = binder_->getDeployedUes(nodeId_, UL); // TODO be checked
     }
+    void setConnectedUEsMap (LteBinder* eNBBinder_)
+    {
+        dlConnectedUe_ = eNBBinder_->getDeployedUes(nodeId_, UL); // TODO be checked
+        ulConnectedUe_ = eNBBinder_->getDeployedUes(nodeId_, UL); // TODO be checked
+        d2dConnectedUe_ = eNBBinder_->getDeployedUes(nodeId_, UL); // TODO be checked
+        EV << "dlConnectedUe_ " << dlConnectedUe_.size() << endl;
+        EV << "ulConnectedUe_ " << ulConnectedUe_.size() << endl;
+        EV << "d2dConnectedUe_ " << d2dConnectedUe_.size() << endl;
+    }
 };
 
 #endif

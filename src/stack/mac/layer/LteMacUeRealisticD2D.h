@@ -76,7 +76,33 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
 
     std::map<MacCid,RacVariables> RacMap;
 
+    MacNodeId lastContactedId_;
+
   protected:
+    //Statistics
+    simsignal_t activatedFrames_;
+    simsignal_t sleepFrames_;
+    simsignal_t wastedFrames_;
+    simsignal_t cqiDlSpmux0_;
+    simsignal_t cqiDlSpmux1_;
+    simsignal_t cqiDlSpmux2_;
+    simsignal_t cqiDlSpmux3_;
+    simsignal_t cqiDlSpmux4_;
+    simsignal_t cqiDlTxDiv0_;
+    simsignal_t cqiDlTxDiv1_;
+    simsignal_t cqiDlTxDiv2_;
+    simsignal_t cqiDlTxDiv3_;
+    simsignal_t cqiDlTxDiv4_;
+    simsignal_t cqiDlMuMimo0_;
+    simsignal_t cqiDlMuMimo1_;
+    simsignal_t cqiDlMuMimo2_;
+    simsignal_t cqiDlMuMimo3_;
+    simsignal_t cqiDlMuMimo4_;
+    simsignal_t cqiDlSiso0_;
+    simsignal_t cqiDlSiso1_;
+    simsignal_t cqiDlSiso2_;
+    simsignal_t cqiDlSiso3_;
+    simsignal_t cqiDlSiso4_;
     //number of resource block allcated in last tti
     unsigned int lastTtiAllocatedRb_;
     // Current subframe type
@@ -127,6 +153,8 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
      * Main loop
      */
     virtual void handleSelfMessage();
+
+    virtual void macHandleFeedbackPkt(cPacket *pkt);
 
     virtual void macHandleGrant(cPacket* pkt);
 
@@ -274,6 +302,20 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
      * @par dir link direction
      */
     SchedDiscipline getSchedDiscipline();
+
+
+    void cqiStatistics(MacNodeId id, Direction dir, LteFeedback fb);
+
+    void setLastContactedId(MacNodeId id)
+    {
+        lastContactedId_ = id;
+    }
+
+    MacNodeId getLastContactedId()
+    {
+        return lastContactedId_;
+    }
+
 };
 
 #endif

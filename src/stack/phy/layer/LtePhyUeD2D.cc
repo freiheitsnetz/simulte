@@ -9,6 +9,7 @@
 
 #include <assert.h>
 #include "stack/phy/layer/LtePhyUeD2D.h"
+#include "stack/mac/layer/LteMacUeRealisticD2D.h"
 #include "stack/phy/packet/LteFeedbackPkt.h"
 #include "stack/d2dModeSelection/D2DModeSelectionBase.h"
 
@@ -32,6 +33,11 @@ void LtePhyUeD2D::initialize(int stage)
         d2dTxPower_ = par("d2dTxPower");
         d2dMulticastEnableCaptureEffect_ = par("d2dMulticastCaptureEffect");
         d2dDecodingTimer_ = NULL;
+        enableD2DCqiReporting_ = par("enableD2DCqiReporting");
+    }
+    else if (stage == 1)
+    {
+        initializeFeedbackComputation(par("feedbackComputation").xmlValue());
     }
 }
 
@@ -109,28 +115,28 @@ void LtePhyUeD2D::handleAirFrame(cMessage* msg)
         lteInfo->setDestId(nodeId_);
     }
 
-//    if (par("unassistedD2D"))
-//       {
-//               EV << "Received control pkt " << endl;
-//               MacNodeId senderMacNodeId = lteInfo->getSourceId();
-//               try
-//               {
-//                   binder_->getOmnetId(senderMacNodeId);
-//               }
-//               catch (std::out_of_range& e)
-//               {
-//                   std::cerr << "Sender (" << senderMacNodeId << ") does not exist anymore!" << std::endl;
-//                   delete frame;
-//                   return;    // FIXME ? make sure that nodes that left the simulation do not send
-//               }
-//               //handle feedback pkt
-//               if (lteInfo->getFrameType() == FEEDBACKPKT)
-//               {
-//                   handleFeedbackPkt(lteInfo, frame);
-//                   delete frame;
-//                   return;
-//               }
-//       }
+    if (par("unassistedD2D"))
+       {
+               EV << "Received control pkt " << endl;
+               MacNodeId senderMacNodeId = lteInfo->getSourceId();
+               try
+               {
+                   binder_->getOmnetId(senderMacNodeId);
+               }
+               catch (std::out_of_range& e)
+               {
+                   std::cerr << "Sender (" << senderMacNodeId << ") does not exist anymore!" << std::endl;
+                   delete frame;
+                   return;    // FIXME ? make sure that nodes that left the simulation do not send
+               }
+               //handle feedback pkt
+               if (lteInfo->getFrameType() == FEEDBACKPKT)
+               {
+                   handleFeedbackPkt(lteInfo, frame);
+                   delete frame;
+                   return;
+               }
+       }
 
     // send H-ARQ feedback up
     if (lteInfo->getFrameType() == HARQPKT || lteInfo->getFrameType() == GRANTPKT || lteInfo->getFrameType() == RACPKT || lteInfo->getFrameType() == D2DMODESWITCHPKT)
@@ -362,9 +368,42 @@ void LtePhyUeD2D::requestFeedback(UserControlInfo* lteinfo, LteAirFrame* frame,
 
             //Get snr for DL direction
             snr = channelModel_->getSINR(frame, lteinfo);
+
+            dir = DL;
         }
-        else
-        pkt->setLteFeedbackDoubleVectorDl(fb_);
+        else if ((dir == DL) || (dir == D2D))
+        {
+            pkt->setLteFeedbackDoubleVectorDl(fb_);
+
+            if ((enableD2DCqiReporting_)&& (par("unassistedD2D")))
+            {
+                // compute D2D feedback for all possible peering UEs
+                std::vector<UeInfo*>* ueList = binder_->getUeList();
+                std::vector<UeInfo*>::iterator it = ueList->begin();
+                for (; it != ueList->end(); ++it)
+                {
+                    MacNodeId peerId = (*it)->id;
+                    if (peerId != lteinfo->getSourceId() && binder_->checkD2DCapability(lteinfo->getSourceId(), peerId) && binder_->getNextHop(peerId) == nodeId_)
+                    {
+                         // the source UE might communicate with this peer using D2D, so compute feedback
+
+                         // retrieve the position of the peer
+                         Coord peerCoord = (*it)->phy->getCoord();
+
+                         // get SINR for this link
+                         snr = channelModel_->getSINR_D2D(frame, lteinfo, peerId, peerCoord, nodeId_);
+
+                         // compute the feedback for this link
+                         fb_ = lteFeedbackComputation_->computeFeedback(type, rbtype, txmode,
+                                 antennaCws, numPreferredBand, IDEAL, nRus, snr,
+                                 lteinfo->getSourceId());
+
+                         pkt->setLteFeedbackDoubleVectorD2D(peerId, fb_);
+                    }
+                }
+            }
+            dir = UNKNOWN_DIRECTION;
+        }
     }
     EV << "LtePhyUeD2D::requestFeedback : Pisa Feedback Generated for nodeId: "
        << nodeId_ << " with generator type "
@@ -646,7 +685,15 @@ void LtePhyUeD2D::sendFeedback(LteFeedbackDoubleVector fbDl, LteFeedbackDoubleVe
     fbPkt->setSourceNodeId(nodeId_);
     UserControlInfo* uinfo = new UserControlInfo();
     uinfo->setSourceId(nodeId_);
-    uinfo->setDestId(masterId_);
+    if(par("unassistedD2D"))
+        {
+            MacNodeId destId_ = (dynamic_cast<LteMacUeRealisticD2D*>(getParentModule()->getSubmodule("mac")))->getLastContactedId();
+            uinfo->setDestId(destId_);
+        }
+    if ((uinfo->getDestId()==0) || !(par("unassistedD2D")))
+    {
+            uinfo->setDestId(masterId_);
+    }
     uinfo->setFrameType(FEEDBACKPKT);
     uinfo->setIsCorruptible(false);
     // create LteAirFrame and encapsulate a feedback packet
@@ -675,3 +722,90 @@ void LtePhyUeD2D::sendFeedback(LteFeedbackDoubleVector fbDl, LteFeedbackDoubleVe
        << nodeId_ << " sending feedback to the air channel" << endl;
     sendUnicast(frame);
 }
+
+void LtePhyUeD2D::initializeFeedbackComputation(cXMLElement* xmlConfig)
+{
+    lteFeedbackComputation_ = 0;
+
+    if (xmlConfig == 0)
+    {
+        error("No feedback computation configuration file specified.");
+        return;
+    }
+
+    cXMLElementList fbComputationList = xmlConfig->getElementsByTagName(
+        "FeedbackComputation");
+
+    if (fbComputationList.empty())
+    {
+        error(
+            "No feedback computation configuration found in configuration file.");
+        return;
+    }
+
+    if (fbComputationList.size() > 1)
+    {
+        error(
+            "More than one feedback computation configuration found in configuration file.");
+        return;
+    }
+
+    cXMLElement* fbComputationData = fbComputationList.front();
+
+    const char* name = fbComputationData->getAttribute("type");
+
+    if (name == 0)
+    {
+        error(
+            "Could not read type of feedback computation from configuration file.");
+        return;
+    }
+
+    ParameterMap params;
+    getParametersFromXML(fbComputationData, params);
+
+    lteFeedbackComputation_ = getFeedbackComputationFromName(name, params);
+
+    EV << "Feedback Computation \"" << name << "\" loaded." << endl;
+}
+
+LteFeedbackComputation* LtePhyUeD2D::getFeedbackComputationFromName(
+    std::string name, ParameterMap& params)
+{
+    ParameterMap::iterator it;
+    if (name == "REAL")
+    {
+        //default value
+        double targetBler = 0.1;
+        double lambdaMinTh = 0.02;
+        double lambdaMaxTh = 0.2;
+        double lambdaRatioTh = 20;
+        it = params.find("targetBler");
+        if (it != params.end())
+        {
+            targetBler = params["targetBler"].doubleValue();
+        }
+        it = params.find("lambdaMinTh");
+        if (it != params.end())
+        {
+            lambdaMinTh = params["lambdaMinTh"].doubleValue();
+        }
+        it = params.find("lambdaMaxTh");
+        if (it != params.end())
+        {
+            lambdaMaxTh = params["lambdaMaxTh"].doubleValue();
+        }
+        it = params.find("lambdaRatioTh");
+        if (it != params.end())
+        {
+            lambdaRatioTh = params["lambdaRatioTh"].doubleValue();
+        }
+        LteFeedbackComputation* fbcomp = new LteFeedbackComputationRealistic(
+            targetBler, deployer_->getLambda(), lambdaMinTh, lambdaMaxTh,
+            lambdaRatioTh, deployer_->getNumBands());
+        return fbcomp;
+    }
+    else
+        return 0;
+}
+

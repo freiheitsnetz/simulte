@@ -14,6 +14,8 @@
 
 class LtePhyUeD2D : public LtePhyUe
 {
+
+    bool enableD2DCqiReporting_;
   protected:
 
     // D2D Tx Power
@@ -43,6 +45,9 @@ class LtePhyUeD2D : public LtePhyUe
     virtual void requestFeedback(UserControlInfo* lteinfo, LteAirFrame* frame, LteFeedbackPkt* pkt);
     virtual void triggerHandover();
     virtual void doHandover();
+    // Feedback computation for PisaPhy
+    LteFeedbackComputation* getFeedbackComputationFromName(std::string name, ParameterMap& params);
+    void initializeFeedbackComputation(cXMLElement* xmlConfig);
 
   public:
     LtePhyUeD2D();

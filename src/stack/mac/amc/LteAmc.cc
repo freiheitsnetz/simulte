@@ -620,6 +620,7 @@ const UserTxParams& LteAmc::setTxParams(MacNodeId id, const Direction dir, UserT
     {
         if(pilot_->getUnassistedD2DMode())
         {
+            dlConnectedUe_[id] = true;
             dlTxParams_.resize(dlConnectedUe_.size(), UserTxParams());
         }
         return (dlTxParams_.at(dlNodeIndex_.at(id)) = info);
@@ -628,6 +629,7 @@ const UserTxParams& LteAmc::setTxParams(MacNodeId id, const Direction dir, UserT
     {
         if(pilot_->getUnassistedD2DMode())
         {
+            ulConnectedUe_[id] = true;
             ulTxParams_.resize(ulConnectedUe_.size(), UserTxParams());
         }
         return (ulTxParams_.at(ulNodeIndex_.at(id)) = info);
@@ -636,6 +638,7 @@ const UserTxParams& LteAmc::setTxParams(MacNodeId id, const Direction dir, UserT
     {
         if(pilot_->getUnassistedD2DMode())
         {
+            d2dConnectedUe_[id] = true;
             d2dTxParams_.resize(d2dConnectedUe_.size(), UserTxParams());
         }
         return (d2dTxParams_.at(d2dNodeIndex_.at(id)) = info);
