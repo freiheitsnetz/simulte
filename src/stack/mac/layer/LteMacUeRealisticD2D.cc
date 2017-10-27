@@ -40,8 +40,6 @@ LteMacUeRealisticD2D::~LteMacUeRealisticD2D()
     if (par("unassistedD2D")) {
         delete lteSchedulerUeUnassistedD2DSLRx_;
         delete lteSchedulerUeUnassistedD2DSLTx_;
-    } else {
-        delete lcgScheduler_;
     }
 }
 
@@ -133,9 +131,7 @@ void LteMacUeRealisticD2D::macPduMake()
     macPduList_.clear();
 
     bool bsrAlreadyMade = false;
-    // TX UE is in D2D-mode and is sending BSR
-    // TX UE is in D2D-mode but it received an UL grant (for BSR)
-    // TX UE is in D2D-mode and is sending data
+    // UE is in D2D-mode but it received an UL grant (for BSR)
     if ((bsrTriggered_ || bsrD2DMulticastTriggered_) && schedulingGrant_->getDirection() == UL && scheduleList_->empty())
     {
         // Compute BSR size taking into account only DM flows
@@ -309,35 +305,16 @@ void LteMacUeRealisticD2D::macPduMake()
         }
         else
         {
-            if(!par("unassistedD2D"))
-            {
-                // The tx buffer does not exist yet for this mac node id, create one
-                LteHarqBufferTx* hb;
-                // FIXME: hb is never deleted
-                UserControlInfo* info = check_and_cast<UserControlInfo*>(pit->second->getControlInfo());
-                if (info->getDirection() == UL)
-                    hb = new LteHarqBufferTx((unsigned int) ENB_TX_HARQ_PROCESSES, this, (LteMacBase*) getMacByMacNodeId(destId));
-                else // D2D or D2D_MULTI
-                    hb = new LteHarqBufferTxD2D((unsigned int) ENB_TX_HARQ_PROCESSES, this, (LteMacBase*) getMacByMacNodeId(destId));
-                harqTxBuffers_[destId] = hb;
-                txBuf = hb;
-            }
-            else
-            {
-                // The tx buffer does not exist yet for this mac node id, create one
-                LteHarqBufferTx* hb;
-                // FIXME: hb is never deleted
-                UserControlInfo* info = check_and_cast<UserControlInfo*>(pit->second->getControlInfo());
-                if (info->getDirection() == UL)
-                   hb = new LteHarqBufferTx((unsigned int) UE_TX_HARQ_PROCESSES, this, (LteMacBase*) getMacByMacNodeId(destId));
-                else // D2D or D2D_MULTI
-                {
-                    // Has to be handled for Unassisted D2D
-                    hb = new LteHarqBufferTxD2D((unsigned int) UE_TX_HARQ_PROCESSES, this, (LteMacBase*) getMacByMacNodeId(destId));
-                }
-                harqTxBuffers_[destId] = hb;
-                txBuf = hb;
-            }
+            // The tx buffer does not exist yet for this mac node id, create one
+            LteHarqBufferTx* hb;
+            // FIXME: hb is never deleted
+            UserControlInfo* info = check_and_cast<UserControlInfo*>(pit->second->getControlInfo());
+            if (info->getDirection() == UL)
+                hb = new LteHarqBufferTx((unsigned int) ENB_TX_HARQ_PROCESSES, this, (LteMacBase*) getMacByMacNodeId(destId));
+            else // D2D or D2D_MULTI
+                hb = new LteHarqBufferTxD2D((unsigned int) ENB_TX_HARQ_PROCESSES, this, (LteMacBase*) getMacByMacNodeId(destId));
+            harqTxBuffers_[destId] = hb;
+            txBuf = hb;
         }
 
         // search for an empty unit within current harq process
@@ -348,11 +325,9 @@ void LteMacUeRealisticD2D::macPduMake()
         LteMacPdu* macPkt = pit->second;
 
         /* BSR related operations
-
         // according to the TS 36.321 v8.7.0, when there are uplink resources assigned to the UE, a BSR
         // has to be send even if there is no data in the user's queues. In few words, a BSR is always
         // triggered and has to be send when there are enough resources
-
         // TODO implement differentiated BSR attach
         //
         //            // if there's enough space for a LONG BSR, send it
@@ -792,7 +767,14 @@ void LteMacUeRealisticD2D::handleSelfMessage()
         {
             pdu=pduList.front();
             pduList.pop_front();
-            macPduUnmake(pdu);
+            if (par("unassistedD2D"))
+                {
+                    macPduUnmake(pdu);
+                }
+            else
+            {
+                LteMacUe::macPduUnmake(pdu);
+            }
         }
     }
     if (par("unassistedD2D"))
