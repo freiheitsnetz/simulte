@@ -61,27 +61,35 @@ protected:
 				: "OK");
 	}
 
-	SchedulingResult schedule(MacCid connectionId, Band band) {
+	SchedulingResult schedule(MacCid connectionId, std::vector<Band> resources) {
 		bool terminate = false;
 		bool active = true;
 		bool eligible = true;
 
 		std::vector<BandLimit> bandLimitVec;
-		BandLimit bandLimit(band);
-		bandLimitVec.push_back(bandLimit);
+		for (const Band& band : resources)
+		    bandLimitVec.push_back(BandLimit(band));
 
 		// requestGrant(...) might alter the three bool values, so we can check them afterwards.
 		unsigned long max = 4294967295U; // 2^32
 		unsigned int granted = requestGrant(connectionId, max, terminate, active, eligible, &bandLimitVec);
-		EV << " " << granted << " bytes granted." << std::endl;
+
+        SchedulingResult result;
 		if (terminate)
-			return SchedulingResult::TERMINATE;
+			result = SchedulingResult::TERMINATE;
 		else if (!active)
-			return SchedulingResult::INACTIVE;
+		    result = SchedulingResult::INACTIVE;
 		else if (!eligible)
-			return SchedulingResult::INELIGIBLE;
+		    result = SchedulingResult::INELIGIBLE;
 		else
-			return SchedulingResult::OK;
+		    result = SchedulingResult::OK;
+
+		EV << NOW << " LteSchedulerBase::schedule Scheduled node " << MacCidToNodeId(connectionId) << " on RBs";
+        for (const Band& resource : resources)
+            EV << " " << resource;
+        EV << ": " << schedulingResultToString(result) << std::endl;
+
+        return result;
 	}
 };
 

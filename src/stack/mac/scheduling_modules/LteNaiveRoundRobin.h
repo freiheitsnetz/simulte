@@ -11,6 +11,8 @@
 #include <omnetpp.h>
 #include "stack/mac/scheduling_modules/LteSchedulerBase.h"
 #include "common/LteCommon.h"
+#include <map>
+#include <vector>
 
 /**
  * A pure (non-deficit-)round-robin scheduler implementation: the available resources are distributed per user.
@@ -28,15 +30,17 @@ public:
 			return;
 		}
 
+		// Prepare this round's scheduling decision map.
+		schedulingDecisions.clear();
 		// Add all new connections to the history.
 		for (ActiveSet::iterator iterator = activeConnectionTempSet_.begin(); iterator != activeConnectionTempSet_.end(); iterator++) {
 			MacCid connection = *iterator;
+			schedulingDecisions[connection] = std::vector<Band>();
 			if (schedulingHistory.find(connection) == schedulingHistory.end())
 				schedulingHistory[connection] = 0;
 		}
 
 		EV << NOW << " LteNaiveRoundRobin::prepareSchedule" << std::endl;
-
 
 		for (Band band = 0; band < getBinder()->getNumBands(); band++) {
 			// Initiate with first connection.
@@ -46,19 +50,14 @@ public:
 			for (ActiveSet::iterator iterator = activeConnectionTempSet_.begin(); iterator != activeConnectionTempSet_.end(); iterator++) {
 				MacCid currentConnection = *iterator;
 				MacNodeId currentId = MacCidToNodeId(currentConnection);
-//				EV << "Comparing " << currentId << " vs " << id << ": " << schedulingHistory[currentConnection] <<  " < " << schedulingHistory[connection] << " ? ";
 				if (schedulingHistory[currentConnection] < schedulingHistory[connection]) {
 					connection = currentConnection;
 					id = currentId;
-//					EV << "Yes!" << std::endl;
 				}
-//				else
-//					EV << std::endl;
 			}
-			SchedulingResult result = schedule(connection, band);
+
+			schedulingDecisions[connection].push_back(band);
 			schedulingHistory[connection]++;
-			EV << NOW << " LteNaiveRoundRobin::prepareSchedule Scheduled node " << id <<
-					" on RB " << band << ": " << schedulingResultToString(result) << std::endl;
 		}
 	}
 
@@ -66,10 +65,16 @@ public:
 		EV_STATICCONTEXT;
 		EV << NOW << " LteNaiveRoundRobin::commitSchedule" << std::endl;
 		activeConnectionSet_ = activeConnectionTempSet_;
+		for (auto const &item : schedulingDecisions) {
+		    MacCid connection = item.first;
+		    std::vector<Band> resources = item.second;
+		    SchedulingResult result = schedule(connection, resources);
+		}
 	}
 
 protected:
 	std::map<MacCid, size_t> schedulingHistory;
+	std::map<MacCid, std::vector<Band>> schedulingDecisions;
 };
 
 #endif /* STACK_MAC_SCHEDULING_MODULES_LTENAIVEROUNDROBIN_H_ */
