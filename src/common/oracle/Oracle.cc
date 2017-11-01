@@ -36,33 +36,33 @@ void Oracle::configure() {
         }
     }
     // And print them.
-    for (size_t i = 0; i < ueList->size(); i++) {
-            for (size_t j = 0; j < ueList->size(); j++) {
-                if (i >= j)
-                    continue;
-                MacNodeId from = ueList->at(i)->id;
-                MacNodeId to = ueList->at(j)->id;
-                std::vector<double> SINRs = SINRMap[from][to];
-
-                ofstream sinrsFile;
-                sinrsFile.open("sinrs", std::ios_base::app);
-                sinrsFile << SINRs.at(0) << endl;
-                sinrsFile.close();
-
-                ofstream attFile;
-                attFile.open("att", std::ios_base::app);
-                attFile << getAttenuation(from, to) << endl;
-                attFile.close();
-
-
-
-//                myfile << "Oracle::SINRs[" << from << "][" << to << "] = " << SINRs.at(0) << " at distance " << getDistance(getPosition(from), getPosition(to)) << endl;
-//                myfile << "Oracle::Att[" << from << "][" << to << "] = " << getAttenuation(from, to) << std::endl;
-//                std::vector<Cqi> cqis = getCQI(from, to);
-//                for (size_t k = 0; k < cqis.size(); k++)
-//                    myfile << "Oracle::Cqi[" << from << "][" << to << "] = " << cqis.at(k) << " ";
-            }
-    }
+//    for (size_t i = 0; i < ueList->size(); i++) {
+//            for (size_t j = 0; j < ueList->size(); j++) {
+//                if (i >= j)
+//                    continue;
+//                MacNodeId from = ueList->at(i)->id;
+//                MacNodeId to = ueList->at(j)->id;
+//                std::vector<double> SINRs = SINRMap[from][to];
+//
+//                ofstream sinrsFile;
+//                sinrsFile.open("sinrs", std::ios_base::app);
+//                sinrsFile << SINRs.at(0) << endl;
+//                sinrsFile.close();
+//
+//                ofstream attFile;
+//                attFile.open("att", std::ios_base::app);
+//                attFile << getAttenuation(from, to) << endl;
+//                attFile.close();
+//
+//
+//
+////                myfile << "Oracle::SINRs[" << from << "][" << to << "] = " << SINRs.at(0) << " at distance " << getDistance(getPosition(from), getPosition(to)) << endl;
+////                myfile << "Oracle::Att[" << from << "][" << to << "] = " << getAttenuation(from, to) << std::endl;
+////                std::vector<Cqi> cqis = getCQI(from, to);
+////                for (size_t k = 0; k < cqis.size(); k++)
+////                    myfile << "Oracle::Cqi[" << from << "][" << to << "] = " << cqis.at(k) << " ";
+//            }
+//    }
 }
 
 void Oracle::handleMessage(cMessage *msg) {
