@@ -45,7 +45,8 @@ public:
 				}
 			}
 
-			schedulingDecisions[connection].push_back(band);
+			scheduleUe(connection, band);
+//			schedulingDecisions[connection].push_back(band);
 			schedulingHistory[connection]++;
 		}
 	}

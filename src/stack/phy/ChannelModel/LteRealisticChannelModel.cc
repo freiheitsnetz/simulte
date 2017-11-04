@@ -15,6 +15,7 @@
 #include "common/LteCommon.h"
 #include "corenetwork/nodes/ExtCell.h"
 #include "stack/phy/layer/LtePhyUe.h"
+#include "common/oracle/Oracle.h"
 
 // attenuation value to be returned if max. distance of a scenario has been violated
 // and tolerating the maximum distance violation is enabled
@@ -1583,6 +1584,8 @@ bool LteRealisticChannelModel::error(LteAirFrame *frame,
 
     //get cqi used to transmit this cw
     Cqi cqi = lteInfo->getUserTxParams()->readCqiVector()[cw];
+    if (cqi == 0)
+    	cqi = Oracle::get()->getCQI(1025, 1027).at(0);
 
     MacNodeId id;
     Direction dir = (Direction) lteInfo->getDirection();
@@ -1658,7 +1661,8 @@ bool LteRealisticChannelModel::error(LteAirFrame *frame,
 
             //Get the Bler
             if (cqi == 0 || cqi > 15)
-                throw cRuntimeError("A packet has been transmitted with a cqi equal to 0 or greater than 15 cqi:%d txmode:%d dir:%d rb:%d cw:%d rtx:%d", cqi,lteInfo->getTxMode(),dir,jt->second,cw,nTx);
+                throw cRuntimeError("A packet has been transmitted with a cqi equal to 0 or greater than 15 cqi:%d txmode:%d dir:%d rb:%d cw:%d rtx:%d id:%d", cqi,lteInfo->getTxMode(),dir,jt->second,cw,nTx,id);
+
             int snr = snrV[jt->first];//XXX because jt->first is a Band (=unsigned short)
             if (snr < 0)
                 return false;
@@ -2411,6 +2415,7 @@ bool LteRealisticChannelModel::computeInCellD2DInterference(MacNodeId eNbId, Mac
     std::vector<double> * interference,Direction dir)
 {
     EV << "**** In Cell D2D Interference for cellId[" << eNbId << "] node["<<destId<<"] ****" << endl;
+//    cout << Oracle::get()->getName(senderId) <<  "=" << senderId << " -> " << Oracle::get()->getName(destId) << "=" << destId << endl;
 
     // Reference to the Physical Channel  of the UeId
     LtePhyBase * ltePhy_destId;
@@ -2513,7 +2518,10 @@ bool LteRealisticChannelModel::computeInCellD2DInterference(MacNodeId eNbId, Mac
     for(unsigned int i=0;i<band_;i++)
     {
         EV << "\t band " << i << " int[" << (*interference)[i] << "]" << endl;
+//        if ((*interference)[i] > 0)
+//        	cout << " " << (*interference)[i];
     }
+//    cout << endl;
 
     return true;
 }

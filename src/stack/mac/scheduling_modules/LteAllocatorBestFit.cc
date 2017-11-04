@@ -135,6 +135,7 @@ void LteAllocatorBestFit::prepareSchedule()
             continue;
         }
 
+
         // Set the right direction for nodeId
         Direction dir;
         if (enableFrequencyReuse && direction_ == UL)
@@ -424,7 +425,7 @@ void LteAllocatorBestFit::prepareSchedule()
             {
                 blocks++;
 
-                EV << NOW << " LteAllocatorBestFit - UE " << nodeId << ": allocated RB " << band << " [" <<blocks<<"]" << endl;
+                cout << NOW << " LteAllocatorBestFit - UE " << nodeId << ": allocated RB " << band << " [" <<blocks<<"]" << endl;
 
                 // Book the bands that must be allocated
                 bookedBands.push_back(band);

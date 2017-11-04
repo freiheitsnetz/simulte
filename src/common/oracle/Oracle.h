@@ -63,6 +63,8 @@ public:
      */
     inet::Coord getPosition(const MacNodeId id) const;
 
+    std::string getName(const MacNodeId id) const;
+
     double getDistance(inet::Coord from, inet::Coord to) const;
 
     /**

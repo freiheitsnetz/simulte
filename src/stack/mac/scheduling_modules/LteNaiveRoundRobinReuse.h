@@ -36,7 +36,8 @@ public:
 				}
 			}
 
-			schedulingDecisions[connection].push_back(band);
+//			schedulingDecisions[connection].push_back(band);
+			scheduleUe(connection, band);
 			schedulingHistory[connection]++;
 		}
 	}

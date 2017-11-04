@@ -16,6 +16,151 @@
  * Derive from this class to get basic functionality.
  */
 class LteSchedulerBase : public virtual LteScheduler {
+private:
+	/** Maps a connection to the list of resources that the schedule() function decided to schedule to it. */
+	std::map<MacCid, std::vector<Band>> schedulingDecisions;
+	/** Maps a connection to the list of resources that the schedule() function decided to schedule to it for frequency reuse. */
+	std::map<MacCid, std::vector<Band>> reuseDecisions;
+	size_t numTTIs = 0, numTTIsWithNoActives = 0;
+
+	enum SchedulingResult {
+		OK = 0, TERMINATE, INACTIVE, INELIGIBLE
+	};
+
+	std::string schedulingResultToString(SchedulingResult result) {
+		return (result == SchedulingResult::TERMINATE ? "TERMINATE" :
+				result == SchedulingResult::INACTIVE ? "INACTIVE" :
+				result == SchedulingResult::INELIGIBLE ? "INELIGIBLE"
+				: "OK");
+	}
+
+	/**
+	 * Requests a scheduling grant for the given connection and list of resources.
+	 */
+	SchedulingResult request(MacCid connectionId, std::vector<Band> resources) {
+		bool terminate = false;
+		bool active = true;
+		bool eligible = true;
+
+		std::vector<BandLimit> bandLimitVec;
+		for (const Band& band : resources)
+		    bandLimitVec.push_back(BandLimit(band));
+
+		// requestGrant(...) might alter the three bool values, so we can check them afterwards.
+		unsigned long max = 4294967295U; // 2^32
+		unsigned int granted = requestGrant(connectionId, max, terminate, active, eligible, &bandLimitVec);
+
+        SchedulingResult result;
+		if (terminate)
+			result = SchedulingResult::TERMINATE;
+		else if (!active)
+		    result = SchedulingResult::INACTIVE;
+		else if (!eligible)
+		    result = SchedulingResult::INELIGIBLE;
+		else
+		    result = SchedulingResult::OK;
+
+		EV << NOW << " LteSchedulerBase::request Scheduled node " << MacCidToNodeId(connectionId) << " on RBs";
+        for (const Band& resource : resources)
+            EV << " " << resource;
+        EV << ": " << schedulingResultToString(result) << std::endl;
+
+        return result;
+	}
+
+	void allocate(std::map<MacCid, std::vector<Band>> allocationMatrix) {
+		// This list'll be filled out.
+		std::vector<std::vector<AllocatedRbsPerBandMapA>> allocatedRbsPerBand;
+		allocatedRbsPerBand.resize(MAIN_PLANE + 1); // Just the main plane.
+		allocatedRbsPerBand.at(MAIN_PLANE).resize(MACRO + 1); // Just the MACRO antenna.
+		for (const auto& allocationItem : allocationMatrix) {
+			const MacCid connectionId = allocationItem.first;
+			const MacNodeId nodeId = MacCidToNodeId(connectionId);
+			const std::vector<Band>& resources = allocationItem.second;
+			// For every resource...
+			for (const Band& resource : resources) {
+				// ... determine the number of bytes we can serve ...
+				Codeword codeword = 0;
+				unsigned int numRBs = 1;
+				Direction dir;
+				if (MacCidToLcid(connectionId) == D2D_MULTI_SHORT_BSR)
+					dir = D2D_MULTI;
+				else
+					dir = (MacCidToLcid(connectionId) == D2D_SHORT_BSR) ? D2D : direction_;
+				unsigned int numBytesServed = eNbScheduler_->mac_->getAmc()->computeBytesOnNRbs(nodeId, resource, codeword, numRBs, dir);
+				// ... and store the decision in this data structure.
+				allocatedRbsPerBand[MAIN_PLANE][MACRO][resource].ueAllocatedRbsMap_[nodeId] += 1;
+				allocatedRbsPerBand[MAIN_PLANE][MACRO][resource].ueAllocatedBytesMap_[nodeId] += numBytesServed;
+				allocatedRbsPerBand[MAIN_PLANE][MACRO][resource].allocated_ += 1;
+			}
+
+			// Add the nodeId to the scheduleList - needed for grants.
+			std::pair<unsigned int, Codeword> scheduleListEntry;
+			scheduleListEntry.first = connectionId;
+			scheduleListEntry.second = 0; // Codeword.
+			eNbScheduler_->storeScListId(scheduleListEntry, resources.size());
+
+			EV << NOW << " LteSchedulerBase::requestReuse Scheduled node " << MacCidToNodeId(connectionId)
+			   << " for frequency reuse on RBs";
+			for (const Band& resource : resources)
+				EV << " " << resource;
+			EV << std::endl;
+		}
+		// Tell the scheduler about our decision.
+//		std::set<Band> occupiedBands = eNbScheduler_->getOccupiedBands();
+		eNbScheduler_->storeAllocationEnb(allocatedRbsPerBand, NULL);
+	}
+
+//	/**
+//	 * Lets the given connection reuse the given resources by bypassing the allocator.
+//	 */
+//	void requestReuse(MacCid connectionId, std::vector<Band> resources) {
+//		// This list'll be filled out.
+//		std::vector<std::vector<AllocatedRbsPerBandMapA>> allocatedRbsPerBand;
+//		allocatedRbsPerBand.resize(MAIN_PLANE + 1); // Just the main plane.
+//		allocatedRbsPerBand.at(MAIN_PLANE).resize(MACRO + 1); // Just the MACRO antenna.
+//		MacNodeId nodeId = MacCidToNodeId(connectionId);
+//		// For every resource...
+//		for (const Band& resource : resources) {
+//			// ... determine the number of bytes we can serve ...
+//			Codeword codeword = 0;
+//			unsigned int numRBs = 1;
+//			Direction dir;
+//			if (MacCidToLcid(connectionId) == D2D_MULTI_SHORT_BSR)
+//				dir = D2D_MULTI;
+//			else
+//				dir = (MacCidToLcid(connectionId) == D2D_SHORT_BSR) ? D2D : direction_;
+//			unsigned int numBytesServed = eNbScheduler_->mac_->getAmc()->computeBytesOnNRbs(nodeId, resource, codeword, numRBs, dir);
+//			// ... and store the decision in this data structure.
+//			allocatedRbsPerBand[MAIN_PLANE][MACRO][resource].ueAllocatedRbsMap_[nodeId] += 1;
+//			allocatedRbsPerBand[MAIN_PLANE][MACRO][resource].ueAllocatedBytesMap_[nodeId] += numBytesServed;
+//			allocatedRbsPerBand[MAIN_PLANE][MACRO][resource].allocated_ += 1;
+//		}
+//		// Tell the scheduler about our decision.
+//		std::set<Band> occupiedBands = eNbScheduler_->getOccupiedBands();
+//		eNbScheduler_->storeAllocationEnb(allocatedRbsPerBand, NULL);
+//		// Add the nodeId to the scheduleList - needed for grants.
+//		std::pair<unsigned int, Codeword> scheduleListEntry;
+//		scheduleListEntry.first = connectionId;
+//		scheduleListEntry.second = 0; // Codeword.
+//		eNbScheduler_->storeScListId(scheduleListEntry, resources.size());
+//
+//		EV << NOW << " LteSchedulerBase::requestReuse Scheduled node " << MacCidToNodeId(connectionId)
+//				<< " for frequency reuse on RBs";
+//		for (const Band& resource : resources)
+//			EV << " " << resource;
+//		EV << std::endl;
+//	}
+
+protected:
+	void scheduleUe(const MacCid& connection, const Band& resource) {
+		schedulingDecisions[connection].push_back(resource);
+	}
+
+	void scheduleUeReuse(const MacCid& connection, const Band& resource) {
+		reuseDecisions[connection].push_back(resource);
+	}
+
 public:
 	LteSchedulerBase() {}
 	virtual ~LteSchedulerBase() {
@@ -84,113 +229,30 @@ public:
 		EV << NOW << " LteSchedulerBase::commitSchedule" << std::endl;
 		activeConnectionSet_ = activeConnectionTempSet_;
 		// Request grants for resource allocation.
-		for (auto const &item : schedulingDecisions) {
+		for (const auto& item : schedulingDecisions) {
 			MacCid connection = item.first;
+			if (MacCidToNodeId(connection) == 0)
+				continue;
 			std::vector<Band> resources = item.second;
 			if (resources.size() > 0)
 				request(connection, resources);
 		}
 		// Bypass the allocator and set resources to be frequency-reused.
-		for (auto const &item : reuseDecisions) {
-			MacCid connection = item.first;
-			std::vector<Band> resources = item.second;
-			if (resources.size() > 0)
-				requestReuse(connection, resources);
+		for (std::map<MacCid, std::vector<Band>>::iterator it = reuseDecisions.begin(); it != reuseDecisions.end(); it++) {
+			if (MacCidToNodeId((*it).first) == 0) {
+				reuseDecisions.erase(it);
+				it--;
+			}
 		}
-	}
-
-protected:
-	size_t numTTIs = 0, numTTIsWithNoActives = 0;
-	/** Maps a connection to the list of resources that the schedule() function decided to schedule to it. */
-	std::map<MacCid, std::vector<Band>> schedulingDecisions;
-	/** Maps a connection to the list of resources that the schedule() function decided to schedule to it for frequency reuse. */
-	std::map<MacCid, std::vector<Band>> reuseDecisions;
-
-	enum SchedulingResult {
-		OK = 0, TERMINATE, INACTIVE, INELIGIBLE
-	};
-
-	std::string schedulingResultToString(SchedulingResult result) {
-		return (result == SchedulingResult::TERMINATE ? "TERMINATE" :
-				result == SchedulingResult::INACTIVE ? "INACTIVE" :
-				result == SchedulingResult::INELIGIBLE ? "INELIGIBLE"
-				: "OK");
-	}
-
-	/**
-	 * Requests a scheduling grant for the given connection and list of resources.
-	 */
-	SchedulingResult request(MacCid connectionId, std::vector<Band> resources) {
-		bool terminate = false;
-		bool active = true;
-		bool eligible = true;
-
-		std::vector<BandLimit> bandLimitVec;
-		for (const Band& band : resources)
-		    bandLimitVec.push_back(BandLimit(band));
-
-		// requestGrant(...) might alter the three bool values, so we can check them afterwards.
-		unsigned long max = 4294967295U; // 2^32
-		unsigned int granted = requestGrant(connectionId, max, terminate, active, eligible, &bandLimitVec);
-
-        SchedulingResult result;
-		if (terminate)
-			result = SchedulingResult::TERMINATE;
-		else if (!active)
-		    result = SchedulingResult::INACTIVE;
-		else if (!eligible)
-		    result = SchedulingResult::INELIGIBLE;
-		else
-		    result = SchedulingResult::OK;
-
-		EV << NOW << " LteSchedulerBase::request Scheduled node " << MacCidToNodeId(connectionId) << " on RBs";
-        for (const Band& resource : resources)
-            EV << " " << resource;
-        EV << ": " << schedulingResultToString(result) << std::endl;
-
-        return result;
-	}
-
-	/**
-	 * Lets the given connection reuse the given resources by bypassing the allocator.
-	 */
-	void requestReuse(MacCid connectionId, std::vector<Band> resources) {
-		// This list'll be filled out.
-		std::vector<std::vector<AllocatedRbsPerBandMapA>> allocatedRbsPerBand;
-		allocatedRbsPerBand.resize(MAIN_PLANE + 1); // Just the main plane.
-		allocatedRbsPerBand.at(MAIN_PLANE).resize(MACRO + 1); // Just the MACRO antenna.
-		MacNodeId nodeId = MacCidToNodeId(connectionId);
-		// For every resource...
-		for (const Band& resource : resources) {
-			// ... determine the number of bytes we can serve ...
-			Codeword codeword = 0;
-			unsigned int numRBs = 1;
-			Direction dir;
-			if (MacCidToLcid(connectionId) == D2D_MULTI_SHORT_BSR)
-				dir = D2D_MULTI;
-			else
-				dir = (MacCidToLcid(connectionId) == D2D_SHORT_BSR) ? D2D : direction_;
-			unsigned int numBytesServed = eNbScheduler_->mac_->getAmc()->computeBytesOnNRbs(nodeId, resource, codeword, numRBs, dir);
-			// ... and store the decision in this data structure.
-			allocatedRbsPerBand[MAIN_PLANE][MACRO][resource].ueAllocatedRbsMap_[nodeId] += 1;
-			allocatedRbsPerBand[MAIN_PLANE][MACRO][resource].ueAllocatedBytesMap_[nodeId] += numBytesServed;
-			allocatedRbsPerBand[MAIN_PLANE][MACRO][resource].allocated_ += 1;
-		}
-
-		// Tell the scheduler about our decision.
-		std::set<Band> occupiedBands = eNbScheduler_->getOccupiedBands();
-		eNbScheduler_->storeAllocationEnb(allocatedRbsPerBand, &occupiedBands);
-		// Add the nodeId to the scheduleList - needed for grants.
-		std::pair<unsigned int, Codeword> scheduleListEntry;
-		scheduleListEntry.first = connectionId;
-		scheduleListEntry.second = 0; // Codeword.
-		eNbScheduler_->storeScListId(scheduleListEntry, resources.size());
-
-		EV << NOW << " LteSchedulerBase::requestReuse Scheduled node " << MacCidToNodeId(connectionId)
-				<< " for frequency reuse on RBs" << std::endl;
-		for (const Band& resource : resources)
-			EV << " " << resource;
-		EV << std::endl;
+		allocate(reuseDecisions);
+//		for (const auto& item : reuseDecisions) {
+//			MacCid connection = item.first;
+//			if (MacCidToNodeId(connection) == 0)
+//				continue;
+//			std::vector<Band> resources = item.second;
+//			if (resources.size() > 0)
+//				requestReuse(connection, resources);
+//		}
 	}
 };
 

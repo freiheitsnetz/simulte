@@ -10,6 +10,7 @@
 #include "stack/mac/allocator/LteAllocationModuleFrequencyReuse.h"
 #include "stack/mac/layer/LteMacEnb.h"
 #include "stack/mac/conflict_graph_utilities/meshMaster.h"
+#include "common/oracle/Oracle.h"
 
 LteAllocationModuleFrequencyReuse::LteAllocationModuleFrequencyReuse(LteMacEnb* mac,Direction direction)
         : LteAllocationModule(mac,direction)
@@ -101,6 +102,7 @@ std::set<Band>  LteAllocationModuleFrequencyReuse::getAllocatorOccupiedBands()
  */
 void LteAllocationModuleFrequencyReuse::checkAllocation(std::set<Band>* untouchableBands)
 {
+	cout << "used" << endl;
     Plane plane = MAIN_PLANE;
     const Remote antenna = MACRO;
     const std::map<MacNodeId,std::set<MacNodeId> >* conflictMap = mac_->getMeshMaster()->getConflictMap();

@@ -36,14 +36,18 @@ void Oracle::configure() {
         }
     }
     // And print them.
-//    for (size_t i = 0; i < ueList->size(); i++) {
-//            for (size_t j = 0; j < ueList->size(); j++) {
-//                if (i >= j)
-//                    continue;
-//                MacNodeId from = ueList->at(i)->id;
-//                MacNodeId to = ueList->at(j)->id;
-//                std::vector<double> SINRs = SINRMap[from][to];
-//
+    for (size_t i = 0; i < ueList->size(); i++) {
+            for (size_t j = 0; j < ueList->size(); j++) {
+                if (i == j)
+                    continue;
+                MacNodeId from = ueList->at(i)->id;
+                MacNodeId to = ueList->at(j)->id;
+                std::vector<double> SINRs = SINRMap[from][to];
+                EV << "SINR[" << getName(from) << "][" << getName(to) << "] = " << SINRs.at(0);
+                for (size_t i = 1; i < SINRs.size(); i++)
+                	EV << ", " << SINRs.at(i);
+                EV << "." << endl;
+
 //                ofstream sinrsFile;
 //                sinrsFile.open("sinrs", std::ios_base::app);
 //                sinrsFile << SINRs.at(0) << endl;
@@ -53,16 +57,8 @@ void Oracle::configure() {
 //                attFile.open("att", std::ios_base::app);
 //                attFile << getAttenuation(from, to) << endl;
 //                attFile.close();
-//
-//
-//
-////                myfile << "Oracle::SINRs[" << from << "][" << to << "] = " << SINRs.at(0) << " at distance " << getDistance(getPosition(from), getPosition(to)) << endl;
-////                myfile << "Oracle::Att[" << from << "][" << to << "] = " << getAttenuation(from, to) << std::endl;
-////                std::vector<Cqi> cqis = getCQI(from, to);
-////                for (size_t k = 0; k < cqis.size(); k++)
-////                    myfile << "Oracle::Cqi[" << from << "][" << to << "] = " << cqis.at(k) << " ";
-//            }
-//    }
+            }
+    }
 }
 
 void Oracle::handleMessage(cMessage *msg) {
@@ -107,6 +103,17 @@ LtePhyBase* Oracle::getPhyBase(const MacNodeId id) const {
     if (phyBase == nullptr)
         throw cRuntimeError("Oracle::getPhyBase couldn't find node's LtePhyBase.");
     return phyBase;
+}
+
+std::string Oracle::getName(const MacNodeId id) const {
+	std::vector<UeInfo*>* ueList = getBinder()->getUeList();
+	std::string name = "no idea";
+	for (std::vector<UeInfo*>::iterator iterator = ueList->begin(); iterator != ueList->end(); iterator++) {
+		if ((*iterator)->id == id) {
+			name = (*iterator)->ue->getFullName();
+		}
+	}
+	return name;
 }
 
 inet::Coord Oracle::getPosition(const MacNodeId id) const {

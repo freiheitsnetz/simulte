@@ -295,6 +295,7 @@ class LteAllocationModule
     // Store the Allocation based on passed parameters
     virtual void storeAllocation( std::vector<std::vector<AllocatedRbsPerBandMapA> > allocatedRbsPerBand,std::set<Band>* untouchableBands = NULL)
     {
+    	throw std::runtime_error("storeAllocation in base LteAllocationModule called! Frequency reuse schedulers must be added to LteSChedulerEnb line 74+!");
         return;
     }
 
