@@ -1584,8 +1584,8 @@ bool LteRealisticChannelModel::error(LteAirFrame *frame,
 
     //get cqi used to transmit this cw
     Cqi cqi = lteInfo->getUserTxParams()->readCqiVector()[cw];
-    if (cqi == 0)
-    	cqi = Oracle::get()->getCQI(1025, 1027).at(0);
+//    if (cqi == 0)
+//    	cqi = Oracle::get()->getCQI(1025, 1027).at(0);
 
     MacNodeId id;
     Direction dir = (Direction) lteInfo->getDirection();
