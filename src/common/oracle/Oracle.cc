@@ -2,6 +2,7 @@
 #include "corenetwork/binder/LteBinder.h"
 #include "stack/phy/layer/LtePhyBase.h"
 #include <fstream>
+#include <iostream>
 
 Oracle* Oracle::SINGLETON = nullptr;
 
@@ -179,4 +180,18 @@ std::vector<Cqi> Oracle::getCQI(const MacNodeId from, const MacNodeId to) const 
         cqis = feedback.getCqi(0);
     }
     return cqis;
+}
+
+void Oracle::printAllocation(std::vector<std::vector<AllocatedRbsPerBandMapA>>& allocatedRbsPerBand) {
+	for (Band resource = 0; resource < getNumRBs(); resource++) {
+		std::cout << NOW << " Oracle::printAllocation Band " << resource << std::endl;
+		AllocatedRbsPerBandInfo& info = allocatedRbsPerBand[MAIN_PLANE][MACRO][resource];
+		UeAllocatedBlocksMapA& rbInfo = info.ueAllocatedRbsMap_;
+		std::vector<UeInfo*> ueList = *getBinder()->getUeList();
+		for (size_t i = 0; i < ueList.size(); i++) {
+			MacNodeId id = ueList.at(i)->id;
+			if (rbInfo.find(id) != rbInfo.end())
+				std::cout << "\t -" << rbInfo[id] << "RBs-> " << getName(id) << std::endl;
+		}
+	}
 }

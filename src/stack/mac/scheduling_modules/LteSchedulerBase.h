@@ -11,6 +11,7 @@
 #include <omnetpp.h>
 #include "stack/mac/scheduler/LteScheduler.h"
 #include "common/LteCommon.h"
+#include "common/oracle/Oracle.h"
 
 /**
  * Derive from this class to get basic functionality.
@@ -68,6 +69,9 @@ private:
         return result;
 	}
 
+	/**
+	 * Bypasses the allocator, and instead directly allocates resources to nodes.
+	 */
 	void allocate(std::map<MacCid, std::vector<Band>> allocationMatrix) {
 		// This list'll be filled out.
 		std::vector<std::vector<AllocatedRbsPerBandMapA>> allocatedRbsPerBand;
@@ -107,7 +111,7 @@ private:
 			EV << std::endl;
 		}
 		// Tell the scheduler about our decision.
-//		std::set<Band> occupiedBands = eNbScheduler_->getOccupiedBands();
+		Oracle::get()->printAllocation(allocatedRbsPerBand);
 		eNbScheduler_->storeAllocationEnb(allocatedRbsPerBand, NULL);
 	}
 

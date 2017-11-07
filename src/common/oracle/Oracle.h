@@ -12,6 +12,7 @@
 
 #include <omnetpp.h>
 #include <common/LteCommon.h>
+#include "stack/mac/allocator/LteAllocatorUtils.h"
 
 /**
  * Implements an omniscient network entity.
@@ -89,6 +90,8 @@ public:
     std::vector<double> getInCellInterference(const MacNodeId from, const MacNodeId to, bool considerThisTTI) const;
 
     std::vector<Cqi> getCQI(const MacNodeId from, const MacNodeId to) const;
+
+    void printAllocation(std::vector<std::vector<AllocatedRbsPerBandMapA>>& allocatedRbsPerBand);
 
 protected:
     double maxSimTime = 0.0;

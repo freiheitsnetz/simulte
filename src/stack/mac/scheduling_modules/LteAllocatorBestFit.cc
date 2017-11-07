@@ -11,6 +11,7 @@
 #include "stack/mac/scheduler/LteSchedulerEnb.h"
 #include "stack/mac/buffer/LteMacBuffer.h"
 #include "stack/mac/conflict_graph_utilities/meshMaster.h"
+#include "common/oracle/Oracle.h"
 
 LteAllocatorBestFit::LteAllocatorBestFit()
 {
@@ -425,7 +426,7 @@ void LteAllocatorBestFit::prepareSchedule()
             {
                 blocks++;
 
-                cout << NOW << " LteAllocatorBestFit - UE " << nodeId << ": allocated RB " << band << " [" <<blocks<<"]" << endl;
+                EV << NOW << " LteAllocatorBestFit - UE " << nodeId << ": allocated RB " << band << " [" <<blocks<<"]" << endl;
 
                 // Book the bands that must be allocated
                 bookedBands.push_back(band);
@@ -507,6 +508,7 @@ void LteAllocatorBestFit::prepareSchedule()
 
     }
 
+//    Oracle::get()->printAllocation(allocatedRbsPerBand_);
     eNbScheduler_->storeAllocationEnb(allocatedRbsPerBand_, &alreadyAllocatedBands);
 
     // Reset direction to default direction if changed
