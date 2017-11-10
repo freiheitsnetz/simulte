@@ -12,6 +12,7 @@
 #include "stack/mac/scheduler/LteScheduler.h"
 #include "common/LteCommon.h"
 #include "common/oracle/Oracle.h"
+#include "stack/mac/buffer/LteMacBuffer.h"
 
 /**
  * Derive from this class to get basic functionality.
@@ -111,7 +112,7 @@ private:
 			EV << std::endl;
 		}
 		// Tell the scheduler about our decision.
-		Oracle::get()->printAllocation(allocatedRbsPerBand);
+//		if (*Oracle::get()->printAllocation(allocatedRbsPerBand);
 		eNbScheduler_->storeAllocationEnb(allocatedRbsPerBand, NULL);
 	}
 
@@ -211,21 +212,65 @@ public:
 			return;
 		} else {
 			// Make sure each connection belongs to an existing node in the simulation.
-			for (const MacCid& connection : activeConnectionTempSet_) {
+			for (ActiveSet::iterator iterator = activeConnectionTempSet_.begin(); iterator != activeConnectionTempSet_.end();) {
+				const MacCid& connection = *iterator;
 				MacNodeId id = MacCidToNodeId(connection);
+
+				// Make sure it's not been dynamically removed.
 				if (id == 0 || getBinder()->getOmnetId(id) == 0) {
-					activeConnectionTempSet_.erase(connection);
 					EV << NOW << " LteSchedulerBase::prepareSchedule Connection " << connection << " of node "
 							<< id << " removed from active connection set - appears to have been dynamically removed."
 							<< std::endl;
-				} else {
-					// Instantiate a resource list for each connection.
-					schedulingDecisions[connection] = std::vector<Band>();
-					reuseDecisions[connection] = std::vector<Band>();
+					iterator = activeConnectionTempSet_.erase(iterator);
+					continue;
 				}
+
+				// Make sure it's active.
+				if (eNbScheduler_->bsrbuf_->at(connection)->isEmpty()) {
+					EV << NOW << " LteSchedulerBase::prepareSchedule Connection " << connection << " of node "
+							<< id << " removed from active connection set - no longer active as BSR buffer is empty."
+							<< std::endl;
+					iterator = activeConnectionTempSet_.erase(iterator);
+					continue;
+				}
+				// Make sure CQI>0.
+				Direction dir;
+				if (direction_ == UL)
+					dir = (MacCidToLcid(connection) == D2D_SHORT_BSR) ? D2D : (MacCidToLcid(connection) == D2D_MULTI_SHORT_BSR) ? D2D_MULTI : direction_;
+				else
+					dir = DL;
+				const UserTxParams& info = eNbScheduler_->mac_->getAmc()->computeTxParams(id, dir);
+				const std::set<Band>& bands = info.readBands();
+				unsigned int codewords = info.getLayers().size();
+				bool cqiNull = false;
+				for (unsigned int i=0; i < codewords; i++) {
+					if (info.readCqiVector()[i] == 0)
+						cqiNull=true;
+				}
+				if (cqiNull) {
+					EV << NOW << " LteSchedulerBase::prepareSchedule Connection " << connection << " of node "
+							<< id << " removed from active connection set - CQI is zero."
+							<< std::endl;
+					iterator = activeConnectionTempSet_.erase(iterator);
+					continue;
+				}
+				iterator++; // Only increment if we haven't erased an item. Otherwise the erase returns the next valid position.
 			}
 		}
-		// Call purely virtual schedule() function.
+
+		// Check again, might have deleted all connections.
+		if (activeConnectionTempSet_.size() == 0) {
+			numTTIsWithNoActives++;
+			return;
+		}
+
+		// All connections that still remain can actually be scheduled.
+		for (const MacCid& connection : activeConnectionTempSet_) {
+			// Instantiate a resource list for each connection.
+			schedulingDecisions[connection] = std::vector<Band>();
+			reuseDecisions[connection] = std::vector<Band>();
+		}
+		// Call respective schedule() function implementation.
 		schedule(activeConnectionTempSet_);
 	}
 
@@ -257,6 +302,10 @@ public:
 //			if (resources.size() > 0)
 //				requestReuse(connection, resources);
 //		}
+	}
+
+	const size_t getNumTTIs() const {
+		return numTTIs;
 	}
 };
 

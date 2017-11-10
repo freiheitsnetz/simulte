@@ -143,6 +143,7 @@ void LtePhyUeD2D::handleAirFrame(cMessage* msg)
         if (lteInfo->getDirection() == DL)
             emit(averageCqiDl_, cqi);
     }
+
     // apply decider to received packet
     bool result = true;
     RemoteSet r = lteInfo->getUserTxParams()->readAntennaSet();

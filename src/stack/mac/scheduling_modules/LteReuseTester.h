@@ -12,6 +12,8 @@
 #include "stack/mac/scheduling_modules/LteSchedulerBase.h"
 #include "common/oracle/Oracle.h"
 
+using namespace std;
+
 class LteReuseTester : public virtual LteSchedulerBase {
 public:
 	virtual void schedule(std::set<MacCid>& connections) override {

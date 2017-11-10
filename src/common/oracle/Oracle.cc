@@ -167,19 +167,32 @@ std::vector<double> Oracle::getInCellInterference(const MacNodeId from, const Ma
 	return interferences;
 }
 
-std::vector<Cqi> Oracle::getCQI(const MacNodeId from, const MacNodeId to) const {
-    MacNodeId enodebId = getEnodeBID();
-    LteAmc* amc = ((LteMacEnb*) getMacByMacNodeId(enodebId))->getAmc();
-    Direction dir = determineDirection(from, to);
-    std::vector<Cqi> cqis;
-    if (dir == Direction::D2D) {
-        LteSummaryFeedback feedback = amc->getFeedbackD2D(from, Remote::MACRO, TxMode::SINGLE_ANTENNA_PORT0, to);
-        cqis = feedback.getCqi(0);
-    } else {
-        LteSummaryFeedback feedback = amc->getFeedback(from, Remote::MACRO, TxMode::SINGLE_ANTENNA_PORT0, dir);
-        cqis = feedback.getCqi(0);
-    }
-    return cqis;
+Cqi Oracle::getCQI(const MacNodeId from, const MacNodeId to) const {
+	if (feedbackComputer == nullptr)
+		throw runtime_error("Oracle::getCQI feedback computation module not yet set.");
+	vector<double> sinrs = getSINR(from, to);
+	double sinr = 0.0;
+	for (double value : sinrs)
+		sinr += value;
+	sinr /= sinrs.size();
+	return ((LteFeedbackComputationRealistic*) feedbackComputer)->getCqi(TxMode::SINGLE_ANTENNA_PORT0, sinr);
+
+//    MacNodeId enodebId = getEnodeBID();
+//    LteAmc* amc = ((LteMacEnb*) getMacByMacNodeId(enodebId))->getAmc();
+//    Direction dir = determineDirection(from, to);
+//    std::vector<Cqi> cqis;
+//    try {
+//		if (dir == Direction::D2D) {
+//			LteSummaryFeedback feedback = amc->getFeedbackD2D(from, Remote::MACRO, TxMode::SINGLE_ANTENNA_PORT0, to);
+//			cqis = feedback.getCqi(0);
+//		} else {
+//			LteSummaryFeedback feedback = amc->getFeedback(from, Remote::MACRO, TxMode::SINGLE_ANTENNA_PORT0, dir);
+//			cqis = feedback.getCqi(0);
+//		}
+//    } catch (const exception& e) {
+//    	cerr << "Oracle::getCQI couldn't determine CQI yet. Maybe no feedback has been reported?" << endl;
+//    }
+//    return cqis;
 }
 
 void Oracle::printAllocation(std::vector<std::vector<AllocatedRbsPerBandMapA>>& allocatedRbsPerBand) {

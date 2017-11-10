@@ -11,6 +11,7 @@
 #include "stack/phy/packet/LteFeedbackPkt.h"
 #include "stack/phy/das/DasFilter.h"
 #include "common/LteCommon.h"
+#include "common/oracle/Oracle.h"
 
 Define_Module(LtePhyEnb);
 
@@ -459,6 +460,7 @@ void LtePhyEnb::initializeFeedbackComputation(cXMLElement* xmlConfig)
     getParametersFromXML(fbComputationData, params);
 
     lteFeedbackComputation_ = getFeedbackComputationFromName(name, params);
+    Oracle::get()->setFeedbackComputer(lteFeedbackComputation_);
 
     EV << "Feedback Computation \"" << name << "\" loaded." << endl;
 }

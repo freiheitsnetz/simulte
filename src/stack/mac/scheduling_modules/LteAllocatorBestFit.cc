@@ -508,7 +508,8 @@ void LteAllocatorBestFit::prepareSchedule()
 
     }
 
-//    Oracle::get()->printAllocation(allocatedRbsPerBand_);
+//    if (direction_ == Direction::UL)
+//    	Oracle::get()->printAllocation(allocatedRbsPerBand_);
     eNbScheduler_->storeAllocationEnb(allocatedRbsPerBand_, &alreadyAllocatedBands);
 
     // Reset direction to default direction if changed

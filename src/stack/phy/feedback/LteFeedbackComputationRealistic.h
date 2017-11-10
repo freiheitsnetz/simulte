@@ -15,6 +15,8 @@
 class PhyPisaData;
 class LteFeedbackComputationRealistic : public LteFeedbackComputation
 {
+
+	friend class Oracle;
     // Channel matrix struct
     std::map<MacNodeId, Lambda>* lambda_;
     //Target Bler

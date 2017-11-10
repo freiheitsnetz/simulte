@@ -13,6 +13,7 @@
 #include <omnetpp.h>
 #include <common/LteCommon.h>
 #include "stack/mac/allocator/LteAllocatorUtils.h"
+#include "stack/phy/feedback/LteFeedbackComputation.h"
 
 /**
  * Implements an omniscient network entity.
@@ -89,9 +90,13 @@ public:
      */
     std::vector<double> getInCellInterference(const MacNodeId from, const MacNodeId to, bool considerThisTTI) const;
 
-    std::vector<Cqi> getCQI(const MacNodeId from, const MacNodeId to) const;
+    Cqi getCQI(const MacNodeId from, const MacNodeId to) const;
 
     void printAllocation(std::vector<std::vector<AllocatedRbsPerBandMapA>>& allocatedRbsPerBand);
+
+    void setFeedbackComputer(LteFeedbackComputation* computer) {
+    	this->feedbackComputer = computer;
+    }
 
 protected:
     double maxSimTime = 0.0;
@@ -110,6 +115,8 @@ private:
     static Oracle* SINGLETON;
 
     cMessage *configMessage = nullptr;
+
+    LteFeedbackComputation* feedbackComputer = nullptr;
 };
 
 Define_Module(Oracle); // Register_Class also works... what's the difference?
