@@ -14,17 +14,15 @@
 
 using namespace std;
 
-class LteReuseTester : public virtual LteSchedulerBase {
+class LteReuseTester : public LteSchedulerBase {
 public:
 	virtual void schedule(std::set<MacCid>& connections) override {
 		EV << NOW << " LteReuseTester::schedule" << std::endl;
-		std::set<MacCid>::const_iterator iterator = connections.begin();
-		MacCid originalConnection = *iterator;
-		iterator++;
-		MacCid reusingConnection = *iterator;
-		for (Band band = 0; band < Oracle::get()->getNumRBs(); band++) {
-			scheduleUeReuse(originalConnection, band);
-			scheduleUeReuse(reusingConnection, band);
+		for (std::set<MacCid>::const_iterator iterator = connections.begin(); iterator != connections.end(); iterator++) {
+			MacCid connection = *iterator;
+			for (Band band = 0; band < Oracle::get()->getNumRBs(); band++) {
+				scheduleUeReuse(connection, band);
+			}
 		}
 	}
 };
