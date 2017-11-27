@@ -158,10 +158,17 @@ private:
 //	}
 
 protected:
+	/**
+	 * Remember to schedule 'resource' to 'connection' at the end of this scheduling round.
+	 */
 	void scheduleUe(const MacCid& connection, const Band& resource) {
 		schedulingDecisions[connection].push_back(resource);
 	}
 
+	/**
+	 * Remember to schedule 'resource' to 'connection' at the end of this scheduling round by bypassing the allocator and directly setting
+	 * the corresponding entry in the allocation matrix.
+	 */
 	void scheduleUeReuse(const MacCid& connection, const Band& resource) {
 		reuseDecisions[connection].push_back(resource);
 	}
@@ -170,7 +177,7 @@ public:
 	LteSchedulerBase() {}
 	virtual ~LteSchedulerBase() {
 		std::cout << dirToA(direction_) << ": " << numTTIs << " TTIs, of which "
-				<< numTTIsWithNoActives << " had no active connections: numNoActives/numTTI="
+				<< numTTIsWithNoActives << " had no active connections: " << numTTIsWithNoActives << "/" << numTTIs << "="
 				<< ((double) numTTIsWithNoActives / (double) numTTIs) << std::endl;
 	}
 
@@ -194,7 +201,8 @@ public:
 	}
 
 	/**
-	 * Schedule all connections and save decisions to the schedulingDecisions map.
+	 * Schedule all connections. Call scheduleUe and scheduleUeReuse to remember decisions.
+	 * Decisions will be applied at commitSchedule().
 	 */
 	virtual void schedule(std::set<MacCid>& connections) = 0;
 
@@ -228,7 +236,7 @@ public:
 				// Make sure it's active.
 				if (eNbScheduler_->bsrbuf_->at(connection)->isEmpty()) {
 					EV << NOW << " LteSchedulerBase::prepareSchedule Connection " << connection << " of node "
-							<< id << " removed from active connection set - no longer active as BSR buffer is empty."
+							<< id << " removed from active connection set - no longer active as BSR buffer at eNB is empty."
 							<< std::endl;
 					iterator = activeConnectionTempSet_.erase(iterator);
 					continue;
@@ -245,7 +253,7 @@ public:
 				bool cqiNull = false;
 				for (unsigned int i=0; i < codewords; i++) {
 					if (info.readCqiVector()[i] == 0)
-						cqiNull=true;
+						cqiNull = true;
 				}
 				if (cqiNull) {
 					EV << NOW << " LteSchedulerBase::prepareSchedule Connection " << connection << " of node "
@@ -254,7 +262,7 @@ public:
 					iterator = activeConnectionTempSet_.erase(iterator);
 					continue;
 				}
-				iterator++; // Only increment if we haven't erased an item. Otherwise the erase returns the next valid position.
+				iterator++; // Only increment if we haven't erased an item. Otherwise the erase() returns the next valid position.
 			}
 		}
 
@@ -283,7 +291,7 @@ public:
 			if (MacCidToNodeId(connection) == 0)
 				continue;
 			std::vector<Band> resources = item.second;
-			if (resources.size() > 0)
+			if (!resources.empty())
 				request(connection, resources);
 		}
 		// Bypass the allocator and set resources to be frequency-reused.
