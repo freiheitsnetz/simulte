@@ -131,6 +131,34 @@ protected:
 		reuseDecisions[connection].push_back(resource);
 	}
 
+    /**
+     * @return Number of required bytes to serve the current demand at the front of the BSR buffer.
+     */
+    unsigned int getNumRequiredBytes(MacCid connection) const {
+		PacketInfo bsrBufferFrontPacket = eNbScheduler_->bsrbuf_->at(connection)->front();
+		unsigned int numBytesToServe = bsrBufferFrontPacket.first + MAC_HEADER;
+		return numBytesToServe;
+    }
+
+    unsigned int getNumBytesOnOneRB(MacCid connection) const {
+    	MacNodeId id = MacCidToNodeId(connection);
+    	Band band = 0; // Doesn't matter which one.
+    	Codeword cw = 0; // Won't really be different from 0?
+    	unsigned int numRBs = 1; // We're interested in ONE resource.
+    	unsigned int numBytesOnOneRB = eNbScheduler_->mac_->getAmc()->computeBytesOnNRbs(id, band, cw, numRBs, direction_);
+    	return numBytesOnOneRB;
+    }
+
+    /**
+     * @return Number of required resource blocks to serve the current demand at the front of the BSR buffer.
+     */
+    unsigned int getNumRequiredRBs(MacCid connection) const {
+    	unsigned int numBytesToServe = getNumRequiredBytes(connection);
+    	unsigned int numBytesOnOneRB = getNumBytesOnOneRB(connection);
+		unsigned int numRequiredRBs = (numBytesToServe + numBytesOnOneRB -1) / numBytesOnOneRB; // from LteAllocatorBestFit l:259
+		return numRequiredRBs;
+    }
+
 public:
 	LteSchedulerBase() {}
 	virtual ~LteSchedulerBase() {
@@ -267,14 +295,6 @@ public:
 
 		if (anythingToAllocate)
 			allocate(reuseDecisions);
-//		for (const auto& item : reuseDecisions) {
-//			MacCid connection = item.first;
-//			if (MacCidToNodeId(connection) == 0)
-//				continue;
-//			std::vector<Band> resources = item.second;
-//			if (resources.size() > 0)
-//				requestReuse(connection, resources);
-//		}
 	}
 
 	const size_t getNumTTIs() const {

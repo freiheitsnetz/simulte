@@ -21,11 +21,7 @@ public:
 		for (std::set<MacCid>::const_iterator iterator = connections.begin(); iterator != connections.end(); iterator++) {
 			MacCid connection = *iterator;
 
-			PacketInfo bsrBufferFrontPacket = eNbScheduler_->bsrbuf_->at(connection)->front();
-			unsigned int numBytesToServe = bsrBufferFrontPacket.first + MAC_HEADER;
-			unsigned int numBytesOnOneRB = eNbScheduler_->mac_->getAmc()->computeBytesOnNRbs(MacCidToNodeId(connection), 0, 0, 1, direction_);
-			unsigned int numRequiredRBs = (numBytesToServe + numBytesOnOneRB -1) / numBytesOnOneRB; // from LteAllocatorBestFit l:259
-			cout << MacCidToNodeId(connection) << ":" << numRequiredRBs << endl;
+
 
 			for (Band band = 0; band < Oracle::get()->getNumRBs(); band++) {
 				scheduleUeReuse(connection, band);
