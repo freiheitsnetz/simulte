@@ -48,11 +48,6 @@ public:
 			scheduleUe(connection, band);
 			schedulingHistory[connection]++;
 		}
-
-		for (ActiveSet::iterator iterator = connections.begin(); iterator != connections.end(); iterator++) {
-			MacCid connection = *iterator;
-			cout << NOW << " " << dirToA(direction_) << ": " << MacCidToNodeId(connection) << ":" << getNumRequiredRBs(connection) << endl;
-		}
 	}
 
 protected:

@@ -140,6 +140,17 @@ protected:
 		return numBytesToServe;
     }
 
+    unsigned int getNumRequiredBytesForAllDemands(MacCid connection) const {
+    	LteMacBuffer* bsrBuffer = eNbScheduler_->bsrbuf_->at(connection)->dup();
+    	unsigned int numBytes = 0;
+    	while (!bsrBuffer->isEmpty()) {
+    		PacketInfo bsrBufferFrontPacket = bsrBuffer->popFront();
+			unsigned int numBytesToServe = bsrBufferFrontPacket.first + MAC_HEADER;
+			numBytes += numBytesToServe;
+    	}
+    	return numBytes;
+    }
+
     unsigned int getNumBytesOnOneRB(MacCid connection) const {
     	MacNodeId id = MacCidToNodeId(connection);
     	Band band = 0; // Doesn't matter which one.
