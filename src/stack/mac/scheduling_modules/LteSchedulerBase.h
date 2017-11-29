@@ -140,6 +140,9 @@ protected:
 		return numBytesToServe;
     }
 
+    /**
+     * @return Sum of bytes over all buffer status reports.
+     */
     unsigned int getNumRequiredBytesForAllDemands(MacCid connection) const {
     	LteMacBuffer* bsrBuffer = eNbScheduler_->bsrbuf_->at(connection)->dup();
     	unsigned int numBytes = 0;
@@ -151,6 +154,9 @@ protected:
     	return numBytes;
     }
 
+    /**
+     * @return Number of bytes one RB can serve to 'connection'.
+     */
     unsigned int getNumBytesOnOneRB(MacCid connection) const {
     	MacNodeId id = MacCidToNodeId(connection);
     	Band band = 0; // Doesn't matter which one.
