@@ -60,8 +60,6 @@ void LteMacUeRealisticD2D::initialize(int stage)
 
         // Enhancement for Unassisted D2D
         if (par("unassistedD2D")) {
-            deployer_ = getDeployer();
-            numAntennas_ = deployer_->getNumRus() + 1;
             lteSchedulerUeUnassistedD2DSLTx_ = new LteSchedulerUeUnassistedD2D(this); // Should handle SL-UL for Tx D2D
             lteSchedulerUeUnassistedD2DSLTx_->initialize(UL, this);
 
@@ -74,31 +72,34 @@ void LteMacUeRealisticD2D::initialize(int stage)
     }
     if (stage == 1)
     {
-//        // get the reference to the MAC Layer of eNB
-//        enb_ = check_and_cast<LteMacEnbRealisticD2D*>(getSimulation()->getModule(binder_->getOmnetId(getMacCellId()))->getSubmodule("nic")->getSubmodule("mac"));
-
         // get parameters
+
         usePreconfiguredTxParams_ = par("usePreconfiguredTxParams");
-        preconfiguredTxParams_ = getPreconfiguredTxParams();
+
+        if (usePreconfiguredTxParams_)
+            preconfiguredTxParams_ = getPreconfiguredTxParams();
+        else
+            preconfiguredTxParams_ = NULL;
+
+        // get the reference to the MAC Layer of eNB
+        enb_ = check_and_cast<LteMacEnbRealisticD2D*>(getSimulation()->getModule(binder_->getOmnetId(getMacCellId()))->getSubmodule("nic")->getSubmodule("mac"));
+
         if (par("unassistedD2D")) {
 
+            deployer_ = getDeployer();
+            numAntennas_ = deployer_->getNumRus() + 1;
+            // Binder has to be the same as eNB
+            binder_ = geteNBBinder(enb_);
             /* Create and initialize AMC module */
-            amc_ = new LteAmc(this, binder_, deployer_, numAntennas_);
-            (amc_->getPilot())->setUnassistedD2DMode(par("unassistedD2D")); // To handle Tx Params in unassissted D2D mode
-            amc_->setConnectedUEsMap();
+            amc_ = new LteAmc(this, binder_, deployer_, numAntennas_, par("unassistedD2D"),geteNBMacID());
+            (amc_->getPilot())->setUnassistedD2DMode(par("unassistedD2D")); // To handle Tx Params in unassisted D2D mode
+//            amc_->setConnectedUEsMap();
 
             Cqi d2dCqi = par("d2dCqi");
             if (usePreconfiguredTxParams_){
                 check_and_cast<AmcPilotD2D*>(amc_->getPilot())->setPreconfiguredTxParams(d2dCqi);
            }
-//            else{
-//            /** Get deployed UEs maps from Binder **/
-//            amc_->setConnectedUEsMap(getBinder());
-//            }
         }
-
-        // get the reference to the MAC Layer of eNB
-        enb_ = check_and_cast<LteMacEnbRealisticD2D*>(getSimulation()->getModule(binder_->getOmnetId(getMacCellId()))->getSubmodule("nic")->getSubmodule("mac"));
 
     }
 }
@@ -794,7 +795,7 @@ void LteMacUeRealisticD2D::handleSelfMessage()
             /*To be performed by Rx D2d UE to schedule TX D2D UEs for Sidelink UPLINK*/
             EV << "==============================================SIDELINK DOWNLINK i.e. Recieving mode ==============================================" << endl;
             //TODO enable sleep mode also for SIDELINK DOWNLINK ???
-            //TODO Check Assumption that the UE knows the RB in UL
+            //TODO Check Assumption that the UE knows it's RB in UL
             (lteSchedulerUeUnassistedD2DSLRx_->resourceBlocks()) = (eNodeBFunctions->getDeployer())->getNumRbUl();
 
             lteSchedulerUeUnassistedD2DSLRx_->updateHarqDescs();
@@ -857,6 +858,13 @@ void LteMacUeRealisticD2D::handleSelfMessage()
             {
                 checkRAC();
             }
+
+
+         // Remember which RBs were granted this TTI.
+        int numBands = getBinder()->getNumBands();
+        for (int i = 0; i < numBands; i++) {
+//               emit(rbsGranted.at(i), 0);
+        }
         // TODO ensure all operations done  before return ( i.e. move H-ARQ rx purge before this point)
     }
     else if (schedulingGrant_->getPeriodic())
@@ -899,6 +907,16 @@ void LteMacUeRealisticD2D::handleSelfMessage()
     bool requestSdu = false;
     if (schedulingGrant_!=NULL) // if a grant is configured
     {
+        // Remember which RBs were granted this TTI.
+        int numBands = getBinder()->getNumBands();
+        for (int i = 0; i < numBands; i++) {
+            int numBlocksInBand = schedulingGrant_->getBlocks(Remote::MACRO, Band(i));
+                     if (numBlocksInBand > 0)
+                         EV << "Node " << nodeId_  << " was granted " << numBlocksInBand << " blocks on band " << i << "." << endl;
+
+//            emit(rbsGranted.at(i), numBlocksInBand);
+         }
+
         if(!firstTx)
         {
             EV << "\t currentHarq_ counter initialized " << endl;

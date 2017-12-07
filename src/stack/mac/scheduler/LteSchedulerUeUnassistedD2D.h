@@ -39,6 +39,8 @@ class LteSchedulerUeUnassistedD2D: public LteSchedulerEnb {
     friend class LteUnassistedD2DDRR;
     friend class LteUnassistedD2DPF;
     friend class LteUnassistedD2DMaxCI;
+    friend class LteUnassistedD2DRandom;
+
 
 protected:
 

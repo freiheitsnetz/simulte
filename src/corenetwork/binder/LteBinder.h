@@ -47,6 +47,8 @@ class LteBinder : public cSimpleModule
     typedef std::map<MacNodeId, std::map<MacNodeId, bool> > DeployedUesMap;
     typedef std::map<MacCellId, LteDeployer*> DeployerList;
 
+    unsigned int numBands_;  // number of logical bands
+
     std::map<IPv4Address, MacNodeId> macNodeIdToIPAddress_;
     std::map<MacNodeId, char*> macNodeIdToModuleName_;
     DeployerList deployersMap_;
@@ -148,7 +150,10 @@ class LteBinder : public cSimpleModule
         macNodeIdCounter_[1] = RELAY_MIN_ID;
         macNodeIdCounter_[2] = UE_MIN_ID;
     }
-
+    unsigned int getNumBands()
+    {
+        return numBands_;
+    }
     void registerDeployer(LteDeployer* pDeployer, MacCellId macCellId);
     //    void nodesConfiguration();
 

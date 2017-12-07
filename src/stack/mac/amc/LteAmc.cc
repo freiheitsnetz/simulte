@@ -210,12 +210,14 @@ LteAmc::LteAmc(LteMacEnb *mac, LteBinder *binder, LteDeployer *deployer, int num
     initialize();
 }
 
-LteAmc::LteAmc(LteMacUeRealisticD2D *mac, LteBinder *binder, LteDeployer *deployer, int numAntennas)
+LteAmc::LteAmc(LteMacUeRealisticD2D *mac, LteBinder *binder, LteDeployer *deployer, int numAntennas, bool unassisstedD2D, MacNodeId eNBMacId)
 {
     mac_ = mac;
     binder_ = binder;
     deployer_ = deployer;
     numAntennas_ = numAntennas;
+    unassisstedD2D_ = unassisstedD2D;
+    eNBMacId_ = eNBMacId;
     initialize();
 }
 
@@ -225,13 +227,27 @@ void LteAmc::initialize()
     nodeId_ = mac_->getMacNodeId();
     cellId_ = mac_->getMacCellId();
 
-    /** Get deployed UEs maps from Binder **/
-    dlConnectedUe_ = binder_->getDeployedUes(nodeId_, DL);
-    ulConnectedUe_ = binder_->getDeployedUes(nodeId_, UL);
-    d2dConnectedUe_ = binder_->getDeployedUes(nodeId_, UL);
-    EV << "dlConnectedUe_ " << dlConnectedUe_.size() << endl;
-    EV << "ulConnectedUe_ " << ulConnectedUe_.size() << endl;
-    EV << "d2dConnectedUe_ " << d2dConnectedUe_.size() << endl;
+    if (unassisstedD2D_)
+    {
+        //D2D UE is accessing the AMC so it should check the nodes connected to its eNB/present in the Cell
+        /** Get deployed UEs maps from Binder **/
+        dlConnectedUe_ = binder_->getDeployedUes(eNBMacId_, DL);
+        ulConnectedUe_ = binder_->getDeployedUes(eNBMacId_, UL);
+        d2dConnectedUe_ = binder_->getDeployedUes(eNBMacId_, UL);
+        EV << "dlConnectedUe_ " << dlConnectedUe_.size() << endl;
+        EV << "ulConnectedUe_ " << ulConnectedUe_.size() << endl;
+        EV << "d2dConnectedUe_ " << d2dConnectedUe_.size() << endl;
+    }
+    else
+    {
+        /** Get deployed UEs maps from Binder **/
+        dlConnectedUe_ = binder_->getDeployedUes(nodeId_, DL);
+        ulConnectedUe_ = binder_->getDeployedUes(nodeId_, UL);
+        d2dConnectedUe_ = binder_->getDeployedUes(nodeId_, UL);
+        EV << "dlConnectedUe_ " << dlConnectedUe_.size() << endl;
+        EV << "ulConnectedUe_ " << ulConnectedUe_.size() << endl;
+        EV << "d2dConnectedUe_ " << d2dConnectedUe_.size() << endl;
+    }
 
     /** Get parameters from Deployer **/
     numBands_ = deployer_->getNumBands();

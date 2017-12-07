@@ -28,6 +28,7 @@
 #include "stack/mac/scheduling_modules/unassistedHeuristic/LteUnassistedD2DPF.h"
 #include "stack/mac/scheduling_modules/unassistedHeuristic/LteUnassistedD2DDRR.h"
 #include "stack/mac/scheduling_modules/unassistedHeuristic/LteUnassistedD2DMaxCI.h"
+#include "stack/mac/scheduling_modules/unassistedHeuristic/LteUnassistedD2DRandom.h"
 
 LteSchedulerUeUnassistedD2D::LteSchedulerUeUnassistedD2D(LteMacUeRealisticD2D * mac) {
     ueMac_ = mac;
@@ -1606,7 +1607,7 @@ void LteSchedulerUeUnassistedD2D::resourceBlockStatistics(bool sleep)
         tSample_->sample_ = depletedPower;
         ueMac_->emit(depletedPowerDl_, tSample_);
     }
-    else if (direction_ == UL)
+    else if (direction_ == UL || direction_ == D2D)
     {
         tSample_->sample_ = utilization;
         ueMac_->emit(cellBlocksUtilizationUl_, tSample_);
@@ -1661,6 +1662,8 @@ LteUnassistedD2DSchedulingAgent* LteSchedulerUeUnassistedD2D::getScheduler(Sched
             return new LteUnassistedD2DPF(ueMac_->par("pfAlpha").doubleValue(),lteSchedulerUeUnassistedD2D_);
         case MAXCI:
             return new LteUnassistedD2DMaxCI(lteSchedulerUeUnassistedD2D_);
+        case RANDOM:
+            return new LteUnassistedD2DRandom(lteSchedulerUeUnassistedD2D_);
         default:
             throw cRuntimeError("LteSchedulerUeUnassistedD2D not recognized");
         return NULL;

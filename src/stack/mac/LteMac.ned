@@ -129,11 +129,19 @@ simple LteMacBase like LteMac {
         @statistic[measuredItbs](title="TBS index"; unit=""; source="measuredItbs"; record=mean,vector);
         @signal[measuredItbs_lte];
         @statistic[measuredItbs_lte](title="TBS index"; unit=""; source="measuredItbs_lte"; record=lteAvg);
-
+        @signal[rbsGranted*](type="long"); // from: https://stackoverflow.com/questions/37634462/omnet-emit-complex-signals
+   		@statisticTemplate[rbsGrantedTemplate](record=vector);
         //# signals for indicating buffer overflow
         @signal[macBufferOverflowUl];
         @signal[macBufferOverflowDl];
+        
+           //# Scheduler stats
+        @signal[numActiveConnections];
+        @statistic[numActiveConnections](title="Number of active connections"; unit=""; source="numActiveConnections"; record=vector);
 
+       	//Random Scheduler seed
+       	int randomSchedulerSeed = default(1);
+        int randomSchedulerBytes = default(10);
     gates:
         //# 
         //# Gates connecting RLC and MAC Layers

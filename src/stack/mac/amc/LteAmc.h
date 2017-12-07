@@ -94,7 +94,6 @@ class LteAmc
     LteMuMimoMatrix muMimoD2DMatrix_;
     public:
     LteAmc(LteMacEnb *mac, LteBinder *binder, LteDeployer *deployer, int numAntennas);
-    LteAmc(LteMacUeRealisticD2D *mac, LteBinder *binder, LteDeployer *deployer, int numAntennas);
     void initialize();
     ~LteAmc();
     void sefType(int f)
@@ -223,6 +222,24 @@ class LteAmc
         EV << "ulConnectedUe_ " << ulConnectedUe_.size() << endl;
         EV << "d2dConnectedUe_ " << d2dConnectedUe_.size() << endl;
     }
+
+    public:
+
+    LteAmc(LteMacUeRealisticD2D *mac, LteBinder *binder, LteDeployer *deployer, int numAntennas, bool unassisstedD2D_, MacNodeId eNBMacId);
+
+    MacNodeId eNBMacId_;
+      bool unassisstedD2D_ = false;
+
+      bool getUnassistedD2DMode()
+      {
+          return unassisstedD2D_;
+      }
+
+      void setUnassistedD2DMode(bool value)
+      {
+          unassisstedD2D_ = value;
+      }
+
 };
 
 #endif

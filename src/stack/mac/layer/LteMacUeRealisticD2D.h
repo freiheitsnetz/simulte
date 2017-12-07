@@ -14,6 +14,7 @@
 #include "stack/mac/layer/LteMacEnbRealisticD2D.h"
 #include "stack/mac/buffer/harq_d2d/LteHarqBufferTxD2D.h"
 #include "common/LteCommon.h"
+#include "corenetwork/binder/LteBinder.h"
 
 class LteSchedulingGrant;
 class LteSchedulerUeUl;
@@ -261,6 +262,26 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
             return deployer_;
 
         return check_and_cast<LteDeployer*>(getParentModule()-> getParentModule()-> getParentModule()-> getSubmodule("eNodeB")->getSubmodule("deployer")); // Deployer
+    }
+
+    LteBinder* getSimulationBinder()
+    {
+        // Get local binder
+        if (binder_ != NULL)
+            return binder_;
+
+        // return check_and_cast<LteDeployer*>(getParentModule()-> getParentModule()-> getParentModule()-> getSubmodule("eNodeB")->getSubmodule("binder")); // Binder
+        return check_and_cast<LteBinder*>(getSimulation()->getModuleByPath("binder"));
+    }
+    LteBinder* geteNBBinder(LteMacEnbRealisticD2D* refEnb_)
+    {
+        binder_ = getBinder();
+        return binder_;
+    }
+
+    MacNodeId geteNBMacID()
+    {
+        return enb_->getMacNodeId();
     }
 
     LteMacUeRealisticD2D();
