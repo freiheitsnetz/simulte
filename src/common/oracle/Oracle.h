@@ -20,14 +20,11 @@
  */
 class Oracle : public omnetpp::cSimpleModule {
 public:
-    Oracle() : configMessage(new cMessage("Oracle::config")) {
+    Oracle() : configMessage("Oracle::config") {
         Oracle::SINGLETON = this;
     }
     virtual ~Oracle() {
-        if (configMessage != nullptr) {
-            delete configMessage;
-            configMessage = nullptr;
-        }
+        cancelAndDelete(&configMessage);
     }
 
     static Oracle* get() {
@@ -114,7 +111,7 @@ protected:
 private:
     static Oracle* SINGLETON;
 
-    cMessage *configMessage = nullptr;
+    cMessage configMessage;
 
     LteFeedbackComputation* feedbackComputer = nullptr;
 };

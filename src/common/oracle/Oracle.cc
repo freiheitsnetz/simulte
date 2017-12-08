@@ -11,7 +11,7 @@ void Oracle::initialize() {
     cConfigOption simTimeConfig("sim-time-limit", true, cConfigOption::Type::CFG_DOUBLE, "s", "300", "");
     maxSimTime = getEnvir()->getConfig()->getAsDouble(&simTimeConfig);
 
-    scheduleAt(0.05, configMessage);
+    scheduleAt(0.05, &configMessage);
 }
 
 /**
@@ -64,7 +64,7 @@ void Oracle::configure() {
 
 void Oracle::handleMessage(cMessage *msg) {
     EV << "Oracle::handleMessage" << std::endl;
-    if (msg == configMessage)
+    if (msg == &configMessage)
         configure();
 }
 
