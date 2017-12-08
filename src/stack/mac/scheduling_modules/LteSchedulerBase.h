@@ -179,9 +179,9 @@ protected:
 public:
 	LteSchedulerBase() {}
 	virtual ~LteSchedulerBase() {
-		std::cout << dirToA(direction_) << ": " << numTTIs << " TTIs, of which "
-				<< numTTIsWithNoActives << " had no active connections: " << numTTIsWithNoActives << "/" << numTTIs << "="
-				<< ((double) numTTIsWithNoActives / (double) numTTIs) << std::endl;
+        std::cout << dirToA(direction_) << ": " << numTTIs << " TTIs, of which "
+            << numTTIsWithNoActives << " had no active connections: " << numTTIsWithNoActives << "/" << numTTIs << "="
+            << ((double) numTTIsWithNoActives / (double) numTTIs) << std::endl;
 	}
 
 	/**

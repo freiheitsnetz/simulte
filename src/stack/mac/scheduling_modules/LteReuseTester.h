@@ -20,9 +20,6 @@ public:
 		EV << NOW << " LteReuseTester::schedule" << std::endl;
 		for (std::set<MacCid>::const_iterator iterator = connections.begin(); iterator != connections.end(); iterator++) {
 			MacCid connection = *iterator;
-
-
-
 			for (Band band = 0; band < Oracle::get()->getNumRBs(); band++) {
 				scheduleUeReuse(connection, band);
 			}

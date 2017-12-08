@@ -9,6 +9,7 @@
 #define COMMON_ORACLE_ORACLE_H_
 
 #include <vector>
+#include <iostream>
 
 #include <omnetpp.h>
 #include <common/LteCommon.h>
@@ -24,7 +25,8 @@ public:
         Oracle::SINGLETON = this;
     }
     virtual ~Oracle() {
-        cancelAndDelete(&configMessage);
+        if (configMessage.isScheduled())
+            cancelAndDelete(&configMessage);
     }
 
     static Oracle* get() {
