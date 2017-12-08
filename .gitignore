@@ -37,8 +37,6 @@ backups
 
 
 *.FAILED
-.cproject
-.project
 ui/com.simulte.configeditor/bin/
 
 # ignore result folders
