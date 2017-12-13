@@ -17,6 +17,7 @@
 #include "common/LteCommon.h"
 #include "stack/mac/amc/LteAmc.h"
 #include "stack/mac/amc/UserTxParams.h"
+#include <random>
 
 /**
  * @class LteSchedulerUeUnassistedD2D

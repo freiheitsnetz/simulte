@@ -10,6 +10,7 @@
 #include "stack/mac/scheduler/LteSchedulerUeUnassistedD2D.h"
 
 #include "../scheduling_modules/unassistedHeuristic/LteUnassistedD2DSchedulingAgent.h"
+#include <algorithm>
 #include "stack/mac/layer/LteMacEnb.h"
 #include "stack/mac/layer/LteMacUeRealisticD2D.h"
 #include "stack/mac/scheduler/LteScheduler.h"
@@ -173,6 +174,7 @@ LteMacScheduleList* LteSchedulerUeUnassistedD2D::scheduleTxD2Ds() {
     //Cleaning required ??
     allocatedCws_.clear();
     //Init and reset is not required
+    //get bands from the deployer
     allocator_->initAndReset(resourceBlocks_,
             ((ueMac_->getENodeB())->getDeployer())->getNumBands());
     //reset AMC structures
@@ -555,14 +557,14 @@ unsigned int LteSchedulerUeUnassistedD2D::scheduleGrant(MacCid cid,
 
 //    direction_ = UL; // To handle Unassisted D2D direction of both UL iand DL is out from the UE and so is same
     Direction dir = direction_;
-    if (dir == UL)
-    {
-        // check if this connection is a D2D connection
-        if (flowId == D2D_SHORT_BSR)
-            dir = D2D;           // if yes, change direction
-        if (flowId == D2D_MULTI_SHORT_BSR)
-            dir = D2D_MULTI;     // if yes, change direction
-    }
+//    if (dir == UL)
+//    {
+//        // check if this connection is a D2D connection
+//        if (flowId == D2D_SHORT_BSR)
+//            dir = D2D;           // if yes, change direction
+//        if (flowId == D2D_MULTI_SHORT_BSR)
+//            dir = D2D_MULTI;     // if yes, change direction
+//    }
 
     // Get user transmission parameters
     const UserTxParams& txParams = ueMac_->getAmc()->computeTxParams(nodeId, dir);
@@ -584,7 +586,7 @@ unsigned int LteSchedulerUeUnassistedD2D::scheduleGrant(MacCid cid,
 
         txParams.print("grant()");
 
-        unsigned int numBands = ueMac_->getDeployer()->getNumBands();
+        unsigned int numBands = ueMac_->getENodeB()->getDeployer()->getNumBands();
         // for each band of the band vector provided
         for (unsigned int i = 0; i < numBands; i++)
         {
@@ -712,6 +714,8 @@ unsigned int LteSchedulerUeUnassistedD2D::scheduleGrant(MacCid cid,
         // per codeword vqueue item counter (UL: BSRs DL: SDUs)
         unsigned int vQueueItemCounter = 0;
 
+        unsigned int allocatedCws = 0;
+
         std::list<Request> bookedRequests;
 
         // band limit structure
@@ -722,6 +726,7 @@ unsigned int LteSchedulerUeUnassistedD2D::scheduleGrant(MacCid cid,
 
         bool firstSdu = true;
 
+        // Book bands for this connection
         for (unsigned int i = 0; i < size; ++i)
         {
             // for sulle bande
@@ -740,7 +745,7 @@ unsigned int LteSchedulerUeUnassistedD2D::scheduleGrant(MacCid cid,
                 continue;
             }
 
-            unsigned int allocatedCws = 0;
+
             // search for already allocated codeword
 
             if (allocatedCws_.find(nodeId) != allocatedCws_.end())
@@ -907,6 +912,9 @@ unsigned int LteSchedulerUeUnassistedD2D::scheduleGrant(MacCid cid,
                                 li->blocks_=uBlocks=0;
                             }
 
+                        // add allocated blocks for this codeword
+                        cwAllocatedBlocks += uBlocks;
+
                             // update limit
                             if (uBlocks>0)
                             {
@@ -927,7 +935,7 @@ unsigned int LteSchedulerUeUnassistedD2D::scheduleGrant(MacCid cid,
                             {
                                 // mark here allocation
                                 allocator_->addBlocks(antenna,u,nodeId,uBlocks,uBytes);
-                                cwAllocatedBlocks += uBlocks;
+                                //cwAllocatedBlocks += uBlocks;
                                 totalAllocatedBlocks += uBlocks;
                             }
 
@@ -1079,7 +1087,7 @@ unsigned int LteSchedulerUeUnassistedD2D::scheduleGrant(MacCid cid,
             if (allocatedCws_.find(nodeId) != allocatedCws_.end())
             {
                 allocatedCws_.at(nodeId)++;
-                }
+            }
             else
             {
                 allocatedCws_[nodeId] = 1;
@@ -1154,7 +1162,7 @@ bool LteSchedulerUeUnassistedD2D::racschedule() {
         const unsigned int blocks = 1;
 
         bool allocation = false;
-
+        //std::random_shuffle()
         for (Band b = 0; b < numBands; ++b) {
             if (allocator_->availableBlocks(nodeId, MACRO, b) > 0) {
                 unsigned int bytes = ueMac_->getAmc()->computeBytesOnNRbs(
@@ -1171,6 +1179,61 @@ bool LteSchedulerUeUnassistedD2D::racschedule() {
                     break;
                 }
             }
+        }
+        // To handle random allocation of RB. Iterate through a random allocation
+        if ((ueMac_->par("schedulingDisciplineUl").stdstringValue()) == "MAXCI" || (ueMac_->par("schedulingDisciplineDl").stdstringValue()) == "MAXCI" )/*Random allocator is chosen*/
+        {
+            unsigned int band_count = 0;
+            static int randomSchedulerSeed_ = ueMac_->par("randomSchedulerSeed"); // obtain a random number from hardware
+            static std::mt19937 eng(randomSchedulerSeed_); // seed the generator
+            std::uniform_int_distribution<> distr(0, numBands); //
+            unsigned int random_band = distr(eng); /*some where between 0 and numBands*/
+            if (random_band > (numBands -1))
+            {
+                random_band = 0;
+            }
+            while (band_count < numBands)
+            {
+                if (allocator_->availableBlocks(nodeId, MACRO, random_band) > 0) {
+                    unsigned int bytes = ueMac_->getAmc()->computeBytesOnNRbs(
+                            nodeId, random_band, cw, blocks, UL);
+                    if (bytes > 0) {
+                        allocator_->addBlocks(MACRO, random_band, nodeId, 1, bytes);
+
+                        EV << NOW
+                                  << "LteSchedulerUeUnassistedD2D::racschedule  Tx D2D UE: "
+                                  << nodeId << " Handled RAC on band: " << random_band
+                                  << endl;
+
+                        allocation = true;
+                        break;
+                    }
+                }
+
+                band_count++;
+                random_band++;
+            }
+        }
+        else
+        {
+            for (Band b = 0; b < numBands; ++b) {
+                if (allocator_->availableBlocks(nodeId, MACRO, b) > 0) {
+                    unsigned int bytes = ueMac_->getAmc()->computeBytesOnNRbs(
+                            nodeId, b, cw, blocks, UL);
+                    if (bytes > 0) {
+                        allocator_->addBlocks(MACRO, b, nodeId, 1, bytes);
+
+                        EV << NOW
+                                  << "LteSchedulerUeUnassistedD2D::racschedule  Tx D2D UE: "
+                                  << nodeId << " Handled RAC on band: " << b
+                                  << endl;
+
+                        allocation = true;
+                        break;
+                    }
+                }
+            }
+
         }
 
         if (allocation) {

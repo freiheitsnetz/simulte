@@ -133,23 +133,24 @@ void LtePhyUeD2D::handleAirFrame(cMessage* msg)
                if (lteInfo->getFrameType() == FEEDBACKPKT)
                {
                    handleFeedbackPkt(lteInfo, frame); // Calculate the CQI Feedback
-                   if ((lteInfo->getUserTxParams()) != NULL) // Emit the CQI Feedback for UL/D2D for the Tx D2D
-                   {
-                       int cw = lteInfo->getCw();
-                       if (lteInfo->getUserTxParams()->readCqiVector().size() == 1)
-                           cw = 0;
-                       double cqi = lteInfo->getUserTxParams()->readCqiVector()[cw];
-                       tSample_->sample_ = cqi;
-                       tSample_->id_ = nodeId_;
-                       tSample_->module_ = getMacByMacNodeId(nodeId_);
-                       if (lteInfo->getDirection() == UL || lteInfo->getDirection() == D2D)
-                       {
-                           emit(averageCqiUl_, tSample_);
-                           emit(averageCqiUlvect_,cqi);
-                       }
-                   }
                    delete frame;
                    return;
+               }
+               // In Transmitting mode recording UL CQI
+               if ((lteInfo->getUserTxParams()) != NULL) // Emit the CQI Feedback for UL for the Tx D2D
+               {
+                   int cw = lteInfo->getCw();
+                   if (lteInfo->getUserTxParams()->readCqiVector().size() == 1)
+                       cw = 0;
+                   double cqi = lteInfo->getUserTxParams()->readCqiVector()[cw];
+                   tSample_->sample_ = cqi;
+                   tSample_->id_ = nodeId_;
+                   tSample_->module_ = getMacByMacNodeId(nodeId_);
+                   if (lteInfo->getDirection() == UL || lteInfo->getDirection() == D2D)
+                   {
+                       emit(averageCqiUl_, tSample_);
+                       emit(averageCqiUlvect_,cqi);
+                   }
                }
        }
 
