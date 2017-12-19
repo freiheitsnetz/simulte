@@ -19,8 +19,8 @@ public:
     virtual void schedule(std::set<MacCid>& connections) override {
         EV << NOW << " LteTUGame::schedule" << std::endl;
         // Update player list - adds new players and updates their active status.
-        setPlayers(connections);
-        setUserClasses(players);
+        // Also ensures the coalitions correspond to the active TTI.
+        setPlayers(connections, players);
     }
 
     virtual ~LteTUGame() {
@@ -38,9 +38,14 @@ protected:
     /**
      * Goes through 'connections' to determine which players are active this TTI.
      */
-    void setPlayers(const std::set<MacCid>& connections) {
+    void setPlayers(const std::set<MacCid>& connections, std::vector<TUGamePlayer*>& players) {
     	EV << NOW << " LteTUGame::setPlayers" << std::endl;
-    	// Assume inactive.
+    	// Clear all containers.
+		videoClass.clear();
+		voipClass.clear();
+		cbrClass.clear();
+
+    	// Assume everyone is inactive.
     	for (TUGamePlayer* player : players)
     		player->setActive(false);
     	// Go through all current connections...
@@ -49,11 +54,21 @@ protected:
     		// ... check if already in player list?
     		bool found = false;
     		for (size_t i = 0; !found && i < players.size(); i++) {
+    			TUGamePlayer* player = players.at(i);
     			// Then set to active.
-    			if (players.at(i)->getNodeId() == id) {
+    			if (player->getNodeId() == id) {
     				found = true;
-    				players.at(i)->setActive(true);
-    				EV << NOW << "\t" << TUGamePlayer::typeToString(players.at(i)->getType()) << " player '" << players.at(i)->getName() << " is active this TTI." << std::endl;
+    				player->setActive(true);
+    				// And add it to the corresponding coalition.
+					if (player->getType() == TUGamePlayer::PlayerType::CBR)
+						cbrClass.add(player);
+					else if (player->getType() == TUGamePlayer::PlayerType::VOIP)
+						voipClass.add(player);
+					else if (player->getType() == TUGamePlayer::PlayerType::VIDEO)
+						videoClass.add(player);
+					else
+						throw std::runtime_error("LteTUGame::setUserClasses has a player with unknown type: " + TUGamePlayer::typeToString(player->getType()));
+    				EV << NOW << "\t" << TUGamePlayer::typeToString(player->getType()) << " player '" << player->getName() << " is active this TTI." << std::endl;
     			}
     		}
     		// Otherwise add it to the player list.
@@ -64,54 +79,31 @@ protected:
     				player->setName(Oracle::get()->getName(id));
     				player->setType(TUGamePlayer::PlayerType::CBR);
     				players.push_back(player);
+    				cbrClass.add(player);
     				EV << NOW << "\t added " << TUGamePlayer::typeToString(player->getType()) << " player '" << player->getName() << "'." << std::endl;
     			} else if (appName.compare(voipAppName) == 0) {
     				TUGamePlayer* player = new TUGamePlayer(voipDemand, connection, id);
     				player->setName(Oracle::get()->getName(id));
     				player->setType(TUGamePlayer::PlayerType::VOIP);
 					players.push_back(player);
+					voipClass.add(player);
 					EV << NOW << "\t added " << TUGamePlayer::typeToString(player->getType()) << " player '" << player->getName() << "'." << std::endl;
     			} else if (appName.compare(videoAppName) == 0) {
     				TUGamePlayer* player = new TUGamePlayer(videoDemand, connection, id);
     				player->setName(Oracle::get()->getName(id));
     				player->setType(TUGamePlayer::PlayerType::VIDEO);
 					players.push_back(player);
+					videoClass.add(player);
 					EV << NOW << "\t added " << TUGamePlayer::typeToString(player->getType()) << " player '" << player->getName() << "'." << std::endl;
     			} else
     				throw std::runtime_error("LteTUGame::setPlayers couldn't recognize " + Oracle::get()->getName(id) + "'s application type: " + appName);
     		}
     	}
-    }
 
-    /**
-     * Ensures the user classes correspond to the current TTI.
-     */
-    void setUserClasses(std::vector<TUGamePlayer*> players) {
-        // Clear all containers.
-        videoClass.clear();
-        voipClass.clear();
-        cbrClass.clear();
-
-        // Go through all current connections...
-        for (TUGamePlayer* player : players) {
-        	// ... skip inactive players.
-			if (!player->isActive())
-				continue;
-			// ... add it to the corresponding coalition.
-			if (player->getType() == TUGamePlayer::PlayerType::CBR)
-				cbrClass.add(player);
-			else if (player->getType() == TUGamePlayer::PlayerType::VOIP)
-				voipClass.add(player);
-			else if (player->getType() == TUGamePlayer::PlayerType::VIDEO)
-				videoClass.add(player);
-			else
-				throw std::runtime_error("LteTUGame::setUserClasses has a player with unknown type: " + TUGamePlayer::typeToString(player->getType()));
-        }
-
-        EV << NOW << " LteTUGame::setUserClasses" << std::endl;
-        EV << "\t" << videoClass.size() << " video flows." << std::endl;
-        EV << "\t" << voipClass.size() << " VoIP flows." << std::endl;
-        EV << "\t" << cbrClass.size() << " CBR flows." << std::endl;
+    	EV << NOW << " LteTUGame::setUserClasses" << std::endl;
+		EV << "\t" << videoClass.size() << " video flows." << std::endl;
+		EV << "\t" << voipClass.size() << " VoIP flows." << std::endl;
+		EV << "\t" << cbrClass.size() << " CBR flows." << std::endl;
     }
 
 };
