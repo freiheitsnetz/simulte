@@ -18,16 +18,57 @@ class LteTUGame : public LteSchedulerBase {
 public:
     virtual void schedule(std::set<MacCid>& connections) override {
         EV << NOW << " LteTUGame::schedule" << std::endl;
-        for (std::set<MacCid>::const_iterator iterator = connections.begin(); iterator != connections.end(); iterator++) {
-            MacCid connection = *iterator;
-            for (Band band = 0; band < Oracle::get()->getNumRBs(); band++) {
-                scheduleUeReuse(connection, band);
-            }
-        }
+        setPlayers(connections);
+//        setUserClasses(connections);
     }
 
 protected:
     Shapley::Coalition<TUGamePlayer> videoClass, voipClass, cbrClass;
+    double videoDemand = 242.0, voipDemand = 8.4, cbrDemand = 2;
+    std::string videoAppName = "video", voipAppName = "voip", cbrAppName = "inet::UDPBasicApp";
+    std::vector<TUGamePlayer*> players;
+
+    void setPlayers(const std::set<MacCid>& connections) {
+    	EV << NOW << " LteTUGame::setPlayers" << std::endl;
+    	// Assume inactive.
+    	for (TUGamePlayer* player : players)
+    		player->setActive(false);
+    	// Go through all current connections...
+    	for (const MacCid& connection : connections) {
+    		MacNodeId id = MacCidToNodeId(connection);
+    		// ... check if already in player list?
+    		bool found = false;
+    		for (size_t i = 0; !found && i < players.size(); i++) {
+    			// Then set to active.
+    			if (players.at(i)->getNodeId() == id) {
+    				found = true;
+    				players.at(i)->setActive(true);
+    				EV << NOW << "\t\t player '" << players.at(i)->getName() << "' is active this TTI." << std::endl;
+    			}
+    		}
+    		// Otherwise add it to the player list.
+    		if (!found) {
+    			std::string appName = Oracle::get()->getApplicationName(id);
+    			if (appName.compare(cbrAppName) == 0) {
+    				TUGamePlayer* player = new TUGamePlayer(cbrDemand, connection, id);
+    				player->setName(Oracle::get()->getName(id));
+    				players.push_back(player);
+    				EV << NOW << "\t\t added CBR player '" << player->getName() << "'." << std::endl;
+    			} else if (appName.compare(voipAppName) == 0) {
+    				TUGamePlayer* player = new TUGamePlayer(voipDemand, connection, id);
+    				player->setName(Oracle::get()->getName(id));
+					players.push_back(player);
+					EV << NOW << "\t\t added VoIP player '" << player->getName() << "'." << std::endl;
+    			} else if (appName.compare(videoAppName) == 0) {
+    				TUGamePlayer* player = new TUGamePlayer(videoDemand, connection, id);
+    				player->setName(Oracle::get()->getName(id));
+					players.push_back(player);
+					EV << NOW << "\t\t added video player '" << player->getName() << "'." << std::endl;
+    			} else
+    				throw std::runtime_error("LteTUGame::setPlayers couldn't recognize " + Oracle::get()->getName(id) + "'s application type: " + appName);
+    		}
+    	}
+    }
 
     /**
      * Ensures the user classes correspond to the current TTI.
@@ -37,6 +78,10 @@ protected:
         videoClass.clear();
         voipClass.clear();
         cbrClass.clear();
+        // Delete players from last round.
+		for (TUGamePlayer* player : players)
+			delete player;
+		players.clear();
 
         // Go through all current connections...
         for (const MacCid& connection : connections) {

@@ -106,6 +106,36 @@ LtePhyBase* Oracle::getPhyBase(const MacNodeId id) const {
     return phyBase;
 }
 
+const UeInfo* Oracle::getUeInfo(const MacNodeId& id) const {
+	const UeInfo* info = nullptr;
+	std::vector<UeInfo*>* ueList = getBinder()->getUeList();
+	std::vector<UeInfo*>::iterator iterator = ueList->begin();
+	while (iterator != ueList->end()) {
+		if ((*iterator)->id == id) {
+			info = (*iterator);
+			break;
+		}
+		iterator++;
+	}
+	if (info == nullptr)
+		throw cRuntimeError("Oracle::getUeInfo couldn't find node's UeInfo.");
+	return info;
+}
+
+std::string Oracle::getApplicationName(const MacNodeId& id) const {
+	const UeInfo* info = getUeInfo(id);
+	cModule* module = info->ue;
+	int numUdpApps = stoi(module->par("numUdpApps").info()),
+		numTcpApps = stoi(module->par("numTcpApps").info());
+	if (numUdpApps > 0) {
+		return module->getSubmodule("udpApp", 0)->getClassName();
+	} else if (numTcpApps > 0) {
+		return module->getSubmodule("tcpApp", 0)->getClassName();
+	} else {
+		throw cRuntimeError("Oracle::getApplicationName but node has neither UDP nor TCP apps.");
+	}
+}
+
 std::string Oracle::getName(const MacNodeId id) const {
 	std::vector<UeInfo*>* ueList = getBinder()->getUeList();
 	std::string name = "no idea";
@@ -129,6 +159,7 @@ double Oracle::getDistance(inet::Coord from, inet::Coord to) const {
 
 double Oracle::getTxPower(const MacNodeId id, Direction dir) const {
     LtePhyBase* phyBase = getPhyBase(id);
+
     return phyBase->getTxPwr(dir);
 }
 

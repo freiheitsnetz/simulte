@@ -59,6 +59,10 @@ public:
      */
     LtePhyBase* getPhyBase(const MacNodeId id) const;
 
+    const UeInfo* getUeInfo(const MacNodeId& id) const;
+
+    std::string getApplicationName(const MacNodeId& id) const;
+
     /**
      * @return The node's physical position.
      */

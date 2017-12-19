@@ -47,3 +47,7 @@ ui/com.simulte.configeditor/bin/
 /simulations/*/scenario*/
 /simulations/*/eval*/
 /simulations/*/.cmdenv-log
+
+# Symbolic links
+shapley.h
+TUGame.h
