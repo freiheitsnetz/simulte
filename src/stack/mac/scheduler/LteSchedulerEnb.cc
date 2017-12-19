@@ -21,6 +21,8 @@
 #include "stack/mac/scheduling_modules/LteNaiveRoundRobin.h"
 #include "stack/mac/scheduling_modules/LteNaiveRoundRobinReuse.h"
 #include "stack/mac/scheduling_modules/LteReuseTester.h"
+#include "stack/mac/scheduling_modules/LteTUGame/LteTUGame.h"
+#include "stack/mac/scheduling_modules/LteStackelbergGame/LteStackelbergGame.h"
 #include "stack/mac/buffer/LteMacBuffer.h"
 #include "stack/mac/buffer/LteMacQueue.h"
 
@@ -71,7 +73,7 @@ void LteSchedulerEnb::initialize(Direction dir, LteMacEnb* mac)
     scheduler_->setEnbScheduler(this);
 
     // Create Allocator
-    if (discipline == ALLOCATOR_BESTFIT || discipline == REUSE_TESTER)   // NOTE: create this type of allocator for every scheduler using Frequency Reuse
+    if (discipline == ALLOCATOR_BESTFIT || discipline == REUSE_TESTER || discipline == TU_GAME || discipline == STACKELBERG_GAME)   // NOTE: create this type of allocator for every scheduler using Frequency Reuse
         allocator_ = new LteAllocationModuleFrequencyReuse(mac_, direction_);
     else
         allocator_ = new LteAllocationModule(mac_, direction_);
@@ -793,29 +795,32 @@ LteScheduler* LteSchedulerEnb::getScheduler(SchedDiscipline discipline)
     switch(discipline)
     {
         case DRR:
-        return new LteDrr();
+            return new LteDrr();
         case PF:
-        return new LtePf(mac_->par("pfAlpha").doubleValue());
+            return new LtePf(mac_->par("pfAlpha").doubleValue());
         case MAXCI:
-        return new LteMaxCi();
+            return new LteMaxCi();
         case MAXCI_MB:
-        return new LteMaxCiMultiband();
+            return new LteMaxCiMultiband();
         case MAXCI_OPT_MB:
-        return new LteMaxCiOptMB();
+            return new LteMaxCiOptMB();
         case MAXCI_COMP:
-        return new LteMaxCiComp();
+            return new LteMaxCiComp();
         case ALLOCATOR_BESTFIT:
-        return new LteAllocatorBestFit();
+            return new LteAllocatorBestFit();
         case NAIVE_ROUND_ROBIN:
-		return new LteNaiveRoundRobin();
+            return new LteNaiveRoundRobin();
         case NAIVE_ROUND_ROBIN_REUSE:
-		return new LteNaiveRoundRobinReuse();
+            return new LteNaiveRoundRobinReuse();
         case REUSE_TESTER:
-		return new LteReuseTester();
-
+            return new LteReuseTester();
+        case TU_GAME:
+            return new LteTUGame();
+        case STACKELBERG_GAME:
+            return new LteStackelbergGame();
         default:
-        throw cRuntimeError("LteScheduler not recognized");
-        return NULL;
+            throw cRuntimeError("LteScheduler not recognized");
+            return NULL;
     }
 }
 
