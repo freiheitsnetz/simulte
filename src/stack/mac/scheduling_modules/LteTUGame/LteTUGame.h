@@ -18,6 +18,7 @@ class LteTUGame : public LteSchedulerBase {
 public:
     virtual void schedule(std::set<MacCid>& connections) override {
         EV << NOW << " LteTUGame::schedule" << std::endl;
+        // Update player list - adds new players and updates their active status.
         setPlayers(connections);
 //        setUserClasses(connections);
     }
@@ -28,6 +29,9 @@ protected:
     std::string videoAppName = "video", voipAppName = "voip", cbrAppName = "inet::UDPBasicApp";
     std::vector<TUGamePlayer*> players;
 
+    /**
+     * Goes through 'connections' to determine which players are active this TTI.
+     */
     void setPlayers(const std::set<MacCid>& connections) {
     	EV << NOW << " LteTUGame::setPlayers" << std::endl;
     	// Assume inactive.
@@ -43,7 +47,7 @@ protected:
     			if (players.at(i)->getNodeId() == id) {
     				found = true;
     				players.at(i)->setActive(true);
-    				EV << NOW << "\t\t player '" << players.at(i)->getName() << "' is active this TTI." << std::endl;
+    				cout << NOW << "\t" << TUGamePlayer::typeToString(players.at(i)->getType()) << " player '" << players.at(i)->getName() << " is active this TTI." << std::endl;
     			}
     		}
     		// Otherwise add it to the player list.
@@ -52,18 +56,21 @@ protected:
     			if (appName.compare(cbrAppName) == 0) {
     				TUGamePlayer* player = new TUGamePlayer(cbrDemand, connection, id);
     				player->setName(Oracle::get()->getName(id));
+    				player->setType(TUGamePlayer::PlayerType::CBR);
     				players.push_back(player);
-    				EV << NOW << "\t\t added CBR player '" << player->getName() << "'." << std::endl;
+    				cout << NOW << "\t added " << TUGamePlayer::typeToString(player->getType()) << " player '" << player->getName() << "'." << std::endl;
     			} else if (appName.compare(voipAppName) == 0) {
     				TUGamePlayer* player = new TUGamePlayer(voipDemand, connection, id);
     				player->setName(Oracle::get()->getName(id));
+    				player->setType(TUGamePlayer::PlayerType::VOIP);
 					players.push_back(player);
-					EV << NOW << "\t\t added VoIP player '" << player->getName() << "'." << std::endl;
+					cout << NOW << "\t added " << TUGamePlayer::typeToString(player->getType()) << " player '" << player->getName() << "'." << std::endl;
     			} else if (appName.compare(videoAppName) == 0) {
     				TUGamePlayer* player = new TUGamePlayer(videoDemand, connection, id);
     				player->setName(Oracle::get()->getName(id));
+    				player->setType(TUGamePlayer::PlayerType::VIDEO);
 					players.push_back(player);
-					EV << NOW << "\t\t added video player '" << player->getName() << "'." << std::endl;
+					cout << NOW << "\t added " << TUGamePlayer::typeToString(player->getType()) << " player '" << player->getName() << "'." << std::endl;
     			} else
     				throw std::runtime_error("LteTUGame::setPlayers couldn't recognize " + Oracle::get()->getName(id) + "'s application type: " + appName);
     		}
