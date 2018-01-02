@@ -76,7 +76,7 @@ const UserTxParams& AmcPilotD2D::computeTxParams(MacNodeId id, const Direction d
     // designed to solve this problem
 
     MacNodeId peerId = 0;  // FIXME this way, the getFeedbackD2D() function will return the first feedback available
-
+    peerId = amc_->getSelfId();
     LteSummaryFeedback sfb = (dir==UL || dir==DL) ? amc_->getFeedback(id, MACRO, txMode, dir) : amc_->getFeedbackD2D(id, MACRO, txMode, peerId);
 
     if (TxMode(txMode)==MULTI_USER) // Initialize MuMiMoMatrix

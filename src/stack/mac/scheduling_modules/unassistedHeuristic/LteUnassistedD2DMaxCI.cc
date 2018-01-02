@@ -44,7 +44,7 @@ void LteUnassistedD2DMaxCI::prepareSchedule() {
 
         // if we are allocating the UL subframe, this connection may be either UL or D2D
         Direction dir;
-        if (direction_ == UL)
+        if (direction_ == UL || direction_ == DL)
             dir = (MacCidToLcid(cid) == D2D_SHORT_BSR) ? D2D : direction_;
         else
             dir = DL;

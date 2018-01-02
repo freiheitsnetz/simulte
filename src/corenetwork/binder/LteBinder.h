@@ -100,6 +100,13 @@ class LteBinder : public cSimpleModule
      */
     // store the id of the UEs that are performing handover
     std::set<MacNodeId> ueHandoverTriggered_;
+
+
+    /*
+     * Dec 20 2017: BW stealing  support:  create a global variable containing BSR Maps of all the nodes in the simulation
+     * */
+    std::map<MacNodeId, LteMacBufferMap> nodeBsrBuf_;
+
   protected:
     virtual void initialize(int stages);
 
@@ -371,6 +378,15 @@ class LteBinder : public cSimpleModule
     bool hasUeHandoverTriggered(MacNodeId nodeId);
     void removeUeHandoverTriggered(MacNodeId nodeId);
     void updateUeInfoCellId(MacNodeId nodeId, MacCellId cellId);
+
+    /*
+     *  Dec 20 2017: BW stealing  support: Create a getter for global variable of BSR Maps of all the nodes in the simulation
+     */
+    LteMacBufferMap* getNodeBsrBuf(MacNodeId ue) {
+
+        return &nodeBsrBuf_[ue];
+    }
+
 };
 
 #endif

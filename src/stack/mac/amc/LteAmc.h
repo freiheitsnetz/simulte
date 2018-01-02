@@ -239,7 +239,10 @@ class LteAmc
       {
           unassisstedD2D_ = value;
       }
-
+      MacNodeId getSelfId()
+      {
+          return nodeId_;
+      }
 };
 
 #endif

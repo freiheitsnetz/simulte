@@ -509,7 +509,7 @@ LteSummaryFeedback LteAmc::getFeedback(MacNodeId id, Remote antenna, TxMode txMo
         }
         //create new with 0
     }
-    if (dir == UL)
+    if (dir == UL || dir == D2D)
     {
         if (ulNodeIndex_.find(id)!=ulNodeIndex_.end())
             return ulFeedbackHistory_.at(antenna).at(ulNodeIndex_.at(id)).at(txMode).get();
@@ -703,8 +703,16 @@ void LteAmc::cleanAmcStructures(Direction dir, ActiveSet aUser)
         std::vector<UserTxParams>::iterator et = dlTxParams_.end();
         for(; it != et; ++it)
         it->restoreDefaultValues();
+
+        if (unassisstedD2D_){
+            // clearing D2D assignments
+            it = d2dTxParams_.begin();
+            et = d2dTxParams_.end();
+            for(; it != et; ++it)
+                it->restoreDefaultValues();
+        }
     }
-    else if (dir == UL)
+    else if (dir == UL || dir == D2D) // Dec20_2017: BW stealing
     {
         // clearing assignments
         std::vector<UserTxParams>::iterator it = ulTxParams_.begin();

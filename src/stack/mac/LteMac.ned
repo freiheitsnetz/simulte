@@ -195,6 +195,7 @@ simple LteMacUeRealisticD2D extends LteMacUeRealistic
     bool usePreconfiguredTxParams = default(false);
     int d2dCqi = default(7);
     bool unassistedD2D = default(false);
+    bool unassistedD2DBWStealing = default(false);
             volatile xml optSolution = default(xmldoc("solution.sol"));
         
         //#

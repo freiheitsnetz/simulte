@@ -738,6 +738,17 @@ void LtePhyUeD2D::sendFeedback(LteFeedbackDoubleVector fbDl, LteFeedbackDoubleVe
     if(par("unassistedD2D"))
         {
             MacNodeId destId_ = (dynamic_cast<LteMacUeRealisticD2D*>(getParentModule()->getSubmodule("mac")))->getLastContactedId();
+                std::map<MacNodeId, std::map<MacNodeId, LteD2DMode> >* d2dNodePeerMap =  getBinder()->getD2DPeeringModeMap();
+                std::map<MacNodeId, std::map<MacNodeId, LteD2DMode> >::iterator it = d2dNodePeerMap->find(nodeId_);
+                if (it != d2dNodePeerMap->end())
+                {
+                    std::map<MacNodeId, LteD2DMode> d2dlink = it->second;
+                    MacNodeId dst = d2dlink.begin()->first;
+                    if(d2dlink.begin()->second == DM)
+                    {
+                        destId_ = dst;
+                    }
+                }
             uinfo->setDestId(destId_);
         }
     if ((uinfo->getDestId()==0) || !(par("unassistedD2D")))

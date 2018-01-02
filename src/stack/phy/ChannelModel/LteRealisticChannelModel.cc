@@ -1972,7 +1972,7 @@ double LteRealisticChannelModel::computeUrbanMacro(double d, MacNodeId nodeId)
 {
     if (d < 10)
         d = 10;
-
+    //Breakpoint distance
     double dbp = 4 * (hNodeB_ - 1) * (hUe_ - 1)
                         * ((carrierFrequency_ * 1000000000) / SPEED_OF_LIGHT);
     if (losMap_[nodeId])

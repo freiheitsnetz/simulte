@@ -167,7 +167,7 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
     /*
      * Checks RAC status
      */
-    virtual void checkRAC(MacCid ueRxD2DId);
+    virtual void checkRAC(MacNodeId ueRxD2DId);
 
     /*
      * Receives and handles RAC responses
@@ -194,6 +194,8 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
      */
     virtual void macPduMake();
 
+    virtual void writeBSGlobally(MacCid cid,LteMacBuffer* vTxQueue,std::map<MacCid, FlowControlInfo> connDesc_, MacNodeId nodeId_);
+
   public:
     /**
      * Getter for AMC module
@@ -205,7 +207,15 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
     /// Returns the BSR virtual buffers
     LteMacBufferMap* getBsrVirtualBuffers()
     {
-        return &bsrbuf_;
+        if((par("unassistedD2DBWStealing")))
+        {
+            return &bsrbuf_; //from binder get the globally accessible (i.e. present in binder) bsrbuffer map for the UE with it's node id
+        }
+        else
+        {
+            return &bsrbuf_;
+        }
+
     }
 
     // Power Model Parameters
@@ -336,6 +346,7 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
     {
         return lastContactedId_;
     }
+
 
 };
 
