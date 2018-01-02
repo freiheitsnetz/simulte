@@ -132,9 +132,25 @@ void LtePhyUeD2D::handleAirFrame(cMessage* msg)
                //handle feedback pkt
                if (lteInfo->getFrameType() == FEEDBACKPKT)
                {
-                   handleFeedbackPkt(lteInfo, frame);
+                   handleFeedbackPkt(lteInfo, frame); // Calculate the CQI Feedback
                    delete frame;
                    return;
+               }
+               // In Transmitting mode recording UL CQI
+               if ((lteInfo->getUserTxParams()) != NULL) // Emit the CQI Feedback for UL for the Tx D2D
+               {
+                   int cw = lteInfo->getCw();
+                   if (lteInfo->getUserTxParams()->readCqiVector().size() == 1)
+                       cw = 0;
+                   double cqi = lteInfo->getUserTxParams()->readCqiVector()[cw];
+                   tSample_->sample_ = cqi;
+                   tSample_->id_ = nodeId_;
+                   tSample_->module_ = getMacByMacNodeId(nodeId_);
+                   if (lteInfo->getDirection() == UL || lteInfo->getDirection() == D2D)
+                   {
+                       emit(averageCqiUl_, tSample_);
+                       emit(averageCqiUlvect_,cqi);
+                   }
                }
        }
 
@@ -142,6 +158,7 @@ void LtePhyUeD2D::handleAirFrame(cMessage* msg)
     if (lteInfo->getFrameType() == HARQPKT || lteInfo->getFrameType() == GRANTPKT || lteInfo->getFrameType() == RACPKT || lteInfo->getFrameType() == D2DMODESWITCHPKT)
     {
         EV << "LtePhyUeD2D: received new LteAirFrame with frameType HARQ/Grant/RAC/D2DModeSwitch:: " << lteInfo->getFrameType() << " from channel" << endl;
+        EV << "Received control pkt " << endl;
         handleControlMsg(frame, lteInfo);
         return;
     }
@@ -362,14 +379,39 @@ void LtePhyUeD2D::requestFeedback(UserControlInfo* lteinfo, LteAirFrame* frame,
         if (dir == UL)
         {
             pkt->setLteFeedbackDoubleVectorUl(fb_);
-            //Prepare  parameters for next loop iteration - in order to compute SNR in DL
-            lteinfo->setTxPower(txPower_);
-            lteinfo->setDirection(DL);
 
-            //Get snr for DL direction
-            snr = channelModel_->getSINR(frame, lteinfo);
 
-            dir = DL;
+            if ((enableD2DCqiReporting_)&& (par("unassistedD2D")))
+            {
+                // compute D2D feedback for all possible peering UEs
+                std::vector<UeInfo*>* ueList = binder_->getUeList();
+                std::vector<UeInfo*>::iterator it = ueList->begin();
+                for (; it != ueList->end(); ++it)
+                {
+                    MacNodeId peerId = (*it)->id;
+//                    if (peerId != lteinfo->getSourceId() && binder_->checkD2DCapability(lteinfo->getSourceId(), peerId) && binder_->getNextHop(peerId) == nodeId_)
+                    if (peerId != lteinfo->getSourceId() && binder_->checkD2DCapability(lteinfo->getSourceId(), peerId))
+                    {
+                        // the source UE might communicate with this peer using D2D, so compute feedback
+                        // retrieve the position of the peer
+                        Coord peerCoord = (*it)->phy->getCoord();
+                        // get SINR for this link
+                        snr = channelModel_->getSINR_D2D(frame, lteinfo, peerId, peerCoord, nodeId_);
+                        // compute the feedback for this link
+                        fb_ = lteFeedbackComputation_->computeFeedback(type, rbtype, txmode,
+                                antennaCws, numPreferredBand, IDEAL, nRus, snr,
+                                lteinfo->getSourceId());
+                        pkt->setLteFeedbackDoubleVectorD2D(peerId, fb_);
+                     }
+                 }
+//                //Prepare  parameters for next loop iteration - in order to compute SNR in DL
+//                lteinfo->setTxPower(txPower_);
+//                lteinfo->setDirection(DL);
+//                dir = DL;
+//                //Get snr for DL direction
+//                snr = channelModel_->getSINR(frame, lteinfo);
+            }
+
         }
         else if ((dir == DL) || (dir == D2D))
         {
@@ -402,6 +444,14 @@ void LtePhyUeD2D::requestFeedback(UserControlInfo* lteinfo, LteAirFrame* frame,
                     }
                 }
             }
+//            else
+//            {
+//                dir = UL;
+//                lteinfo->setDirection(UL);
+//                // Get snr for DL direction
+//                snr = channelModel_->getSINR(frame, lteinfo);
+//
+//            }
             dir = UNKNOWN_DIRECTION;
         }
     }
@@ -688,6 +738,17 @@ void LtePhyUeD2D::sendFeedback(LteFeedbackDoubleVector fbDl, LteFeedbackDoubleVe
     if(par("unassistedD2D"))
         {
             MacNodeId destId_ = (dynamic_cast<LteMacUeRealisticD2D*>(getParentModule()->getSubmodule("mac")))->getLastContactedId();
+                std::map<MacNodeId, std::map<MacNodeId, LteD2DMode> >* d2dNodePeerMap =  getBinder()->getD2DPeeringModeMap();
+                std::map<MacNodeId, std::map<MacNodeId, LteD2DMode> >::iterator it = d2dNodePeerMap->find(nodeId_);
+                if (it != d2dNodePeerMap->end())
+                {
+                    std::map<MacNodeId, LteD2DMode> d2dlink = it->second;
+                    MacNodeId dst = d2dlink.begin()->first;
+                    if(d2dlink.begin()->second == DM)
+                    {
+                        destId_ = dst;
+                    }
+                }
             uinfo->setDestId(destId_);
         }
     if ((uinfo->getDestId()==0) || !(par("unassistedD2D")))

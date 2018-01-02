@@ -20,6 +20,7 @@ public:
     LteUnassistedD2DMaxCI(LteSchedulerUeUnassistedD2D* lteSchedulerUeUnassistedD2D_) {
 
         ueScheduler_ = lteSchedulerUeUnassistedD2D_;
+//        numActiveConnections_ = ueScheduler_->ueMac_->registerSignal("numActiveConnections");
     }
 
     ~LteUnassistedD2DMaxCI() {

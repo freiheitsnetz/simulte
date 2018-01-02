@@ -14,6 +14,7 @@
 #include "stack/mac/layer/LteMacEnbRealisticD2D.h"
 #include "stack/mac/buffer/harq_d2d/LteHarqBufferTxD2D.h"
 #include "common/LteCommon.h"
+#include "corenetwork/binder/LteBinder.h"
 
 class LteSchedulingGrant;
 class LteSchedulerUeUl;
@@ -166,7 +167,7 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
     /*
      * Checks RAC status
      */
-    virtual void checkRAC(MacCid ueRxD2DId);
+    virtual void checkRAC(MacNodeId ueRxD2DId);
 
     /*
      * Receives and handles RAC responses
@@ -193,6 +194,8 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
      */
     virtual void macPduMake();
 
+    virtual void writeBSGlobally(MacCid cid,LteMacBuffer* vTxQueue,std::map<MacCid, FlowControlInfo> connDesc_, MacNodeId nodeId_);
+
   public:
     /**
      * Getter for AMC module
@@ -204,7 +207,15 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
     /// Returns the BSR virtual buffers
     LteMacBufferMap* getBsrVirtualBuffers()
     {
-        return &bsrbuf_;
+        if((par("unassistedD2DBWStealing")))
+        {
+            return &bsrbuf_; //from binder get the globally accessible (i.e. present in binder) bsrbuffer map for the UE with it's node id
+        }
+        else
+        {
+            return &bsrbuf_;
+        }
+
     }
 
     // Power Model Parameters
@@ -263,6 +274,26 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
         return check_and_cast<LteDeployer*>(getParentModule()-> getParentModule()-> getParentModule()-> getSubmodule("eNodeB")->getSubmodule("deployer")); // Deployer
     }
 
+    LteBinder* getSimulationBinder()
+    {
+        // Get local binder
+        if (binder_ != NULL)
+            return binder_;
+
+        // return check_and_cast<LteDeployer*>(getParentModule()-> getParentModule()-> getParentModule()-> getSubmodule("eNodeB")->getSubmodule("binder")); // Binder
+        return check_and_cast<LteBinder*>(getSimulation()->getModuleByPath("binder"));
+    }
+    LteBinder* geteNBBinder(LteMacEnbRealisticD2D* refEnb_)
+    {
+        binder_ = getBinder();
+        return binder_;
+    }
+
+    MacNodeId geteNBMacID()
+    {
+        return enb_->getMacNodeId();
+    }
+
     LteMacUeRealisticD2D();
     virtual ~LteMacUeRealisticD2D();
 
@@ -315,6 +346,7 @@ class LteMacUeRealisticD2D : public LteMacUeRealistic
     {
         return lastContactedId_;
     }
+
 
 };
 

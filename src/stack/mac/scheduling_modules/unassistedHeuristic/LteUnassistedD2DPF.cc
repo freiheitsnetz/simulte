@@ -21,6 +21,8 @@ void LteUnassistedD2DPF::prepareSchedule() {
 
     // Create a working copy of the active set
     activeConnectionTempSet_ = activeConnectionSet_;
+    int activeSetSize = activeConnectionTempSet_.size();
+    ueScheduler_->ueMac_->emit(numActiveConnections_, activeSetSize);
 
     // Build the score list by cycling through the active connections.
     ScoreList score;
@@ -83,7 +85,8 @@ void LteUnassistedD2DPF::prepareSchedule() {
         double s=.0;
 
         if (pfRate_.find(cid)==pfRate_.end()) pfRate_[cid]=0;
-
+        //pfRate_[cid] is the long term rate or historical average data rate of the connection
+        // availableBytes / availableBlocks is the short term data rate
         if(pfRate_[cid] < scoreEpsilon_) s = 1.0 / scoreEpsilon_;
         else if(availableBlocks > 0) s = ((availableBytes / availableBlocks) / pfRate_[cid]) + uniform(getEnvir()->getRNG(0),-scoreEpsilon_/2.0, scoreEpsilon_/2.0);
         else s = 0.0;

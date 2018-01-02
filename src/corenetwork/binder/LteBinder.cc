@@ -703,6 +703,8 @@ void LteBinder::initialize(int stage)
 {
     if (stage == 0)
     {
+        numBands_ = par("numBands");
+
         const char * stringa;
 
         std::vector<int> apppriority;

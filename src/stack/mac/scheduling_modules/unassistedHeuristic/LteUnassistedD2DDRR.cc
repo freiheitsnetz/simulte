@@ -14,6 +14,9 @@ void LteUnassistedD2DDRR::prepareSchedule() {
 
     bool terminateFlag = false, activeFlag = true, eligibleFlag = true;
     unsigned int eligible = activeTempList_.size();
+    ueScheduler_->ueMac_->emit(numActiveConnections_, eligible);
+
+
     // Loop until the active list is not empty and there is spare room.
     while (!activeTempList_.empty() && eligible > 0)
     {
@@ -100,6 +103,9 @@ void LteUnassistedD2DDRR::prepareSchedule() {
 void LteUnassistedD2DDRR::commitSchedule() {
     activeList_ = activeTempList_;
     activeConnectionSet_ = activeConnectionTempSet_;
+    int activeSetSize = activeConnectionTempSet_.size();
+    ueScheduler_->ueMac_->emit(numActiveConnections_, activeSetSize);
+
     drrMap_ = drrTempMap_;
 }
 

@@ -82,7 +82,7 @@ class LteScheduler
      * FIXED has size, URGENT has max size, FITALL always has 4294967295U size.
      */
     std::map<LteTrafficClass, int> grantSizeMap_;
-
+    simsignal_t numActiveConnections_;
 //    CplexTest cplexTest_;
 
   public:

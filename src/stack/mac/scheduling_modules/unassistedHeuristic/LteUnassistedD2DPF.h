@@ -57,6 +57,7 @@ public:
         pfAlpha_ = pfAlpha;
         pfRate_.clear();
         ueScheduler_=lteSchedulerUeUnassistedD2D;
+//        numActiveConnections_ = ueScheduler_->ueMac_->registerSignal("numActiveConnections");
     }
 
     // Scheduling functions ********************************************************************

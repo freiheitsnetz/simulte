@@ -17,6 +17,7 @@
 #include "common/LteCommon.h"
 #include "stack/mac/amc/LteAmc.h"
 #include "stack/mac/amc/UserTxParams.h"
+#include <random>
 
 /**
  * @class LteSchedulerUeUnassistedD2D
@@ -39,6 +40,8 @@ class LteSchedulerUeUnassistedD2D: public LteSchedulerEnb {
     friend class LteUnassistedD2DDRR;
     friend class LteUnassistedD2DPF;
     friend class LteUnassistedD2DMaxCI;
+    friend class LteUnassistedD2DRandom;
+
 
 protected:
 

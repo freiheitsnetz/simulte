@@ -341,6 +341,15 @@ void LteMacBase::initialize(int stage)
 
         measuredItbs_ = registerSignal("measuredItbs");
         measuredItbs_lte_ = registerSignal("measuredItbs_lte");
+
+        for (int i = 0; i < getBinder()->getNumBands(); i++) {
+               char signalName[32];
+               sprintf(signalName, "rbsGranted%d", i);
+               simsignal_t signal = registerSignal(signalName);
+               cProperty *statisticTemplate = getProperties()->get("statisticTemplate", "rbsGrantedTemplate");
+               getEnvir()->addResultRecorders(this, signal, signalName,  statisticTemplate);
+               rbsGranted.push_back(signal);
+            }
         WATCH(queueSize_);
         WATCH(maxBytesPerTti_);
         WATCH(nodeId_);

@@ -16,6 +16,9 @@ void LteUnassistedD2DMaxCI::prepareSchedule() {
               << ueScheduler_->ueMac_->getMacNodeId() << endl;
 
     activeConnectionTempSet_ = activeConnectionSet_;
+    int activeSetSize = activeConnectionTempSet_.size();
+    ueScheduler_->ueMac_->emit(numActiveConnections_, activeSetSize);
+
 
     // Build the score list by cycling through the active connections.
     ScoreList score;
@@ -41,7 +44,7 @@ void LteUnassistedD2DMaxCI::prepareSchedule() {
 
         // if we are allocating the UL subframe, this connection may be either UL or D2D
         Direction dir;
-        if (direction_ == UL)
+        if (direction_ == UL || direction_ == DL)
             dir = (MacCidToLcid(cid) == D2D_SHORT_BSR) ? D2D : direction_;
         else
             dir = DL;
@@ -85,7 +88,7 @@ void LteUnassistedD2DMaxCI::prepareSchedule() {
         // current user bytes per slot
         byPs = (blocks > 0) ? (availableBytes / blocks) : 0;
 
-        // Create a new score descriptor for the connection, where the score is equal to the ratio between bytes per slot and long term rate
+        // Create a new score descriptor for the connection, where the score is equal to the bytes per slot i.e. the Short term data rate
         ScoreDesc desc(cid, byPs);
         // insert the cid score
         score.push(desc);

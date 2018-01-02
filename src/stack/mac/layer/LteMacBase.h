@@ -67,7 +67,12 @@ class LteMacBase : public cSimpleModule
     simsignal_t measuredItbs_;
     simsignal_t measuredItbs_lte_;
 
+    /** Collects each TTI the resource blocks granted to this UE. */
+
+    std::vector<simsignal_t> rbsGranted;
+    //    simsignal_t rbsGranted[getBinder()->getNumBands()];
     TaggedSample* tSample_;
+
     /*
      * Data Structures
      */
