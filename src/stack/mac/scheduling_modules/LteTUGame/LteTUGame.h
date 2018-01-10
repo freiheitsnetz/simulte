@@ -13,6 +13,7 @@
 #include "stack/mac/scheduling_modules/LteTUGame/src/User.h"
 #include "stack/mac/scheduling_modules/LteTUGame/src/FlowClassUpdater.h"
 #include "stack/mac/scheduling_modules/LteTUGame/src/shapley/shapley.h"
+#include "stack/mac/scheduling_modules/LteTUGame/src/shapley/TUGame.h"
 
 using namespace std;
 
@@ -136,7 +137,20 @@ public:
 			classDemandVid += rbDemand;
 		}
 		// Print info.
-		EV << NOW << " \tClass demands are CBR=" << classDemandCbr << " VOIP=" << classDemandVoip << " VID=" << classDemandVid << << " [B]" << endl;
+		cout << NOW << " \tClass demands are CBR=" << classDemandCbr << " VOIP=" << classDemandVoip << " VID=" << classDemandVid << " [RB]" << endl;
+
+		// Apply Shapley's value to find fair division of available resources to our user classes.
+		TUGame_Shapley::TUGamePlayer shapley_cbr(classDemandCbr),
+									 shapley_voip(classDemandVoip),
+									 shapley_vid(classDemandVid);
+		Shapley::Coalition<TUGame_Shapley::TUGamePlayer> players;
+		players.add(&shapley_cbr);
+		players.add(&shapley_voip);
+		players.add(&shapley_vid);
+		unsigned int numRBs = Oracle::get()->getNumRBs();
+		std::map<const TUGame_Shapley::TUGamePlayer*, double> shapleyValues = TUGame_Shapley::play(players, numRBs);
+		// Print results.
+		cout << NOW << " Shapley division of " << numRBs << " RBs is CBR=" << shapleyValues[&shapley_cbr] <<  " VOIP=" << shapleyValues[&shapley_voip] << " VID=" << shapleyValues[&shapley_vid] << "." << endl;
     }
 
     virtual ~LteTUGame() {
