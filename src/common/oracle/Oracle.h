@@ -22,6 +22,7 @@
 class Oracle : public omnetpp::cSimpleModule {
 public:
     Oracle() : configMessage("Oracle::config") {
+    	delete Oracle::SINGLETON;
         Oracle::SINGLETON = this;
     }
     virtual ~Oracle() {
