@@ -33,6 +33,17 @@ public:
 			throw invalid_argument("getUserType(" + appName + ") not supported.");
 	}
 
+	static void setRealtimeValues(User* user) {
+		if (user->getType() == User::Type::VOIP) {
+			user->setRealtimeTarget(100/*ms*/, 8/*bit per TTI*/);
+			EV << NOW << " LteTUGame::setRealtimeValues(" << user->toString() << ") realtime values set to VoIP." << endl;
+		} else if (user->getType() == User::Type::VIDEO) {
+			user->setRealtimeTarget(100/*ms*/, 242/*bit per TTI*/);
+			EV << NOW << " LteTUGame::setRealtimeValues(" << user->toString() << ") realtime values set to Video." << endl;
+		} else
+			throw invalid_argument("LteTUGame::setRealtimeValues(" + user->toString() + ") not supported.");
+	}
+
 	unsigned int getBytesPerBlock(const MacCid& connection) {
 		MacNodeId nodeId = MacCidToNodeId(connection);
 
@@ -94,7 +105,7 @@ public:
         EV << NOW << " LteTUGame::schedule" << std::endl;
         // Update player list - adds new players and updates their active status.
         EV << NOW << " LteTUGame::updatePlayers" << std::endl;
-        FlowClassUpdater::updatePlayers(connections, users, LteTUGame::getUserType);
+        FlowClassUpdater::updatePlayers(connections, users, LteTUGame::getUserType, LteTUGame::setRealtimeValues);
 
         // Update classes to contain all corresponding active players.
         EV << NOW << " LteTUGame::updateClasses" << std::endl;
@@ -120,24 +131,24 @@ public:
 					  classDemandVid = 0;
 		// Constant Bitrate users.
 		for (const User* user : classCbr.getMembers()) {
-			unsigned int byteDemand = getTotalDemand(user->getConnectionId());
+			unsigned int byteDemand = getCurrentDemand(user->getConnectionId());
 			unsigned int rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
 			classDemandCbr += rbDemand;
 		}
 		// Voice-over-IP users.
 		for (const User* user : classVoip.getMembers()) {
-			unsigned int byteDemand = getTotalDemand(user->getConnectionId());
+			unsigned int byteDemand = getCurrentDemand(user->getConnectionId());
 			unsigned int rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
 			classDemandVoip += rbDemand;
 		}
 		// Video streaming users.
 		for (const User* user : classVid.getMembers()) {
-			unsigned int byteDemand = getTotalDemand(user->getConnectionId());
+			unsigned int byteDemand = getCurrentDemand(user->getConnectionId());
 			unsigned int rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
 			classDemandVid += rbDemand;
 		}
 		// Print info.
-		cout << NOW << " \tClass demands are CBR=" << classDemandCbr << " VOIP=" << classDemandVoip << " VID=" << classDemandVid << " [RB]" << endl;
+		EV << NOW << " \tClass demands are CBR=" << classDemandCbr << " VOIP=" << classDemandVoip << " VID=" << classDemandVid << " [RB]" << endl;
 
 		// Apply Shapley's value to find fair division of available resources to our user classes.
 		TUGame_Shapley::TUGamePlayer shapley_cbr(classDemandCbr),
@@ -150,7 +161,8 @@ public:
 		unsigned int numRBs = Oracle::get()->getNumRBs();
 		std::map<const TUGame_Shapley::TUGamePlayer*, double> shapleyValues = TUGame_Shapley::play(players, numRBs);
 		// Print results.
-		cout << NOW << " Shapley division of " << numRBs << " RBs is CBR=" << shapleyValues[&shapley_cbr] <<  " VOIP=" << shapleyValues[&shapley_voip] << " VID=" << shapleyValues[&shapley_vid] << "." << endl;
+		EV << NOW << " Shapley division of " << numRBs << " RBs is CBR=" << shapleyValues[&shapley_cbr] <<
+				" VOIP=" << shapleyValues[&shapley_voip] << " VID=" << shapleyValues[&shapley_vid] << "." << endl;
     }
 
     virtual ~LteTUGame() {
