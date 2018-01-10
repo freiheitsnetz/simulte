@@ -81,6 +81,14 @@ public:
 		return bsrBuffer->front().first;
 	}
 
+	/**
+	 * @return Number of blocks required to serve 'numBytes' for 'connection'.
+	 */
+	unsigned int getRBDemand(const MacCid& connection, const unsigned int& numBytes) {
+		unsigned int bytesPerBlock = getBytesPerBlock(connection);
+		return bytesPerBlock > 0 ? numBytes / bytesPerBlock : 0;
+	}
+
     virtual void schedule(std::set<MacCid>& connections) override {
         EV << NOW << " LteTUGame::schedule" << std::endl;
         // Update player list - adds new players and updates their active status.
@@ -105,13 +113,30 @@ public:
 			EV << user->toString() << " ";
 		EV << endl;
 
-		try {
-			if (NOW >= 1.0 && NOW <= 1.1 )
-				for (const User* user : users)
-					cout << NOW << " bsrBuffer(" << user->toString() << ")=" << getTotalDemand(user->getConnectionId()) << endl;
-		} catch (const exception& e) {
-
+		/** Demand in resource blocks.*/
+		unsigned long classDemandCbr = 0,
+					  classDemandVoip = 0,
+					  classDemandVid = 0;
+		// Constant Bitrate users.
+		for (const User* user : classCbr.getMembers()) {
+			unsigned int byteDemand = getTotalDemand(user->getConnectionId());
+			unsigned int rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
+			classDemandCbr += rbDemand;
 		}
+		// Voice-over-IP users.
+		for (const User* user : classVoip.getMembers()) {
+			unsigned int byteDemand = getTotalDemand(user->getConnectionId());
+			unsigned int rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
+			classDemandVoip += rbDemand;
+		}
+		// Video streaming users.
+		for (const User* user : classVid.getMembers()) {
+			unsigned int byteDemand = getTotalDemand(user->getConnectionId());
+			unsigned int rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
+			classDemandVid += rbDemand;
+		}
+		// Print info.
+		EV << NOW << " \tClass demands are CBR=" << classDemandCbr << " VOIP=" << classDemandVoip << " VID=" << classDemandVid << << " [B]" << endl;
     }
 
     virtual ~LteTUGame() {
