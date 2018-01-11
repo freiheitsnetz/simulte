@@ -102,7 +102,7 @@ private:
 	/**
 	 * Requests a scheduling grant for the given connection and list of resources.
 	 */
-	SchedulingResult request(MacCid connectionId, std::vector<Band> resources);
+	SchedulingResult request(const MacCid& connectionId, const std::vector<Band>& resources);
 
 	/**
 	 * Bypasses the allocator, and instead directly allocates resources to nodes.

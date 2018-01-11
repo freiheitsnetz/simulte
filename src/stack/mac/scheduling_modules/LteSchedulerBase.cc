@@ -2,14 +2,15 @@
 
 using namespace std;
 
-LteSchedulerBase::SchedulingResult LteSchedulerBase::request(MacCid connectionId, std::vector<Band> resources) {
+LteSchedulerBase::SchedulingResult LteSchedulerBase::request(const MacCid& connectionId, const std::vector<Band>& resources) {
 	bool terminate = false;
 	bool active = true;
 	bool eligible = true;
 
 	std::vector<BandLimit> bandLimitVec;
-	for (const Band& band : resources)
-		bandLimitVec.push_back(BandLimit(band));
+	for (const Band& band : resources) {
+		bandLimitVec.emplace_back(BandLimit(band));
+	}
 
 	// requestGrant(...) might alter the three bool values, so we can check them afterwards.
 	unsigned long max = 4294967295U; // 2^32

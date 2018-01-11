@@ -36,8 +36,13 @@ public:
 
 	/**
 	 * Sets user's maximum delay and bitrate for VoIP or Video Streaming applications, taken from the paper on Transferable Utility games.
+	 * Also determines whether the user is a D2D user or not.
 	 */
 	static void setRealtimeValues(User* user) {
+		// Determine whether this is a D2D flow.
+		user->setD2D(Oracle::get()->isD2DFlow(user->getConnectionId()));
+
+		// Set user type.
 		if (user->getType() == User::Type::VOIP) {
 			user->setRealtimeTarget(100/*ms*/, 8/*bit per TTI*/);
 			EV << NOW << " LteTUGame::setRealtimeValues(" << user->toString() << ") realtime values set to VoIP." << endl;

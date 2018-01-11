@@ -102,6 +102,8 @@ public:
     	this->feedbackComputer = computer;
     }
 
+    bool isD2DFlow(const MacCid& nodeId);
+
 protected:
     double maxSimTime = 0.0;
 
