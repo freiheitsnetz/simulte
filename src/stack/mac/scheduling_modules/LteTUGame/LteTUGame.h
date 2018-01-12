@@ -26,7 +26,7 @@ public:
 	static User::Type getUserType(const MacNodeId& nodeId) {
 		string appName = Oracle::get()->getApplicationName(nodeId);
 		EV << NOW << " LteTUGame::getUserType(" << appName << ")" << endl;
-		if (appName == "VoIPSender")
+		if (appName == "VoIPSender" || appName == "inet::SimpleVoIPSender")
 			return User::Type::VOIP;
 		else if (appName == "inet::UDPBasicApp")
 			return User::Type::CBR;
