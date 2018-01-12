@@ -125,10 +125,12 @@ void VoIPReceiver::playout(bool finish)
     emit(voIPFrameLossSignal_, sample);
 
     //Vector for managing duplicates
-    bool* isArrived = new bool[pPacket->getNframes()];
+//    bool* isArrived = new bool[pPacket->getNframes()];
+    std::vector<bool> isArrived;
     for (unsigned int y = 0; y < pPacket->getNframes(); y++)
     {
-        isArrived[y] = false;
+//        isArrived[y] = false;
+    	isArrived.push_back(false);
     }
 
     simtime_t last_jitter = 0.0;
@@ -152,7 +154,7 @@ void VoIPReceiver::playout(bool finish)
         EV << "VoIPReceiver::playout - Jitter measured: " << last_jitter << " TALK[" << pPacket->getIDtalk() << "] - FRAME[" << pPacket->getIDframe() << "]\n";
 
         //Duplicates management
-        if (isArrived[pPacket->getIDframe()])
+        if (pPacket->getIDframe() < isArrived.size() && isArrived.at(pPacket->getIDframe()))
         {
             EV << "VoIPReceiver::playout - Duplicated Packet: TALK[" << pPacket->getIDtalk() << "] - FRAME[" << pPacket->getIDframe() << "]\n";
             delete pPacket;
@@ -181,7 +183,8 @@ void VoIPReceiver::playout(bool finish)
                 --mBufferSpace_;
 
                 //duplicates management
-                isArrived[pPacket->getIDframe()] = true;
+                if (pPacket->getIDframe() < isArrived.size())
+                	isArrived.at(pPacket->getIDframe()) = true;
 
                 mPlayoutQueue_.push_back(pPacket);
             }
@@ -225,8 +228,6 @@ void VoIPReceiver::playout(bool finish)
     if (mPlayoutDelay_ < 0.0)
         mPlayoutDelay_ = 0.0;
     EV << "\t New Playout Delay: " << mPlayoutDelay_ << "\n\n";
-
-    delete[] isArrived;
 }
 
 double VoIPReceiver::eModel(simtime_t delay, double loss)
