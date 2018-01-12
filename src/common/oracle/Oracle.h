@@ -22,12 +22,9 @@
 class Oracle : public omnetpp::cSimpleModule {
 public:
     Oracle() : configMessage("Oracle::config") {
-    	delete Oracle::SINGLETON;
         Oracle::SINGLETON = this;
     }
     virtual ~Oracle() {
-        if (configMessage.isScheduled())
-            cancelAndDelete(&configMessage);
     }
 
     static Oracle* get() {
@@ -119,10 +116,9 @@ protected:
 
 private:
     static Oracle* SINGLETON;
-
     cMessage configMessage;
-
     LteFeedbackComputation* feedbackComputer = nullptr;
+
 };
 
 Define_Module(Oracle); // Register_Class also works... what's the difference?

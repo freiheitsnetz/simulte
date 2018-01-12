@@ -64,8 +64,9 @@ void Oracle::configure() {
 
 void Oracle::handleMessage(cMessage *msg) {
     EV << "Oracle::handleMessage" << std::endl;
-    if (msg == &configMessage)
+    if (msg == &configMessage) {
         configure();
+    }
 }
 
 MacNodeId Oracle::getEnodeBID() const {
