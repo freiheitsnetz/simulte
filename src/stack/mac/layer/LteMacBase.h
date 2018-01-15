@@ -104,7 +104,7 @@ class LteMacBase : public cSimpleModule
     int queueSize_;
 
     /// Mac Sdu Real Buffers
-    LteMacBuffers mbuf_;
+	LteMacBuffers mbuf_;
 
     /// Mac Sdu Virtual Buffers
     LteMacBufferMap macBuffers_;

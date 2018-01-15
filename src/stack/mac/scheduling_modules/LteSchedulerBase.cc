@@ -1,4 +1,6 @@
 #include "stack/mac/scheduling_modules/LteSchedulerBase.h"
+#include "stack/mac/layer/LteMacBase.h"
+#include "stack/mac/buffer/LteMacQueue.h"
 
 using namespace std;
 
@@ -26,7 +28,7 @@ LteSchedulerBase::SchedulingResult LteSchedulerBase::request(const MacCid& conne
 	else
 		result = LteSchedulerBase::SchedulingResult::OK;
 
-	cout << NOW << " LteSchedulerBase::request RB allocation of node " << MacCidToNodeId(connectionId) << " ->";
+	cout << NOW << " " << dirToA(direction_) << " LteSchedulerBase::request RB allocation of node " << MacCidToNodeId(connectionId) << " ->";
 	for (const Band& resource : resources)
 		cout << " " << resource;
 	cout << " = " << schedulingResultToString(result) << std::endl;
@@ -243,7 +245,7 @@ unsigned int LteSchedulerBase::getCurrentDemand(const MacCid& connection) {
 	return bsrBuffer->front().first;
 }
 
-unsigned int LteSchedulerBase::getRBDemand(const MacCid& connection, const unsigned int& numBytes) {
-	unsigned int bytesPerBlock = getAverageBytesPerBlock(connection);
-	return bytesPerBlock > 0 ? numBytes / bytesPerBlock : 0;
+double LteSchedulerBase::getRBDemand(const MacCid& connection, const unsigned int& numBytes) {
+	double bytesPerBlock = (double) getAverageBytesPerBlock(connection);
+	return bytesPerBlock > 0 ? ((double) numBytes) / bytesPerBlock : 0.0;
 }

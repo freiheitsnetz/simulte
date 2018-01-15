@@ -294,6 +294,7 @@ bool LteMacUeRealistic::bufferizePacket(cPacket* pkt)
     if (pkt->getByteLength() == 0)
         return false;
 
+
     pkt->setTimestamp();        // Add timestamp with current time to packet
 
     FlowControlInfo* lteInfo = check_and_cast<FlowControlInfo*>(pkt->getControlInfo());

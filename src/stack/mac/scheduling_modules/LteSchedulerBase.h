@@ -123,7 +123,7 @@ protected:
 	/**
 	 * @return Number of blocks required to serve 'numBytes' for 'connection'.
 	 */
-	unsigned int getRBDemand(const MacCid& connection, const unsigned int& numBytes);
+	double getRBDemand(const MacCid& connection, const unsigned int& numBytes);
 
 private:
 	/** Maps a connection to the list of resources that the schedule() function decided to schedule to it. */
