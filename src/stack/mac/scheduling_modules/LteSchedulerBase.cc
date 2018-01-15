@@ -26,10 +26,10 @@ LteSchedulerBase::SchedulingResult LteSchedulerBase::request(const MacCid& conne
 	else
 		result = LteSchedulerBase::SchedulingResult::OK;
 
-	EV << NOW << " LteSchedulerBase::request RB allocation of node " << MacCidToNodeId(connectionId) << " ->";
+	cout << NOW << " LteSchedulerBase::request RB allocation of node " << MacCidToNodeId(connectionId) << " ->";
 	for (const Band& resource : resources)
-		EV << " " << resource;
-	EV << " = " << schedulingResultToString(result) << std::endl;
+		cout << " " << resource;
+	cout << " = " << schedulingResultToString(result) << std::endl;
 
 	return result;
 }
@@ -110,7 +110,8 @@ void LteSchedulerBase::prepareSchedule() {
 			}
 
 			// Make sure it's active.
-			if (eNbScheduler_->bsrbuf_->at(connection)->isEmpty()) {
+			LteMacBuffer* bsrBuffer = direction_ == UL ? eNbScheduler_->bsrbuf_->at(connection) : eNbScheduler_->vbuf_->at(connection);
+			if (bsrBuffer->isEmpty()) {
 				EV << NOW << " LteSchedulerBase::prepareSchedule Connection " << connection << " of node "
 						<< id << " removed from active connection set - no longer active as BSR buffer at eNB is empty."
 						<< std::endl;
@@ -187,4 +188,62 @@ void LteSchedulerBase::commitSchedule() {
 
 	if (anythingToAllocate)
 		allocate(reuseDecisions);
+}
+
+Direction LteSchedulerBase::getDirection(const MacCid& connection) {
+	Direction dir;
+	if (direction_ == UL)
+		dir = (MacCidToLcid(connection) == D2D_SHORT_BSR) ? D2D : (MacCidToLcid(connection) == D2D_MULTI_SHORT_BSR) ? D2D_MULTI : UL;
+	else
+		dir = DL;
+	return dir;
+}
+
+unsigned int LteSchedulerBase::getBytesOnBand(const MacNodeId& nodeId, const Band& band, const unsigned int& numBlocks, const Direction& dir) {
+	return eNbScheduler_->mac_->getAmc()->computeBytesOnNRbs(nodeId, band, numBlocks, dir);
+}
+
+unsigned int LteSchedulerBase::getAverageBytesPerBlock(const MacCid& connection) {
+	MacNodeId nodeId = MacCidToNodeId(connection);
+
+	unsigned int totalAvailableRBs = 0,
+				 availableBytes = 0;
+
+	// Determine direction.
+	Direction dir = getDirection(connection);
+
+	// For each antenna...
+	const UserTxParams& info = eNbScheduler_->mac_->getAmc()->computeTxParams(nodeId, dir);
+	for (std::set<Remote>::iterator antennaIt = info.readAntennaSet().begin(); antennaIt != info.readAntennaSet().end(); antennaIt++) {
+		// For each resource...
+		for (Band resource = 0; resource != Oracle::get()->getNumRBs(); resource++) {
+			// Determine number of RBs.
+			unsigned int availableRBs = eNbScheduler_->readAvailableRbs(nodeId, *antennaIt, resource);
+			totalAvailableRBs += availableRBs;
+			if (availableRBs > 1)
+				cerr << NOW << " LteTUGame::getAverageBytesPerBlock(" << nodeId << ") with availableRBs==" << availableRBs << "!" << endl;
+			// Determine number of bytes on this 'logical band' (which is a resource block if availableRBs==1).
+			availableBytes += getBytesOnBand(nodeId, resource, availableRBs, dir);
+		}
+	}
+
+	// Average number of bytes available on 1 RB.
+	return (totalAvailableRBs > 0) ? (availableBytes / totalAvailableRBs) : 0;
+}
+
+
+unsigned int LteSchedulerBase::getTotalDemand(const MacCid& connection) {
+	LteMacBuffer* bsrBuffer = direction_ == UL ? eNbScheduler_->bsrbuf_->at(connection) : eNbScheduler_->vbuf_->at(connection);
+	unsigned int bytesInBsrBuffer = bsrBuffer->getQueueOccupancy();
+	return bytesInBsrBuffer;
+}
+
+unsigned int LteSchedulerBase::getCurrentDemand(const MacCid& connection) {
+	LteMacBuffer* bsrBuffer = direction_ == UL ? eNbScheduler_->bsrbuf_->at(connection) : eNbScheduler_->vbuf_->at(connection);
+	return bsrBuffer->front().first;
+}
+
+unsigned int LteSchedulerBase::getRBDemand(const MacCid& connection, const unsigned int& numBytes) {
+	unsigned int bytesPerBlock = getAverageBytesPerBlock(connection);
+	return bytesPerBlock > 0 ? numBytes / bytesPerBlock : 0;
 }

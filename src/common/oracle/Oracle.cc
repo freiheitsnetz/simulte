@@ -242,6 +242,11 @@ void Oracle::printAllocation(std::vector<std::vector<AllocatedRbsPerBandMapA>>& 
 }
 
 bool Oracle::isD2DFlow(const MacCid& nodeId) {
-	unsigned short lcid = MacCidToLcid(nodeId);
-	return lcid == D2D_SHORT_BSR || lcid == D2D_MULTI_SHORT_BSR || lcid == D2D;
+	const UeInfo* info = getUeInfo(MacCidToNodeId(nodeId));
+	cModule* module = info->ue;
+	string d2dCapable = module->par("d2dCapable").info();
+	return d2dCapable == "true";
+//	unsigned short lcid = MacCidToLcid(nodeId);
+//	cout << nodeId << " -> " << lcid << " == " << (lcid == D2D_SHORT_BSR ? "D@D_SHORT_BSR" : "no") << endl;
+//	return lcid == D2D_SHORT_BSR || lcid == D2D_MULTI_SHORT_BSR || lcid == D2D;
 }

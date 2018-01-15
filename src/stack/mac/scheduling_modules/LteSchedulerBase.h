@@ -92,6 +92,39 @@ protected:
 		reuseDecisions[connection].push_back(resource);
 	}
 
+	/**
+	 * @return Can be D2D, D2D_MULTI, UL, DL.
+	 */
+	Direction getDirection(const MacCid& connection);
+
+	/**
+	 * @param nodeId
+	 * @param band The logical band you're interested in.
+	 * @param numBlocks The number of resource blocks available on the band (should be 1!).
+	 * @param dir
+	 */
+	unsigned int getBytesOnBand(const MacNodeId& nodeId, const Band& band, const unsigned int& numBlocks, const Direction& dir);
+
+	/**
+	 * @return Average number of bytes available on 1 RB.
+	 */
+	unsigned int getAverageBytesPerBlock(const MacCid& connection);
+
+	/**
+	 * @return The total demand in bytes of 'connection' found by scanning the BSR buffer at the eNodeB.
+	 */
+	unsigned int getTotalDemand(const MacCid& connection);
+
+	/**
+	 * @return Number of bytes the UE wants to send according to the first BSR stored.
+	 */
+	unsigned int getCurrentDemand(const MacCid& connection);
+
+	/**
+	 * @return Number of blocks required to serve 'numBytes' for 'connection'.
+	 */
+	unsigned int getRBDemand(const MacCid& connection, const unsigned int& numBytes);
+
 private:
 	/** Maps a connection to the list of resources that the schedule() function decided to schedule to it. */
 	std::map<MacCid, std::vector<Band>> schedulingDecisions;
