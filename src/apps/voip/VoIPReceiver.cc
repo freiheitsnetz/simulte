@@ -154,7 +154,7 @@ void VoIPReceiver::playout(bool finish)
         EV << "VoIPReceiver::playout - Jitter measured: " << last_jitter << " TALK[" << pPacket->getIDtalk() << "] - FRAME[" << pPacket->getIDframe() << "]\n";
 
         //Duplicates management
-        if (pPacket->getIDframe() < isArrived.size() && isArrived.at(pPacket->getIDframe()))
+        if (/*pPacket->getIDframe() < isArrived.size() &&*/ isArrived.at(pPacket->getIDframe()))
         {
             EV << "VoIPReceiver::playout - Duplicated Packet: TALK[" << pPacket->getIDtalk() << "] - FRAME[" << pPacket->getIDframe() << "]\n";
             delete pPacket;
@@ -183,7 +183,7 @@ void VoIPReceiver::playout(bool finish)
                 --mBufferSpace_;
 
                 //duplicates management
-                if (pPacket->getIDframe() < isArrived.size())
+                //if (pPacket->getIDframe() < isArrived.size())
                 	isArrived.at(pPacket->getIDframe()) = true;
 
                 mPlayoutQueue_.push_back(pPacket);

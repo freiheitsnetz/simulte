@@ -28,10 +28,10 @@ LteSchedulerBase::SchedulingResult LteSchedulerBase::request(const MacCid& conne
 	else
 		result = LteSchedulerBase::SchedulingResult::OK;
 
-	cout << NOW << " " << dirToA(direction_) << " LteSchedulerBase::request RB allocation of node " << MacCidToNodeId(connectionId) << " ->";
+	EV << NOW << " " << dirToA(direction_) << " LteSchedulerBase::request RB allocation of node " << MacCidToNodeId(connectionId) << " ->";
 	for (const Band& resource : resources)
-		cout << " " << resource;
-	cout << " = " << schedulingResultToString(result) << std::endl;
+		EV << " " << resource;
+	EV << " = " << schedulingResultToString(result) << std::endl;
 
 	return result;
 }

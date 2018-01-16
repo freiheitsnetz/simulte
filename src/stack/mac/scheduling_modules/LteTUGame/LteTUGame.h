@@ -70,7 +70,6 @@ public:
         EV << NOW << " LteTUGame::updatePlayers" << std::endl;
         FlowClassUpdater::updatePlayers(connections, users, LteTUGame::getUserType, LteTUGame::setRealtimeValues, LteTUGame::setD2D);
 
-
         // Update classes to contain all corresponding active players.
         EV << NOW << " LteTUGame::updateClasses" << std::endl;
         FlowClassUpdater::updateClasses(users, classCbr, classVoip, classVid);
@@ -140,19 +139,15 @@ public:
 				user->setExpectedDatarateVec(expectedDatarateVec);
 			}
 
-
-//			nextBandToAllocate = 0;
-
 			// For each user class, distribute the RBs provided by Shapley among the flows in the class according to the EXP-PF-Rule.
-			cout << NOW << " LteTUGame " << dirToA(direction_) << " Resource Block Distribution... " << endl;
+			EV << NOW << " LteTUGame " << dirToA(direction_) << " Resource Block Distribution... " << endl;
 			std::map<unsigned short, const User*> allocationMap = ExpPfRule::apply(classCbr, classVoip, classVid,
 					shapleyValues[&shapley_cbr], shapleyValues[&shapley_voip], shapleyValues[&shapley_vid], numRBs, d2dPenalty, std::bind(&LteTUGame::updateUserAllocatedBytes, this, std::placeholders::_1, std::placeholders::_2));
 
-			cout << "\tDistributing " << shapleyValues[&shapley_vid] << "/" << numRBs << "RBs to " << classVid.size() << " Video flows that require " << classDemandVid << "." << endl;
-			cout << "\tDistributing " << shapleyValues[&shapley_voip] << "/" << numRBs << "RBs to " << classVoip.size() << " VoIP flows that require " << classDemandVoip << "." << endl;
-			cout << "\tDistributing " << shapleyValues[&shapley_cbr] << "/" << numRBs << "RBs to " << classCbr.size() << " CBR flows that require " << classDemandCbr << "." << endl;
+			EV << "\tDistributing " << shapleyValues[&shapley_vid] << "/" << numRBs << "RBs to " << classVid.size() << " Video flows that require " << classDemandVid << "." << endl;
+			EV << "\tDistributing " << shapleyValues[&shapley_voip] << "/" << numRBs << "RBs to " << classVoip.size() << " VoIP flows that require " << classDemandVoip << "." << endl;
+			EV << "\tDistributing " << shapleyValues[&shapley_cbr] << "/" << numRBs << "RBs to " << classCbr.size() << " CBR flows that require " << classDemandCbr << "." << endl;
 			for (Band resource = 0; resource < numRBs; resource++) {
-//				cout << "\tRB" << resource << " -> " << allocationMap[resource]->toString() << endl;
 				scheduleUe(allocationMap[resource]->getConnectionId(), resource);
 			}
 		}
@@ -176,37 +171,7 @@ public:
 protected:
     std::vector<User*> users;
     Shapley::Coalition<User> classCbr, classVoip, classVid;
-//    Band nextBandToAllocate = 0;
     double d2dPenalty = 0.5;
-
-//	void applyEXP_PF_Rule(const Shapley::Coalition<User>& flowClass, unsigned int numRBs) {
-//		// Allocate CBR flows.
-//		for (unsigned int numAllocated = 0; numAllocated < numRBs; numAllocated++) {
-//			assert(nextBandToAllocate < Oracle::get()->getNumRBs());
-//			// Get metrics for all flows.
-//			map<const User*, double> metricsMap = ExpPfRule::calculate(flowClass.getMembers(), nextBandToAllocate, d2dPenalty);
-//			// Find winner.
-//			double largestMetric = 0.0;
-//			const User* userWithLargestMetric = nullptr;
-//			for (const User* user : flowClass.getMembers()) {
-//				if (metricsMap[user] > largestMetric) {
-//					largestMetric = metricsMap[user];
-//					userWithLargestMetric = user;
-//				}
-//			}
-//			// Allocate resource to winner.
-//			scheduleUe(userWithLargestMetric->getConnectionId(), nextBandToAllocate);
-//			// Due to the 'const' I can't update the allocated bytes directly, but have to search for the corresponding user in 'users'... meh.
-//			for (User* user: users) {
-//				if (user->getConnectionId() == userWithLargestMetric->getConnectionId()) {
-//					user->updateBytesAllocated(userWithLargestMetric->getExpectedDatarateVec().at(nextBandToAllocate));
-//					break;
-//				}
-//			}
-//			cout << "\t\t" << userWithLargestMetric->toString() << " got RB " << nextBandToAllocate << " with metric of " << largestMetric << endl;
-//			nextBandToAllocate++;
-//		}
-//	}
 
 	unsigned int getByteDemand(const User* user) {
 		switch (user->getType()) {
