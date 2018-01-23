@@ -101,6 +101,8 @@ public:
 
     bool isD2DFlow(const MacCid& nodeId);
 
+    double getD2DPenalty() const;
+
 protected:
     double maxSimTime = 0.0;
 

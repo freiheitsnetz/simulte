@@ -20,6 +20,10 @@ using namespace std;
 
 class LteTUGame : public LteSchedulerBase {
 public:
+	LteTUGame() : LteSchedulerBase() {
+		d2dPenalty = Oracle::get()->getD2DPenalty();
+	}
+
 	/**
 	 * @return The user's type depending on the application it is running.
 	 */
@@ -28,7 +32,7 @@ public:
 		EV << NOW << " LteTUGame::getUserType(" << appName << ")" << endl;
 		if (appName == "VoIPSender" || appName == "inet::SimpleVoIPSender" || appName == "VoIPReceiver")
 			return User::Type::VOIP;
-		else if (appName == "inet::UDPBasicApp" || appName == "inet::UDPSink")
+		else if (appName == "inet::UDPBasicApp" || appName == "inet::UDPSink" || appName == "inet::TCPSessionApp" || appName == "inet::TCPSinkApp")
 			return User::Type::CBR;
 		else
 			throw invalid_argument("getUserType(" + appName + ") not supported.");
@@ -176,7 +180,7 @@ protected:
 	unsigned int getByteDemand(const User* user) {
 		switch (user->getType()) {
 			case User::Type::VIDEO: {
-				return 30250; // bytes per second.
+				return 30250; // Bytes per second.
 			}
 			case User::Type::VOIP: {
 				return 1050;

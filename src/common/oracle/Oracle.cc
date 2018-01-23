@@ -250,3 +250,8 @@ bool Oracle::isD2DFlow(const MacCid& nodeId) {
 //	cout << nodeId << " -> " << lcid << " == " << (lcid == D2D_SHORT_BSR ? "D@D_SHORT_BSR" : "no") << endl;
 //	return lcid == D2D_SHORT_BSR || lcid == D2D_MULTI_SHORT_BSR || lcid == D2D;
 }
+
+double Oracle::getD2DPenalty() const {
+	double penalty = par("d2dPenalty").doubleValue();
+	return penalty;
+}

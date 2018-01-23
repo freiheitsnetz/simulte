@@ -37,6 +37,9 @@ simple Oracle {
         
         // Whether the REASSIGNMENT scheduler should go through the connections 'forward' or 'backward'.
         string reassignmentSchedulingDirection = default("forward");
+        
+        // D2D Penalty value for Transferable Utility scheduler.
+        double d2dPenalty = default(1.0);
     @display("i=block/table");
     @class(Oracle);    
 }
