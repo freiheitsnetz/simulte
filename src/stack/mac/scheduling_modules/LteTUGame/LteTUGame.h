@@ -78,6 +78,10 @@ public:
         EV << NOW << " LteTUGame::updateClasses" << std::endl;
         FlowClassUpdater::updateClasses(users, classCbr, classVoip, classVid);
 
+        if (users.size() >= 2) {
+        	cout << "g(" << users.at(0)->toString() << ", " << users.at(1)->toString() << ") = " << Oracle::get()->getChannelGain(users.at(0)->getNodeId(), users.at(1)->getNodeId()) << endl;
+        }
+
         // Print status.
 		EV << "\t" << classVid.size() << " video flows:\n\t";
 		for (const User* user : classVid.getMembers())

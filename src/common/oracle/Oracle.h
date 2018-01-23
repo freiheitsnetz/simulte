@@ -103,6 +103,8 @@ public:
 
     double getD2DPenalty() const;
 
+    double getChannelGain(MacNodeId from, MacNodeId to) const;
+
 protected:
     double maxSimTime = 0.0;
 
