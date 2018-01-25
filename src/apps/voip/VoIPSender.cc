@@ -8,7 +8,7 @@
 //
 
 #include <cmath>
-#include "VoIPSender.h"
+#include "apps/voip/VoIPSender.h"
 
 #define round(x) floor((x) + 0.5)
 
@@ -111,7 +111,8 @@ void VoIPSender::selectPeriodTime()
         double durSil2;
         if(silences_)
         {
-            durSil_ = weibull(scaleSil_, shapeSil_);
+//            durSil_ = weibull(scaleSil_, shapeSil_);
+            durSil_ = SimTime::parse("0s");
             durSil2 = round(SIMTIME_DBL(durSil_)*1000) / 1000;
         }
         else
@@ -126,7 +127,8 @@ void VoIPSender::selectPeriodTime()
     }
     else
     {
-        durTalk_ = weibull(scaleTalk_, shapeTalk_);
+        durTalk_ = SimTime::parse("0.3s");
+//        durTalk_ = weibull(scaleTalk_, shapeTalk_);
         double durTalk2 = round(SIMTIME_DBL(durTalk_)*1000) / 1000;
         EV << "VoIPSender::selectPeriodTime - Talkspurt[" << iDtalk_ << "] - Duration[" << durTalk_ << "/" << durTalk2 << "] seconds\n";
 //        durTalk_ = durTalk2;

@@ -10,10 +10,10 @@
 #ifndef _LTE_AMCPILOT_H_
 #define _LTE_AMCPILOT_H_
 
-//#include "LteCommon.h"
-#include "LteAmc.h"
-#include "UserTxParams.h"
-#include "LteFeedback.h"
+//#include "common/LteCommon.h"
+#include "stack/mac/amc/LteAmc.h"
+#include "stack/mac/amc/UserTxParams.h"
+#include "stack/phy/feedback/LteFeedback.h"
 
 // specifies a list of bands that can be used by a user
 typedef std::vector<unsigned short> UsableBands;
@@ -49,7 +49,21 @@ class AmcPilot
     // specifies how the final CQI will be computed from the per band CQIs (e.g. AVG, MAX, MIN)
     PilotComputationModes mode_;
 
+
+
   public:
+
+    bool unassisstedD2D_;
+
+    bool getUnassistedD2DMode()
+    {
+        return unassisstedD2D_;
+    }
+
+    void setUnassistedD2DMode(bool value)
+    {
+        unassisstedD2D_ = value;
+    }
 
     /**
      * Constructor

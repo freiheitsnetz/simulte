@@ -8,12 +8,12 @@
 //
 
 
-#include "X2AppClient.h"
-#include "LteBinder.h"
-#include "LteMacEnb.h"
-#include "L3AddressResolver.h"
-#include "SCTPAssociation.h"
-#include "SCTPCommand_m.h"
+#include "x2/X2AppClient.h"
+#include "corenetwork/binder/LteBinder.h"
+#include "stack/mac/layer/LteMacEnb.h"
+#include "inet/networklayer/common/L3AddressResolver.h"
+#include "inet/transportlayer/sctp/SCTPAssociation.h"
+#include "inet/transportlayer/contract/sctp/SCTPCommand_m.h"
 
 Define_Module(X2AppClient);
 
@@ -45,7 +45,6 @@ void X2AppClient::initialize(int stage)
 void X2AppClient::socketEstablished(int32_t, void *, unsigned long int buffer )
 {
     EV << "X2AppClient: connected\n";
-    setStatusString("connected");
 }
 
 void X2AppClient::socketDataArrived(int32_t, void *, cPacket *msg, bool)

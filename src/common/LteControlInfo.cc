@@ -7,8 +7,8 @@
 // and cannot be removed from it.
 //
 
-#include "LteControlInfo.h"
-#include "UserTxParams.h"
+#include "common/LteControlInfo.h"
+#include "stack/mac/amc/UserTxParams.h"
 
 UserControlInfo::~UserControlInfo()
 {
@@ -53,7 +53,7 @@ void UserControlInfo::setCoord(const Coord& coord)
 
 void UserControlInfo::setUserTxParams(const UserTxParams *newParams)
 {
-    if(userTxParams){
+    if(userTxParams != NULL){
         delete userTxParams;
     }
     userTxParams = newParams;

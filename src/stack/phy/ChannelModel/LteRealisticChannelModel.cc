@@ -7,14 +7,14 @@
 // and cannot be removed from it.
 //
 
-#include "LteRealisticChannelModel.h"
-#include "LteAirFrame.h"
-#include "LteBinder.h"
-#include "LteDeployer.h"
-#include "UserTxParams.h"
-#include "LteCommon.h"
-#include "ExtCell.h"
-#include "LtePhyUe.h"
+#include "stack/phy/ChannelModel/LteRealisticChannelModel.h"
+#include "stack/phy/packet/LteAirFrame.h"
+#include "corenetwork/binder/LteBinder.h"
+#include "corenetwork/deployer/LteDeployer.h"
+#include "stack/mac/amc/UserTxParams.h"
+#include "common/LteCommon.h"
+#include "corenetwork/nodes/ExtCell.h"
+#include "stack/phy/layer/LtePhyUe.h"
 
 // attenuation value to be returned if max. distance of a scenario has been violated
 // and tolerating the maximum distance violation is enabled
@@ -1972,7 +1972,7 @@ double LteRealisticChannelModel::computeUrbanMacro(double d, MacNodeId nodeId)
 {
     if (d < 10)
         d = 10;
-
+    //Breakpoint distance
     double dbp = 4 * (hNodeB_ - 1) * (hUe_ - 1)
                         * ((carrierFrequency_ * 1000000000) / SPEED_OF_LIGHT);
     if (losMap_[nodeId])

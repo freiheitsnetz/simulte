@@ -28,9 +28,9 @@
 #include <queue>
 #include <map>
 #include <list>
-#include "Coord.h"
+#include "inet/common/geometry/common/Coord.h"
 #include <algorithm>
-#include "lterecorder.h"
+#include "common/lterecorder.h"
 
 using namespace omnetpp;
 
@@ -104,7 +104,7 @@ typedef unsigned short Tbs;
 /// Logical band
 typedef unsigned short Band;
 
-/// Codeword
+/// Codeword is a transport block with error protection i.e. user data before it is formatted for transmission.
 typedef unsigned short Codeword;
 
 /// Link Directions
@@ -222,7 +222,7 @@ const ApplicationTable applications[] = {
 
 enum SchedDiscipline
 {
-    DRR, PF, MAXCI, MAXCI_MB, MAXCI_OPT_MB, MAXCI_COMP, UNKNOWN_DISCIPLINE
+    DRR, PF, MAXCI, MAXCI_MB, MAXCI_OPT_MB, MAXCI_COMP, RANDOM, UNKNOWN_DISCIPLINE
 };
 
 struct SchedDisciplineTable
@@ -238,6 +238,7 @@ const SchedDisciplineTable disciplines[] = {
     ELEM(MAXCI_MB),
     ELEM(MAXCI_OPT_MB),
     ELEM(MAXCI_COMP),
+    ELEM(RANDOM),
     ELEM(UNKNOWN_DISCIPLINE)
 };
 

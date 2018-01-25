@@ -10,8 +10,8 @@
 #ifndef _LTE_LTESCHEDULER_H_
 #define _LTE_LTESCHEDULER_H_
 
-#include "LteCommon.h"
-#include "LteMacEnb.h"
+#include "common/LteCommon.h"
+#include "stack/mac/layer/LteMacEnb.h"
 
 /// forward declarations
 class LteSchedulerEnb;
@@ -30,7 +30,12 @@ struct SortedDesc
     /// Comparison operator to enable sorting.
     bool operator<(const SortedDesc& y) const
         {
-        return score_ < y.score_;
+
+        if (score_ < y.score_)
+            return true;
+        if (score_ == y.score_)
+            return uniform(getEnvir()->getRNG(0),0,1) < 0.5;
+        return false;
     }
 
   public:
@@ -77,7 +82,7 @@ class LteScheduler
      * FIXED has size, URGENT has max size, FITALL always has 4294967295U size.
      */
     std::map<LteTrafficClass, int> grantSizeMap_;
-
+    simsignal_t numActiveConnections_;
 //    CplexTest cplexTest_;
 
   public:

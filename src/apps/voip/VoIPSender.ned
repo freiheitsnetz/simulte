@@ -18,7 +18,7 @@ simple VoIPSender like IUDPApp
         int localPort = default(-1);
         int destPort = default(3000);
         string destAddress;
-        int PacketSize = default(40);
+        int PacketSize = default(10);
         double shape_talk = default(0.824);
         double scale_talk = default(1.423);
         double shape_sil = default(1.089);

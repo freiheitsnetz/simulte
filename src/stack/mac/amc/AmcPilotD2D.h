@@ -10,7 +10,8 @@
 #ifndef _LTE_AMCPILOTD2D_H_
 #define _LTE_AMCPILOTD2D_H_
 
-#include "AmcPilot.h"
+#include "stack/mac/amc/AmcPilot.h"
+#include <omnetpp.h>
 
 /**
  * @class AmcPilotD2D
@@ -20,6 +21,7 @@ class AmcPilotD2D : public AmcPilot
 {
     bool usePreconfiguredTxParams_;
     UserTxParams* preconfiguredTxParams_;
+
 
   public:
 
@@ -34,6 +36,7 @@ class AmcPilotD2D : public AmcPilot
         mode_ = MIN_CQI;
         usePreconfiguredTxParams_ = false;
         preconfiguredTxParams_ = NULL;
+        unassisstedD2D_ = false;
     }
     /**
      * Assign logical bands for given nodeId and direction
@@ -42,6 +45,13 @@ class AmcPilotD2D : public AmcPilot
      * @return The user transmission parameters computed.
      */
     const UserTxParams& computeTxParams(MacNodeId id, const Direction dir);
+    /**
+     * Assign logical bands for given nodeId and direction
+     * @param id The mobile node ID.
+     * @param dir The link direction.
+     * @return The user transmission parameters computed.
+     */
+    const UserTxParams& computeTxParamsUnassisted(MacNodeId id, const Direction dir);
     //Used with TMS pilot
     void updateActiveUsers(ActiveSet aUser, Direction dir)
     {
@@ -50,10 +60,11 @@ class AmcPilotD2D : public AmcPilot
 
     void setPreconfiguredTxParams(Cqi cqi);
 
+
     // TODO reimplement these functions
     virtual std::vector<Cqi>  getMultiBandCqi(MacNodeId id, const Direction dir){}
     virtual void setUsableBands(MacNodeId id , UsableBands usableBands){}
-    virtual UsableBands* getUsableBands(MacNodeId id){}
+    virtual UsableBands* getUsableBands(MacNodeId id);
 };
 
 #endif
