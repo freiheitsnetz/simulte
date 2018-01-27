@@ -43,6 +43,7 @@ class LteSchedulerEnb
     friend class LteNaiveRoundRobin;
     friend class LteNaiveRoundRobinReuse;
     friend class LteTUGame;
+    friend class LtePropFair;
 
   protected:
 

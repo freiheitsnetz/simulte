@@ -23,6 +23,7 @@
 #include "stack/mac/scheduling_modules/LteReuseTester.h"
 #include "stack/mac/scheduling_modules/LteTUGame/LteTUGame.h"
 #include "stack/mac/scheduling_modules/LteStackelbergGame/LteStackelbergGame.h"
+#include "stack/mac/scheduling_modules/LtePropFair.h"
 #include "stack/mac/buffer/LteMacBuffer.h"
 #include "stack/mac/buffer/LteMacQueue.h"
 
@@ -818,6 +819,8 @@ LteScheduler* LteSchedulerEnb::getScheduler(SchedDiscipline discipline)
             return new LteTUGame();
         case STACKELBERG_GAME:
             return new LteStackelbergGame();
+        case PROPFAIR:
+        	return new LtePropFair();
         default:
             throw cRuntimeError("LteScheduler not recognized");
             return NULL;

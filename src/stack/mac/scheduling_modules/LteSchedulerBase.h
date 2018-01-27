@@ -10,8 +10,8 @@
 
 #include <omnetpp.h>
 #include "stack/mac/scheduler/LteScheduler.h"
-#include "stack/mac/scheduler/LteSchedulerEnb.h"
-#include "common/LteCommon.h"
+#include "stack/mac/scheduler/LteSchedulerEnb.h" // add to getScheduler() function in .cc (also #include <your scheduler>).
+#include "common/LteCommon.h" // add to enum 'SchedDiscipline' and 'SchedDisciplineTable disciplines[]'.
 #include "common/oracle/Oracle.h"
 #include "stack/mac/buffer/LteMacBuffer.h"
 
