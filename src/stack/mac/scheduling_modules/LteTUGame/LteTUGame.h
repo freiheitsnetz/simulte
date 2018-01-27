@@ -52,7 +52,7 @@ public:
 			return User::Type::VOIP;
 		else if (appName == "inet::UDPBasicApp" || appName == "inet::UDPSink" || appName == "inet::TCPSessionApp" || appName == "inet::TCPSinkApp")
 			return User::Type::CBR;
-		else if (appName == "UDPVideoStreamSvr" || appName == "UDPVideoStreamCli")
+		else if (appName == "inet::UDPVideoStreamCli" || appName == "inet::UDPVideoStreamSvr")
 			return User::Type::VIDEO;
 		else
 			throw invalid_argument("getUserType(" + appName + ") not supported.");
