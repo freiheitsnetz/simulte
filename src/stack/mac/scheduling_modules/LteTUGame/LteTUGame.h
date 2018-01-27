@@ -15,6 +15,7 @@
 #include "stack/mac/scheduling_modules/LteTUGame/src/shapley/shapley.h"
 #include "stack/mac/scheduling_modules/LteTUGame/src/shapley/TUGame.h"
 #include "stack/mac/scheduling_modules/LteTUGame/src/EXP_PF_Rule/ExpPfRuleCalculator.h"
+#include <fstream>
 
 using namespace std;
 
@@ -22,6 +23,23 @@ class LteTUGame : public LteSchedulerBase {
 public:
 	LteTUGame() : LteSchedulerBase() {
 		d2dPenalty = Oracle::get()->getD2DPenalty();
+	}
+
+	virtual ~LteTUGame() {
+		for (User* user : users) {
+			if (user->getNodeId() == 1027) {
+				ofstream myfile;
+				myfile.open("schedule_record", std::ios_base::app);
+				const std::vector<unsigned short>& scheduleVec = user->getScheduledVec();
+				myfile << "p=" << d2dPenalty << endl;
+				for (size_t i = 0; i < scheduleVec.size(); i++) {
+					myfile << scheduleVec.at(i) << (i < scheduleVec.size() - 1 ? ", " : "");
+				}
+				myfile << endl;
+				myfile.close();
+			}
+			delete user;
+		}
 	}
 
 	/**
@@ -34,6 +52,8 @@ public:
 			return User::Type::VOIP;
 		else if (appName == "inet::UDPBasicApp" || appName == "inet::UDPSink" || appName == "inet::TCPSessionApp" || appName == "inet::TCPSinkApp")
 			return User::Type::CBR;
+		else if (appName == "UDPVideoStreamSvr" || appName == "UDPVideoStreamCli")
+			return User::Type::VIDEO;
 		else
 			throw invalid_argument("getUserType(" + appName + ") not supported.");
 	}
@@ -78,9 +98,9 @@ public:
         EV << NOW << " LteTUGame::updateClasses" << std::endl;
         FlowClassUpdater::updateClasses(users, classCbr, classVoip, classVid);
 
-        if (users.size() >= 2) {
-        	cout << "g(" << users.at(0)->toString() << ", " << users.at(1)->toString() << ") = " << Oracle::get()->getChannelGain(users.at(0)->getNodeId(), users.at(1)->getNodeId()) << endl;
-        }
+//        if (users.size() >= 2) {
+//        	cout << "g(" << users.at(0)->toString() << ", " << users.at(1)->toString() << ") = " << Oracle::get()->getChannelGain(users.at(0)->getNodeId(), users.at(1)->getNodeId()) << endl;
+//        }
 
         // Print status.
 		EV << "\t" << classVid.size() << " video flows:\n\t";
@@ -165,15 +185,27 @@ public:
     	for (User* user : users) {
     		if (user->getConnectionId() == connection) {
     			// Remember number of bytes served so that future metric computation takes it into account.
-    			user->onTTI(numBytesGranted);
+    			user->updateDelay(numBytesGranted);
     			break;
     		}
     	}
     }
 
-    virtual ~LteTUGame() {
-    	for (User* user : users)
-    		delete user;
+    virtual void commitSchedule() override {
+    	if (direction_ == UL) {
+			for (auto iterator = schedulingDecisions.begin(); iterator != schedulingDecisions.end(); iterator++) {
+				const pair<MacCid, std::vector<Band>> pair = *iterator;
+				for (User* user : users) {
+					if (user->getConnectionId() == pair.first) {
+						user->addRBsScheduledThisTTI(pair.second.size());
+					}
+				}
+			}
+
+			for (User* user : users)
+				user->onTTI();
+    	}
+    	LteSchedulerBase::commitSchedule();
     }
 
 protected:

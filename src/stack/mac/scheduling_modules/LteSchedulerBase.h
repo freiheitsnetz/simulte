@@ -76,6 +76,10 @@ public:
 
 protected:
 	unsigned int numBytesGrantedLast = 0;
+	/** Maps a connection to the list of resources that the schedule() function decided to schedule to it. */
+	std::map<MacCid, std::vector<Band>> schedulingDecisions;
+	/** Maps a connection to the list of resources that the schedule() function decided to schedule to it for frequency reuse. */
+	std::map<MacCid, std::vector<Band>> reuseDecisions;
 
 	/**
 	 * Remember to schedule 'resource' to 'connection' at the end of this scheduling round.
@@ -126,10 +130,6 @@ protected:
 	double getRBDemand(const MacCid& connection, const unsigned int& numBytes);
 
 private:
-	/** Maps a connection to the list of resources that the schedule() function decided to schedule to it. */
-	std::map<MacCid, std::vector<Band>> schedulingDecisions;
-	/** Maps a connection to the list of resources that the schedule() function decided to schedule to it for frequency reuse. */
-	std::map<MacCid, std::vector<Band>> reuseDecisions;
 	size_t numTTIs = 0, numTTIsWithNoActives = 0;
 
 	/**

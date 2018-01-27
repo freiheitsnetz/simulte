@@ -49,7 +49,7 @@ void LtePropFair::schedule(std::set<MacCid>& connections) {
 void LtePropFair::reactToSchedulingResult(const SchedulingResult& result, unsigned int numBytesGranted, const MacCid& connection) {
     	for (User* user : users) {
     		if (user->getConnectionId() == connection) {
-    			user->onTTI(numBytesGranted);
+    			user->updateDelay(numBytesGranted);
     			break;
     		}
     	}
