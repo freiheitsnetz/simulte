@@ -154,8 +154,14 @@ std::string Oracle::getName(const MacNodeId id) const {
 }
 
 inet::Coord Oracle::getPosition(const MacNodeId id) const {
-    LtePhyBase* phyBase = getPhyBase(id);
-    return phyBase->getCoord();
+	if (id != getEnodeBID()) {
+		LtePhyBase* phyBase = getPhyBase(id);
+		return phyBase->getCoord();
+	} else {
+		cModule* eNodeB = getBinder()->getEnbList()->at(0)->eNodeB;
+		inet::Coord coord(eNodeB->getSubmodule("mobility")->par("initialX").doubleValue(), eNodeB->getSubmodule("mobility")->par("initialY").doubleValue());
+		return coord;
+	}
 }
 
 double Oracle::getDistance(inet::Coord from, inet::Coord to) const {
@@ -165,11 +171,10 @@ double Oracle::getDistance(inet::Coord from, inet::Coord to) const {
 
 double Oracle::getTxPower(const MacNodeId id, Direction dir) const {
 	if (id == getEnodeBID()) {
-		std::vector<EnbInfo*>* enbList = getBinder()->getEnbList();
-		for (auto iterator = enbList->begin(); iterator != enbList->end(); iterator++) {
-			if ((*iterator)->id == id)
-				return (*iterator)->txPwr;
-		}
+		// Take any UE.
+		LtePhyBase* phyBase = getPhyBase(getBinder()->getUeList()->at(0)->id);
+		// Because all UEs know the eNodeB's txPower.
+		return phyBase->getMacroTxPwr();
 	} else {
 		LtePhyBase* phyBase = getPhyBase(id);
 		return phyBase->getTxPwr(dir);
@@ -245,17 +250,15 @@ double Oracle::getChannelGain(MacNodeId from, MacNodeId to) const {
 double Oracle::getAttenuation(const MacNodeId from, const MacNodeId to) const {
 	Direction dir = determineDirection(from, to);
 	LteRealisticChannelModel* channelModel = nullptr;
-	try {
-		channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(from)->getChannelModel());
-	} catch (const exception& e) {
-		channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(to)->getChannelModel());
-	}
+	channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(from)->getChannelModel());
+
 	if (channelModel == nullptr)
 		throw invalid_argument("Oracle::getAttenuation couldn't fetch channel model.");
+
 	if (dir == Direction::D2D)
 		return channelModel->getAttenuation_D2D(from, dir, getPosition(from), to, getPosition(to));
 	else
-		return channelModel->getAttenuation(from, dir, getPosition(from));
+		return channelModel->getAttenuation(from, dir, getPosition(to));
 }
 
 std::vector<double> Oracle::getInCellInterference(const MacNodeId from, const MacNodeId to, bool considerThisTTI) const {
