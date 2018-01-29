@@ -27,17 +27,17 @@ public:
 
 	virtual ~LteTUGame() {
 		for (User* user : users) {
-			if (user->getNodeId() == 1027) {
-				ofstream myfile;
-				myfile.open("schedule_record", std::ios_base::app);
-				const std::vector<unsigned short>& scheduleVec = user->getScheduledVec();
-				myfile << "p=" << d2dPenalty << endl;
-				for (size_t i = 0; i < scheduleVec.size(); i++) {
-					myfile << scheduleVec.at(i) << (i < scheduleVec.size() - 1 ? ", " : "");
-				}
-				myfile << endl;
-				myfile.close();
-			}
+//			if (user->getNodeId() == 1027) {
+//				ofstream myfile;
+//				myfile.open("schedule_record", std::ios_base::app);
+//				const std::vector<unsigned short>& scheduleVec = user->getScheduledVec();
+//				myfile << "p=" << d2dPenalty << endl;
+//				for (size_t i = 0; i < scheduleVec.size(); i++) {
+//					myfile << scheduleVec.at(i) << (i < scheduleVec.size() - 1 ? ", " : "");
+//				}
+//				myfile << endl;
+//				myfile.close();
+//			}
 			delete user;
 		}
 	}
@@ -87,6 +87,8 @@ public:
 		throw logic_error("LteTUGame::updateUserAllocatedBytes(" + to_string(connectionId) + ", " + to_string(numBytes) + ") couldn't find user in 'users' list.");
 	}
 
+	bool haveWritten = false;
+
     virtual void schedule(std::set<MacCid>& connections) override {
         EV << NOW << " LteTUGame::schedule" << std::endl;
 
@@ -98,9 +100,15 @@ public:
         EV << NOW << " LteTUGame::updateClasses" << std::endl;
         FlowClassUpdater::updateClasses(users, classCbr, classVoip, classVid);
 
-//        if (users.size() >= 2) {
-//        	cout << "g(" << users.at(0)->toString() << ", " << users.at(1)->toString() << ") = " << Oracle::get()->getChannelGain(users.at(0)->getNodeId(), users.at(1)->getNodeId()) << endl;
-//        }
+        if (!haveWritten && direction_ == UL) {
+        	ofstream myfile;
+			myfile.open("channel_gain", std::ios_base::app);
+//			cout << Oracle::get()->getName(1025) << endl;
+//			cout << "att=" << Oracle::get()->getAttenuation(Oracle::get()->getEnodeBID(), 1025) << endl;
+			cout << Oracle::get()->getChannelGain(1025, 1026) << endl;
+			myfile.close();
+			haveWritten = true;
+        }
 
         // Print status.
 		EV << "\t" << classVid.size() << " video flows:\n\t";

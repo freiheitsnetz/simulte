@@ -202,7 +202,12 @@ std::vector<double> Oracle::getSINR(const MacNodeId from, const MacNodeId to) co
 }
 
 double Oracle::getChannelGain(MacNodeId from, MacNodeId to) const {
-	LteRealisticChannelModel* channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(from)->getChannelModel());
+	LteRealisticChannelModel* channelModel = nullptr;
+	if (from != getEnodeBID()) {
+		channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(from)->getChannelModel());
+	} else {
+		channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(to)->getChannelModel());
+	}
 
 	// These physical effects affect the signal on its way.
 	double antennaGainTx = channelModel->antennaGainUe_;
@@ -214,16 +219,16 @@ double Oracle::getChannelGain(MacNodeId from, MacNodeId to) const {
 	// Now we can find the received signal strength.
 	Direction dir = determineDirection(from, to);
 	double receivedPower = getTxPower(to, dir);
-	cout << "antennaGainTx=" << antennaGainTx << " antennaGainRx=" << antennaGainRx << " cableLoss=" << cableLoss <<  " speed=" << speed << " pathAttenuation=" << pathAttenuation << " receivedPower=" << receivedPower << endl;
+	double sentPower = getTxPower(from, dir);
 	receivedPower -= pathAttenuation;
 	receivedPower += antennaGainTx;
 	receivedPower += antennaGainRx;
 	receivedPower -= cableLoss;
 	// Apply fading if enabled.
+	double fading = 0.0;
 	if (channelModel->fading_) {
 		// We are interested in the average channel gain.
 		// So we find the average fading over all resource blocks.
-		double fading = 0.0;
 		for (Band resource = 0; resource < channelModel->band_; resource++) {
 			if (channelModel->fadingType_ == LteRealisticChannelModel::FadingType::RAYLEIGH)
 				fading += channelModel->rayleighFading(from, resource);
@@ -234,23 +239,24 @@ double Oracle::getChannelGain(MacNodeId from, MacNodeId to) const {
 			}
 		}
 		fading /= ((double) channelModel->band_);
-		cout << "avg_fading=" << fading << endl;
 		receivedPower += fading;
 	}
 
-	cout << "final rcvd power=" << receivedPower << endl;
+	cout << "antennaGainTx=" << antennaGainTx << " antennaGainRx=" << antennaGainRx << " cableLoss=" << cableLoss <<  " speed=" << speed << " pathAttenuation=" << pathAttenuation << " fading=" << fading << " receiverPower=" << getTxPower(to, dir) << " senderPower=" << sentPower << " receivedPower=" << receivedPower << endl;
 
 	// Channel gain is a ratio power_in/power_out that tells you how much signal power is lost on the way.
-	double sentPower = getTxPower(from, dir);
 	double channelGain = receivedPower / sentPower;
-	cout << "sentPower=" << sentPower << " / " << "receivedPower=" << receivedPower << " = " << channelGain << endl;
 	return channelGain;
 }
 
 double Oracle::getAttenuation(const MacNodeId from, const MacNodeId to) const {
 	Direction dir = determineDirection(from, to);
+
 	LteRealisticChannelModel* channelModel = nullptr;
-	channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(from)->getChannelModel());
+	if (from == getEnodeBID())
+		channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(to)->getChannelModel());
+	else
+		channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(from)->getChannelModel());
 
 	if (channelModel == nullptr)
 		throw invalid_argument("Oracle::getAttenuation couldn't fetch channel model.");
