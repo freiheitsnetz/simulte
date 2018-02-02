@@ -100,15 +100,15 @@ public:
         EV << NOW << " LteTUGame::updateClasses" << std::endl;
         FlowClassUpdater::updateClasses(users, classCbr, classVoip, classVid);
 
-        if (!haveWritten && direction_ == UL) {
-        	ofstream myfile;
-			myfile.open("channel_gain", std::ios_base::app);
-//			cout << Oracle::get()->getName(1025) << endl;
-//			cout << "att=" << Oracle::get()->getAttenuation(Oracle::get()->getEnodeBID(), 1025) << endl;
-			cout << Oracle::get()->getChannelGain(1025, 1026) << endl;
-			myfile.close();
-			haveWritten = true;
-        }
+//        if (!haveWritten && direction_ == UL) {
+//        	ofstream myfile;
+//			myfile.open("channel_gain", std::ios_base::app);
+////			cout << Oracle::get()->getName(1025) << endl;
+////			cout << "att=" << Oracle::get()->getAttenuation(Oracle::get()->getEnodeBID(), 1025) << endl;
+//			myfile << Oracle::get()->getChannelGain(Oracle::get()->getEnodeBID(), 1025) << endl;
+//			myfile.close();
+//			haveWritten = true;
+//        }
 
         // Print status.
 		EV << "\t" << classVid.size() << " video flows:\n\t";

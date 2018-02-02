@@ -218,8 +218,8 @@ double Oracle::getChannelGain(MacNodeId from, MacNodeId to) const {
 
 	// Now we can find the received signal strength.
 	Direction dir = determineDirection(from, to);
-	double receivedPower = getTxPower(to, dir);
-	double sentPower = getTxPower(from, dir);
+	double receivedPower = getTxPower(from, dir);
+
 	receivedPower -= pathAttenuation;
 	receivedPower += antennaGainTx;
 	receivedPower += antennaGainRx;
@@ -242,18 +242,14 @@ double Oracle::getChannelGain(MacNodeId from, MacNodeId to) const {
 		receivedPower += fading;
 	}
 
-	cout << "antennaGainTx=" << antennaGainTx << " antennaGainRx=" << antennaGainRx << " cableLoss=" << cableLoss <<  " speed=" << speed << " pathAttenuation=" << pathAttenuation << " fading=" << fading << " receiverPower=" << getTxPower(to, dir) << " senderPower=" << sentPower << " receivedPower=" << receivedPower << endl;
-
-	double receivedPower_watt = pow(10, (sentPower + receivedPower) / 10);
-	double sentPower_watt = pow(10, sentPower / 10);
-	double channelGain = receivedPower_watt / sentPower_watt;
+	double senderPower = getTxPower(from, dir);
+	//cout << "antennaGainTx=" << antennaGainTx << " antennaGainRx=" << antennaGainRx << " cableLoss=" << cableLoss <<  " speed=" << speed << " pathAttenuation=" << pathAttenuation << " fading=" << fading << " receiverPower=" << getTxPower(to, dir) << " senderPower=" << senderPower << " receivedPower=" << receivedPower << endl;
 
 	// Channel gain is a ratio power_in/power_out that tells you how much signal power is lost on the way.
+	double gain_dBm = receivedPower - senderPower;
+	double gain_linear = dBToLinear(gain_dBm);
 
-	double powerRatio = receivedPower / sentPower;
-
-
-	return channelGain;
+	return gain_linear;
 }
 
 double Oracle::getAttenuation(const MacNodeId from, const MacNodeId to) const {
