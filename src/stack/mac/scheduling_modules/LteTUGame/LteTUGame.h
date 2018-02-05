@@ -64,7 +64,7 @@ public:
 	static void setRealtimeValues(User* user) {
 		// Set user type.
 		if (user->getType() == User::Type::VOIP) {
-			user->setRealtimeTarget(100/*ms*/, 1.05/*byte per TTI*/);
+			user->setRealtimeTarget(50/*ms*/, 1.05/*byte per TTI*/);
 			EV << NOW << " LteTUGame::setRealtimeValues(" << user->toString() << ") realtime values set to VoIP." << endl;
 		} else if (user->getType() == User::Type::VIDEO) {
 			user->setRealtimeTarget(100/*ms*/, 30.25/*byte per TTI*/);
