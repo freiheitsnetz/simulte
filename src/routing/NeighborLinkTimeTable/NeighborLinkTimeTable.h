@@ -22,7 +22,7 @@
 using namespace omnetpp;
 
 /*
-  A table to store OmnetIDs and link lifetimes
+  A table to store Addresses of network nodes and link lifetimes
  */
 class NeighborLinkTimeTable : public cSimpleModule
 {
