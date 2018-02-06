@@ -9,7 +9,7 @@
 #define STACK_MAC_SCHEDULING_MODULES_LTEPROPFAIR_H_
 
 #include "stack/mac/scheduling_modules/LteSchedulerBase.h"
-#include "stack/mac/scheduling_modules/LteTUGame/src/User.h"
+#include "stack/mac/scheduling_modules/LteTUGame/src/TransferableUtilityGame/TUGameUser.h"
 
 /**
  * Proportional Fair scheduler implementation.
@@ -25,8 +25,10 @@ public:
 
 	virtual void reactToSchedulingResult(const SchedulingResult& result, unsigned int numBytesGranted, const MacCid& connection) override;
 
+//	virtual void commitSchedule();
+
 protected:
-	std::vector<User*> users;
+	std::vector<TUGameUser*> users;
 };
 
 #endif /* STACK_MAC_SCHEDULING_MODULES_LTEPROPFAIR_H_ */

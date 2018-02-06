@@ -6,8 +6,8 @@
  */
 
 #include "LtePropFair.h"
-#include "stack/mac/scheduling_modules/LteTUGame/src/FlowClassUpdater.h"
-#include "stack/mac/scheduling_modules/LteTUGame/src/EXP_PF_Rule/ExpPfRuleCalculator.h"
+#include "stack/mac/scheduling_modules/LteTUGame/src/TransferableUtilityGame/FlowClassUpdater.h"
+#include "stack/mac/scheduling_modules/LteTUGame/src/TransferableUtilityGame/EXP_PF_Rule/ExpPfRuleCalculator.h"
 #include "common/oracle/Oracle.h"
 
 using namespace std;
@@ -20,7 +20,7 @@ void LtePropFair::schedule(std::set<MacCid>& connections) {
 	FlowClassUpdater::updatePlayers(connections, users);
 	if (!users.empty()) {
 		// Estimate data rates on all RBs for all users.
-		for (User* user : users) {
+		for (TUGameUser* user : users) {
 			vector<double> expectedDatarateVec;
 			for (Band band = 0; band < Oracle::get()->getNumRBs(); band++) {
 				double bytesOnBand = (double) getBytesOnBand(user->getNodeId(), band, 1, getDirection(user->getConnectionId()));
@@ -31,9 +31,9 @@ void LtePropFair::schedule(std::set<MacCid>& connections) {
 
 		// Apply Proportional Fair rule.
 		for (Band resource  = 0; resource < Oracle::get()->getNumRBs(); resource++) {
-			map<const User*, double> map = ExpPfRule::calculate_propfair(users, resource);
-			User* best = users.at(0);
-			for (User* user : users) {
+			map<const TUGameUser*, double> map = ExpPfRule::calculate_propfair(users, resource);
+			TUGameUser* best = users.at(0);
+			for (TUGameUser* user : users) {
 				if (map[user] > map[best])
 					best = user;
 			}
@@ -47,7 +47,7 @@ void LtePropFair::schedule(std::set<MacCid>& connections) {
 }
 
 void LtePropFair::reactToSchedulingResult(const SchedulingResult& result, unsigned int numBytesGranted, const MacCid& connection) {
-    	for (User* user : users) {
+    	for (TUGameUser* user : users) {
     		if (user->getConnectionId() == connection) {
     			user->updateDelay(numBytesGranted);
     			break;
