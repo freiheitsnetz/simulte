@@ -81,7 +81,8 @@ void LteStackelbergGame::schedule(std::set<MacCid>& connections) {
             double g_ie = Oracle::get()->getChannelGain(follower->getNodeId(), Oracle::get()->getEnodeBID());
             follower->setChannelGain_enb(g_ie);
             for (StackelbergUser* leader : leaders) {
-                double g_ki = Oracle::get()->getChannelGain(leader->getNodeId(), follower->getPartnerId());
+                const vector<Band>& resources = schedulingMap_leaders[leader->getConnectionId()];
+                double g_ki = Oracle::get()->getChannelGain(leader->getNodeId(), follower->getPartnerId(), resources);
                 leader->setChannelGain_d2d(follower->getPartnerId(), g_ki);
             }
         }
@@ -91,9 +92,15 @@ void LteStackelbergGame::schedule(std::set<MacCid>& connections) {
         for (auto iterator = schedulingMap_followers.begin(); iterator != schedulingMap_followers.end(); iterator++) {
             const StackelbergUser* leader = (*iterator).first;
             const StackelbergUser* follower = (*iterator).second;
-            Band resource = schedulingMap_leaders[leader->getConnectionId()].at(0);
-            cout << Oracle::get()->getName(leader->getNodeId()) << " shares RB " << resource << " with " << Oracle::get()->getName(follower->getNodeId()) << endl;
-            scheduleUeReuse(follower->getConnectionId(), resource);
+            const vector<Band>& resources = schedulingMap_leaders[leader->getConnectionId()];
+            cout << Oracle::get()->getName(leader->getNodeId()) << " shares RBs [";
+            for (size_t i = 0; i < resources.size(); i++) {
+                const Band& resource = resources.at(i);
+                cout << resource << (i < resources.size() - 1 ? " " : "] ");
+                scheduleUeReuse(follower->getConnectionId(), resource);
+            }
+            cout << "with " << Oracle::get()->getName(follower->getNodeId()) << endl;
+
         }
     }
 
