@@ -9,14 +9,15 @@
 #define STACK_MAC_SCHEDULING_MODULES_LTESTACKELBERGGAME_LTESTACKELBERGGAME_H_
 
 #include "stack/mac/scheduling_modules/LteSchedulerBase.h"
-#include "common/oracle/Oracle.h"
-#include "stack/mac/scheduling_modules/LteStackelbergGame/src/StackelbergUser.h"
-
-using namespace std;
+#include "stack/mac/scheduling_modules/LteNaiveRoundRobin.h"
 
 class LteStackelbergGame : public LteSchedulerBase {
 public:
+    const static std::string LEADER_SCHEDULER_RR;
+
     LteStackelbergGame();
+
+    virtual ~LteStackelbergGame();
 
     virtual void schedule(std::set<MacCid>& connections) override;
 
@@ -27,6 +28,12 @@ protected:
     double beta = 2.0;
     /** Adjusts how much past TTIs influence the priority of a follower (fairness). */
     double delta = 0.04;
+
+    /** This function returns a scheduling map. It is assigned differently in the constructor based on the leader scheduling discipline. */
+    std::function<std::map<MacCid, std::vector<Band>> (const std::set<MacCid>& connections)> scheduleLeaders;
+
+private:
+    LteNaiveRoundRobin* scheduler_rr = nullptr;
 };
 
 #endif /* STACK_MAC_SCHEDULING_MODULES_LTESTACKELBERGGAME_LTESTACKELBERGGAME_H_ */

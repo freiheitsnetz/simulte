@@ -20,6 +20,9 @@
  * be determined beforehand (see first part of prepareSchedule()).
  */
 class LteNaiveRoundRobin : public virtual LteSchedulerBase {
+
+    friend class LteStackelbergGame;
+
 public:
 	virtual void schedule(std::set<MacCid>& connections) override {
 	    EV << NOW << " LteNaiveRoundRobin::schedule" << std::endl;
