@@ -21,7 +21,7 @@
  */
 class LteSchedulerBase : public virtual LteScheduler {
 public:
-	LteSchedulerBase() {}
+	LteSchedulerBase() : LteScheduler() {}
 	virtual ~LteSchedulerBase();
 
 	enum SchedulingResult {

@@ -70,11 +70,11 @@ void LteSchedulerBase::allocate(std::map<MacCid, std::vector<Band>> allocationMa
 		scheduleListEntry.second = 0; // Codeword.
 		eNbScheduler_->storeScListId(scheduleListEntry, resources.size());
 
-		cout << NOW << " LteSchedulerBase::requestReuse Scheduled node " << Oracle::get()->getName(MacCidToNodeId(connectionId))
+		EV << NOW << " LteSchedulerBase::requestReuse Scheduled node " << Oracle::get()->getName(MacCidToNodeId(connectionId))
 		   << " for frequency reuse on RBs";
 		for (const Band& resource : resources)
-		    cout << " " << resource;
-		cout << std::endl;
+		    EV << " " << resource;
+		EV << std::endl;
 	}
 	// Tell the scheduler about our decision.
 	eNbScheduler_->storeAllocationEnb(allocatedRbsPerBand, NULL);

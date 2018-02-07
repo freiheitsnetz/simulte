@@ -19,6 +19,14 @@ public:
     LteStackelbergGame();
 
     virtual void schedule(std::set<MacCid>& connections) override;
+
+protected:
+    /** Limits for transmission power settings of D2D users. */
+    double d2dTxPower_max = 0.0, d2dTxPower_min = 0.0;
+    /** Adjusts how much the leader gains from the reuse fee. */
+    double beta = 2.0;
+    /** Adjusts how much past TTIs influence the priority of a follower (fairness). */
+    double delta = 0.04;
 };
 
 #endif /* STACK_MAC_SCHEDULING_MODULES_LTESTACKELBERGGAME_LTESTACKELBERGGAME_H_ */

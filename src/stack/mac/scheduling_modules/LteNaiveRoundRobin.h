@@ -22,36 +22,51 @@
 class LteNaiveRoundRobin : public virtual LteSchedulerBase {
 public:
 	virtual void schedule(std::set<MacCid>& connections) override {
-		// Add all new connections to the history.
-		for (ActiveSet::iterator iterator = connections.begin(); iterator != connections.end(); iterator++) {
-			MacCid connection = *iterator;
-			if (schedulingHistory.find(connection) == schedulingHistory.end())
-				schedulingHistory[connection] = 0;
-		}
-
-		EV << NOW << " LteNaiveRoundRobin::schedule" << std::endl;
-
-		for (Band band = 0; band < getBinder()->getNumBands(); band++) {
-			// Initiate with first connection.
-			MacCid connection = *connections.begin();
-			MacNodeId id = MacCidToNodeId(connection);
-			// Find that active connection that has received fewest RBs so far.
-			for (ActiveSet::iterator iterator = connections.begin(); iterator != connections.end(); iterator++) {
-				MacCid currentConnection = *iterator;
-				MacNodeId currentId = MacCidToNodeId(currentConnection);
-				if (schedulingHistory[currentConnection] < schedulingHistory[connection]) {
-					connection = currentConnection;
-					id = currentId;
-				}
-			}
-
-			scheduleUe(connection, band);
-			schedulingHistory[connection]++;
-		}
+	    EV << NOW << " LteNaiveRoundRobin::schedule" << std::endl;
+	    std::map<MacCid, std::vector<Band>> schedulingMap = getSchedulingMap(connections);
+	    for (ActiveSet::iterator iterator = connections.begin(); iterator != connections.end(); iterator++) {
+            MacCid connection = *iterator;
+            const std::vector<Band>& resources = schedulingMap[connection];
+            for (size_t i = 0; i < resources.size(); i++)
+                scheduleUe(connection, resources.at(i));
+	    }
 	}
 
 protected:
 	std::map<MacCid, size_t> schedulingHistory;
+
+	std::map<MacCid, std::vector<Band>> getSchedulingMap(const std::set<MacCid>& connections) {
+	    std::map<MacCid, std::vector<Band>> map;
+
+        for (ActiveSet::iterator iterator = connections.begin(); iterator != connections.end(); iterator++) {
+            MacCid connection = *iterator;
+            // Add empty resource list to scheduling map.
+            map[connection] = std::vector<Band>();
+            // Add all new connections to the history.
+            if (schedulingHistory.find(connection) == schedulingHistory.end())
+                schedulingHistory[connection] = 0;
+        }
+
+        for (Band band = 0; band < getBinder()->getNumBands(); band++) {
+            // Initiate with first connection.
+            MacCid connection = *connections.begin();
+            MacNodeId id = MacCidToNodeId(connection);
+            // Find that active connection that has received fewest RBs so far.
+            for (ActiveSet::iterator iterator = connections.begin(); iterator != connections.end(); iterator++) {
+                MacCid currentConnection = *iterator;
+                MacNodeId currentId = MacCidToNodeId(currentConnection);
+                if (schedulingHistory[currentConnection] < schedulingHistory[connection]) {
+                    connection = currentConnection;
+                    id = currentId;
+                }
+            }
+
+            map[connection].push_back(band);
+            schedulingHistory[connection]++;
+        }
+
+        return map;
+	}
 };
 
 #endif /* STACK_MAC_SCHEDULING_MODULES_LTENAIVEROUNDROBIN_H_ */

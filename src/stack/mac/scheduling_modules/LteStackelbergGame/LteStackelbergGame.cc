@@ -3,14 +3,13 @@
 using namespace std;
 
 LteStackelbergGame::LteStackelbergGame() {
-//    setUserFilter([](User* user) {
-//        string appName = Oracle::get()->getApplicationName(user->getNodeId());
-//        // Cellular UDPSink UEs occasionally want to send data, which they shouldn't. Filter them out.
-//        if (appName == "inet::UDPSink")
-//            return true;
-//        else
-//            return false;
-//    });
+    pair<double, double> d2dPowerLimits = Oracle::get()->stackelberg_getD2DPowerLimits();
+    d2dTxPower_max = d2dPowerLimits.first;
+    d2dTxPower_min = d2dPowerLimits.second;
+    beta = Oracle::get()->stackelberg_getBeta();
+    delta = Oracle::get()->stackelberg_getDelta();
+
+    cout << "d2dTxPower_max=" << d2dTxPower_max << " d2dTxPower_min=" << d2dTxPower_min << " beta=" << beta << " delta=" << delta << endl;
 }
 
 void LteStackelbergGame::schedule(std::set<MacCid>& connections) {
