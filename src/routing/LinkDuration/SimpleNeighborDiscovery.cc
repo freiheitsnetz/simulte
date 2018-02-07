@@ -13,9 +13,9 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#include "SimpleNeighborDiscovery.h"
 #include <ModuleAccess.h>
 #include <IMobility.h>
+#include <LinkDuration/SimpleNeighborDiscovery.h>
 
 namespace inet{
 

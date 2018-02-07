@@ -19,7 +19,7 @@
 #include <omnetpp.h>
 #include <map>
 #include "inet/common/INETDefs.h"
-#include "NeighborLinkTimeTable.h"
+#include <LinkDuration/NeighborLinkTimeTable.h>
 /*
  * This module was originally made for link lifetime calculations.
  * It gets the positions (from simulation) of all other network hosts/UEs and compares it with own transmission range

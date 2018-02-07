@@ -13,7 +13,7 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#include <routing/NeighborLinkTimeTable/NeighborLinkTimeTable.h>
+#include <LinkDuration/NeighborLinkTimeTable.h>
 
 Define_Module(NeighborLinkTimeTable);
 
@@ -27,7 +27,7 @@ void NeighborLinkTimeTable::handleMessage(cMessage *msg)
     //No message can occur
 }
 
-int NeighborLinkTimeTable::getNeighborLinkTime(int neighborID)
+int NeighborLinkTimeTable::getNeighborLinkTime(cModule* neighborID)
 {
     auto it=NeighborLinkTimeMap.find(neighborID);
         if( it != NeighborLinkTimeMap.end() )
@@ -35,12 +35,12 @@ int NeighborLinkTimeTable::getNeighborLinkTime(int neighborID)
         else return 0;
 
 }
-void NeighborLinkTimeTable::setNeighborLinkTime(int neighborID,int linkLifetime)
+void NeighborLinkTimeTable::setNeighborLinkTime(cModule* neighborID,int linkLifetime)
 {
     NeighborLinkTimeMap[neighborID]=linkLifetime; //This will create if non-existent or set the new value
 }
 
-void NeighborLinkTimeTable::deleteNeighborLinkTimeEntry(int neighborID)
+void NeighborLinkTimeTable::deleteNeighborLinkTimeEntry(cModule* neighborID)
 {
     auto it=NeighborLinkTimeMap.find(neighborID);
         if( it != NeighborLinkTimeMap.end() )

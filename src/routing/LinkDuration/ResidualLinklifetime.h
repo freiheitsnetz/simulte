@@ -13,12 +13,29 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-package lte.routing.NeighborLinkTimeTable;
+#ifndef __SIMULTE_RESIDUALLINKLIFETIME_H_
+#define __SIMULTE_RESIDUALLINKLIFETIME_H_
 
-//
-// TODO auto-generated module
-//
-simple SimpleNeighborDiscovery
+#include <omnetpp.h>
+
+using namespace omnetpp;
+
+/**
+ * TODO - Generated class
+ */
+class ResidualLinklifetime : public cSimpleModule
 {
-    @display("bgb=920,262;i=block/segm_l");
-}
+  protected:
+    enum Mode {SELF, GIVEN} mode;
+    virtual void initialize();
+    virtual void handleMessage(cMessage *msg);
+    std::map<int,float> InputLinkDist;//safe the read in LinkDistribution
+    int calcRLLviaInput(cModule* neighbor);
+    int calcRLLviaTable(cModule* neighbor);
+  public:
+    int calcResidualLinklifetime(cModule* neighbor);
+
+
+};
+
+#endif

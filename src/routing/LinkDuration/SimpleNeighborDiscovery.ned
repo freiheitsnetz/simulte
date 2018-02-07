@@ -13,29 +13,14 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#ifndef __SIMULTE_NEIGHBORLINKTIMETABLE_H_
-#define __SIMULTE_NEIGHBORLINKTIMETABLE_H_
+package lte.routing.LinkDuration;
 
-#include <omnetpp.h>
-
-
-using namespace omnetpp;
-
-/*
-  A table to store Addresses of network nodes and link lifetimes
- */
-class NeighborLinkTimeTable : public cSimpleModule
-{
-  protected:
-    void initialize();
-    void handleMessage(cMessage *msg);
-    std::map <int,int > NeighborLinkTimeMap; //First: ID Second:Linklifetime
-  public:
-    int getNeighborLinkTime(int);
-    void setNeighborLinkTime(int,int);
-    void deleteNeighborLinkTimeEntry(int);
-
-
-};
-
-#endif
+//
+// TODO auto-generated module
+//
+simple SimpleNeighborDiscovery
+{	
+    parameters:
+    @display("bgb=920,262;i=block/segm_l");
+    int updateTimer=default(100);
+}

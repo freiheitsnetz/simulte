@@ -13,12 +13,14 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-package lte.routing.NeighborLinkTimeTable;
+package lte.routing.LinkDuration;
 
 //
 // TODO auto-generated module
 //
-simple NeighborLinkTimeTable
+simple ResidualLinklifetime
 {
-     @display("bgb=920,362;i=block/segm_l");
+    parameters:
+        bool selfMode = default (true);
+        bool givenMode =default (false);
 }
