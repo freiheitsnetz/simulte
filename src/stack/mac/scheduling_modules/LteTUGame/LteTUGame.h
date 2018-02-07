@@ -10,11 +10,11 @@
 
 #include "stack/mac/scheduling_modules/LteSchedulerBase.h"
 #include "common/oracle/Oracle.h"
-#include "stack/mac/scheduling_modules/LteTUGame/src/TransferableUtilityGame/TUGameUser.h"
-#include "stack/mac/scheduling_modules/LteTUGame/src/TransferableUtilityGame/FlowClassUpdater.h"
-#include "stack/mac/scheduling_modules/LteTUGame/src/TransferableUtilityGame/shapley/shapley.h"
-#include "stack/mac/scheduling_modules/LteTUGame/src/TransferableUtilityGame/shapley/TUGame.h"
-#include "stack/mac/scheduling_modules/LteTUGame/src/TransferableUtilityGame/EXP_PF_Rule/ExpPfRuleCalculator.h"
+#include "stack/mac/scheduling_modules/LteTUGame/src/TUGameUser.h"
+#include "stack/mac/scheduling_modules/LteTUGame/src/FlowClassUpdater.h"
+#include "stack/mac/scheduling_modules/LteTUGame/src/shapley/shapley.h"
+#include "stack/mac/scheduling_modules/LteTUGame/src/shapley/TUGame.h"
+#include "stack/mac/scheduling_modules/LteTUGame/src/EXP_PF_Rule/ExpPfRuleCalculator.h"
 #include <fstream>
 
 using namespace std;

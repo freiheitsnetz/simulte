@@ -6,8 +6,8 @@
  */
 
 #include "LtePropFair.h"
-#include "stack/mac/scheduling_modules/LteTUGame/src/TransferableUtilityGame/FlowClassUpdater.h"
-#include "stack/mac/scheduling_modules/LteTUGame/src/TransferableUtilityGame/EXP_PF_Rule/ExpPfRuleCalculator.h"
+#include "stack/mac/scheduling_modules/LteTUGame/src/FlowClassUpdater.h"
+#include "stack/mac/scheduling_modules/LteTUGame/src/EXP_PF_Rule/ExpPfRuleCalculator.h"
 #include "common/oracle/Oracle.h"
 
 using namespace std;
@@ -47,10 +47,15 @@ void LtePropFair::schedule(std::set<MacCid>& connections) {
 }
 
 void LtePropFair::reactToSchedulingResult(const SchedulingResult& result, unsigned int numBytesGranted, const MacCid& connection) {
-    	for (TUGameUser* user : users) {
-    		if (user->getConnectionId() == connection) {
-    			user->updateDelay(numBytesGranted);
-    			break;
-    		}
-    	}
+    for (TUGameUser* user : users) {
+        if (user->getConnectionId() == connection) {
+            user->updateDelay(numBytesGranted);
+            break;
+        }
     }
+}
+
+void LtePropFair::commitSchedule() {
+    for (TUGameUser* user : users)
+        user->onTTI();
+}
