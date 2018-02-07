@@ -16,17 +16,9 @@ using namespace std;
 
 class LteStackelbergGame : public LteSchedulerBase {
 public:
-    virtual void schedule(std::set<MacCid>& connections) override {
-        EV << NOW << " LteStackelbergGame::schedule" << std::endl;
+    LteStackelbergGame();
 
-        StackelbergUser user(1, 1);
-        for (std::set<MacCid>::const_iterator iterator = connections.begin(); iterator != connections.end(); iterator++) {
-            MacCid connection = *iterator;
-            for (Band band = 0; band < Oracle::get()->getNumRBs(); band++) {
-                scheduleUeReuse(connection, band);
-            }
-        }
-    }
+    virtual void schedule(std::set<MacCid>& connections) override;
 };
 
 #endif /* STACK_MAC_SCHEDULING_MODULES_LTESTACKELBERGGAME_LTESTACKELBERGGAME_H_ */

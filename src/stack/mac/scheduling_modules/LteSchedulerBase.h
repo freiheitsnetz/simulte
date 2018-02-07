@@ -14,6 +14,7 @@
 #include "common/LteCommon.h" // add to enum 'SchedDiscipline' and 'SchedDisciplineTable disciplines[]'.
 #include "common/oracle/Oracle.h"
 #include "stack/mac/buffer/LteMacBuffer.h"
+#include "stack/mac/scheduling_modules/common/UserManager.h"
 
 /**
  * Derive from this class to get basic functionality.
@@ -74,12 +75,20 @@ public:
 		return numTTIs;
 	}
 
+	UserManager& getUserManager();
+
+	static void setD2D(User* user) {
+        user->setD2D(Oracle::get()->isD2DFlow(user->getConnectionId()));
+    }
+
 protected:
 	unsigned int numBytesGrantedLast = 0;
 	/** Maps a connection to the list of resources that the schedule() function decided to schedule to it. */
 	std::map<MacCid, std::vector<Band>> schedulingDecisions;
 	/** Maps a connection to the list of resources that the schedule() function decided to schedule to it for frequency reuse. */
 	std::map<MacCid, std::vector<Band>> reuseDecisions;
+
+	UserManager userManager;
 
 	/**
 	 * Remember to schedule 'resource' to 'connection' at the end of this scheduling round.
@@ -128,6 +137,19 @@ protected:
 	 * @return Number of blocks required to serve 'numBytes' for 'connection'.
 	 */
 	double getRBDemand(const MacCid& connection, const unsigned int& numBytes);
+
+	static bool defaultFilter(User* user) {
+	    return false; // don't filter.
+	}
+
+	std::function<bool (User* user)> userFilter = LteSchedulerBase::defaultFilter;
+
+	/**
+	 * Sets the user filter applied at the user manager. Let it return 'true' to filter a user. That user will not be in the user list then.
+	 */
+	void setUserFilter(std::function<bool (User* user)> filter) {
+        this->userFilter = filter;
+    }
 
 private:
 	size_t numTTIs = 0, numTTIsWithNoActives = 0;

@@ -28,9 +28,9 @@ LteSchedulerBase::SchedulingResult LteSchedulerBase::request(const MacCid& conne
 	else
 		result = LteSchedulerBase::SchedulingResult::OK;
 
-	EV << NOW << " " << dirToA(direction_) << " LteSchedulerBase::request RB allocation of node " << MacCidToNodeId(connectionId) << " ->";
+	EV << NOW << " " << dirToA(direction_) << " LteSchedulerBase::request RB allocation of node " << Oracle::get()->getName(MacCidToNodeId(connectionId)) << " ->";
 	for (const Band& resource : resources)
-		EV << " " << resource;
+	    EV << " " << resource;
 	EV << " = " << schedulingResultToString(result) << std::endl;
 
 	return result;
@@ -55,7 +55,9 @@ void LteSchedulerBase::allocate(std::map<MacCid, std::vector<Band>> allocationMa
 				dir = D2D_MULTI;
 			else
 				dir = (MacCidToLcid(connectionId) == D2D_SHORT_BSR) ? D2D : direction_;
-			unsigned int numBytesServed = eNbScheduler_->mac_->getAmc()->computeBytesOnNRbs(nodeId, resource, codeword, numRBs, dir);
+
+			unsigned int numBytesServed = getBytesOnBand(nodeId, resource, numRBs, dir);
+			/*eNbScheduler_->mac_->getAmc()->computeBytesOnNRbs(nodeId, resource, codeword, numRBs, dir);*/
 			// ... and store the decision in this data structure.
 			allocatedRbsPerBand[MAIN_PLANE][MACRO][resource].ueAllocatedRbsMap_[nodeId] += 1;
 			allocatedRbsPerBand[MAIN_PLANE][MACRO][resource].ueAllocatedBytesMap_[nodeId] += numBytesServed;
@@ -68,14 +70,18 @@ void LteSchedulerBase::allocate(std::map<MacCid, std::vector<Band>> allocationMa
 		scheduleListEntry.second = 0; // Codeword.
 		eNbScheduler_->storeScListId(scheduleListEntry, resources.size());
 
-		EV << NOW << " LteSchedulerBase::requestReuse Scheduled node " << MacCidToNodeId(connectionId)
+		cout << NOW << " LteSchedulerBase::requestReuse Scheduled node " << Oracle::get()->getName(MacCidToNodeId(connectionId))
 		   << " for frequency reuse on RBs";
 		for (const Band& resource : resources)
-			EV << " " << resource;
-		EV << std::endl;
+		    cout << " " << resource;
+		cout << std::endl;
 	}
 	// Tell the scheduler about our decision.
 	eNbScheduler_->storeAllocationEnb(allocatedRbsPerBand, NULL);
+}
+
+UserManager& LteSchedulerBase::getUserManager() {
+    return this->userManager;
 }
 
 LteSchedulerBase::~LteSchedulerBase() {
@@ -157,6 +163,10 @@ void LteSchedulerBase::prepareSchedule() {
 		schedulingDecisions[connection] = std::vector<Band>();
 		reuseDecisions[connection] = std::vector<Band>();
 	}
+
+	// Update active user list.
+	userManager.update(activeConnectionTempSet_, LteSchedulerBase::setD2D, userFilter);
+
 	// Call respective schedule() function implementation.
 	schedule(activeConnectionTempSet_);
 }
