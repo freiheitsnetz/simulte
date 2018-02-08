@@ -145,7 +145,7 @@ std::string Oracle::getApplicationName(const MacNodeId& id) const {
 
 std::string Oracle::getName(const MacNodeId id) const {
 	std::vector<UeInfo*>* ueList = getBinder()->getUeList();
-	std::string name = "no idea";
+	std::string name = "COULDN'T_DETERMINE_NAME";
 	for (std::vector<UeInfo*>::iterator iterator = ueList->begin(); iterator != ueList->end(); iterator++) {
 		if ((*iterator)->id == id) {
 			name = (*iterator)->ue->getFullName();
