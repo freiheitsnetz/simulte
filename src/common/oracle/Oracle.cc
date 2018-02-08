@@ -378,24 +378,19 @@ MacNodeId Oracle::getTransmissionPartner(const MacNodeId id) const {
 			throw invalid_argument("Oracle::getTransmissionPartner couldn't find partner for '" + getName(id) + "'.");
 		}
 	} else if (appName == string("inet::UDPSink")) {
-		cout << "sink app" << endl;
 		string targetName = getName(id);
 		string from = "Rx", to = "Tx";
 		size_t start_pos = targetName.find(from);
 		targetName.replace(start_pos, from.length(), to);
 
-		cout << "target=" << targetName << endl;
 		std::vector<UeInfo*>* ueList = getBinder()->getUeList();
 		for (auto iterator = ueList->begin(); iterator != ueList->end(); iterator++) {
 			const UeInfo* partnerInfo = *iterator;
 			MacNodeId partnerId = partnerInfo->id;
-			string partnerName = getName(partnerId);
-			cout << "trying " << partnerName << endl;
+			string partnerName = getName(partnerId);			;
 			if (partnerName == targetName) {
-				cout << "yep" << endl;
 				return partnerId;
 			}
-			cout << "nope" << endl;
 		}
 	}
 
