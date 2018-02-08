@@ -165,18 +165,10 @@ void LteSchedulerBase::prepareSchedule() {
 	}
 
 	// Update active user list.
-	userManager.update(activeConnectionTempSet_, LteSchedulerBase::setD2D, userFilter, [](unsigned short id) {
-	    try {
-	        MacNodeId partnerId = Oracle::get()->getTransmissionPartner(id);
-	        cout << "User Manager found partner for '" << Oracle::get()->getName(id) << "': '" << Oracle::get()->getName(partnerId) << "'." << endl;
-	        return partnerId;
-	    } catch (const exception& e) {
-	        cerr << "User Manager couldn't find transmission partner for " << Oracle::get()->getName(id) << ": '" << e.what() << "'." << endl;
-	        return User::PARTNER_UNSET;
-	    }
-	});
+	userManager.update(activeConnectionTempSet_, LteSchedulerBase::setD2D, userFilter, LteSchedulerBase::findPartnerFunc);
 
 	// Call respective schedule() function implementation.
+//	cout << NOW << " " << activeConnectionTempSet_.size() << " connections remain." << endl;
 	schedule(activeConnectionTempSet_);
 }
 

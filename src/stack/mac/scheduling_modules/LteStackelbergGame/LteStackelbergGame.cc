@@ -31,7 +31,7 @@ LteStackelbergGame::~LteStackelbergGame() {
 }
 
 void LteStackelbergGame::schedule(std::set<MacCid>& connections) {
-    EV << NOW << " LteStackelbergGame::schedule" << std::endl;
+    EV << NOW << " " << dirToA(direction_) << " LteStackelbergGame::schedule" << std::endl;
 
     // First define our leaders and followers.
     vector<StackelbergUser*> leaders, followers;

@@ -74,7 +74,7 @@ void LteSchedulerEnb::initialize(Direction dir, LteMacEnb* mac)
     scheduler_->setEnbScheduler(this);
 
     // Create Allocator
-    if (discipline == ALLOCATOR_BESTFIT || discipline == REUSE_TESTER || discipline == TU_GAME || discipline == STACKELBERG_GAME)   // NOTE: create this type of allocator for every scheduler using Frequency Reuse
+    if (discipline == ALLOCATOR_BESTFIT || discipline == REUSE_TESTER || discipline == TU_GAME || discipline == STACKELBERG_GAME || discipline == NAIVE_ROUND_ROBIN_REUSE)   // NOTE: create this type of allocator for every scheduler using Frequency Reuse
         allocator_ = new LteAllocationModuleFrequencyReuse(mac_, direction_);
     else
         allocator_ = new LteAllocationModule(mac_, direction_);

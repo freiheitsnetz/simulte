@@ -81,6 +81,17 @@ public:
         user->setD2D(Oracle::get()->isD2DFlow(user->getConnectionId()));
     }
 
+	static MacNodeId findPartnerFunc(MacNodeId id) {
+		try {
+			MacNodeId partnerId = Oracle::get()->getTransmissionPartner(id);
+			cout << "User Manager found partner for '" << Oracle::get()->getName(id) << "': '" << Oracle::get()->getName(partnerId) << "'." << endl;
+			return partnerId;
+		} catch (const exception& e) {
+			cerr << "User Manager couldn't find transmission partner for " << Oracle::get()->getName(id) << ": '" << e.what() << "'." << endl;
+			return User::PARTNER_UNSET;
+		}
+	}
+
 protected:
 	unsigned int numBytesGrantedLast = 0;
 	/** Maps a connection to the list of resources that the schedule() function decided to schedule to it. */

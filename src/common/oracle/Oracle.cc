@@ -3,6 +3,7 @@
 #include "stack/phy/layer/LtePhyBase.h"
 #include <fstream>
 #include <iostream>
+#include <regex>
 
 Oracle* Oracle::SINGLETON = nullptr;
 
@@ -361,19 +362,33 @@ std::string Oracle::stackelberg_getLeaderScheduler() const {
 }
 
 MacNodeId Oracle::getTransmissionPartner(const MacNodeId id) const {
-    try {
-        const UeInfo* info = getUeInfo(id);
-        string targetName = info->ue->getSubmodule("udpApp", 0)->par("destAddresses").stringValue();
-        std::vector<UeInfo*>* ueList = getBinder()->getUeList();
-        for (auto iterator = ueList->begin(); iterator != ueList->end(); iterator++) {
-            const UeInfo* partnerInfo = *iterator;
-            MacNodeId partnerId = partnerInfo->id;
-            string partnerName = getName(partnerId);
-            if (partnerName == targetName)
-                return partnerId;
-        }
-    } catch (const exception& e) {
-        throw invalid_argument("Oracle::getTransmissionPartner couldn't find partner for '" + getName(id) + "'. Error: " + string(e.what()));
-    }
-    throw invalid_argument("Oracle::getTransmissionPartner couldn't find partner for '" + getName(id) + "'.");
+	string appName = getApplicationName(id);
+	if (appName == "inet::UDPBasicApp") {
+		try {
+			const UeInfo* info = getUeInfo(id);
+			string targetName = info->ue->getSubmodule("udpApp", 0)->par("destAddresses").stringValue();
+			std::vector<UeInfo*>* ueList = getBinder()->getUeList();
+			for (auto iterator = ueList->begin(); iterator != ueList->end(); iterator++) {
+				const UeInfo* partnerInfo = *iterator;
+				MacNodeId partnerId = partnerInfo->id;
+				string partnerName = getName(partnerId);
+				if (partnerName == targetName)
+					return partnerId;
+			}
+		} catch (const exception& e) {
+			throw invalid_argument("Oracle::getTransmissionPartner couldn't find partner for '" + getName(id) + "'.");
+		}
+	} else if (appName == "inet::UDPSink") {
+		string targetName = getName(id);
+		targetName = std::regex_replace(targetName, std::regex("Rx"), "Tx");
+		std::vector<UeInfo*>* ueList = getBinder()->getUeList();
+		for (auto iterator = ueList->begin(); iterator != ueList->end(); iterator++) {
+			const UeInfo* partnerInfo = *iterator;
+			MacNodeId partnerId = partnerInfo->id;
+			string partnerName = getName(partnerId);
+			if (partnerName == targetName)
+				return partnerId;
+		}
+	} else
+	    throw invalid_argument("Oracle::getTransmissionPartner doesn't support '" + getName(id) + "' with app '" + appName + "'.");
 }
