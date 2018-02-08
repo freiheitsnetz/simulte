@@ -23,4 +23,5 @@ simple SimpleNeighborDiscovery
     parameters:
     @display("bgb=920,262;i=block/segm_l");
     int updateTimer=default(100);
+    string neighborLinkTimeTable = default("^.NeighborLinkTimeTable");
 }

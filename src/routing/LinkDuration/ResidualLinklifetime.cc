@@ -42,15 +42,15 @@ void ResidualLinklifetime::handleMessage(cMessage *msg)
 int ResidualLinklifetime::calcResidualLinklifetime(cModule* neighbor)
 {
     switch(mode){
-        case SELF: return calcRLLviaTable(neighbor);
+        case SELF: return calcRLLviaTable(neighbor); //Not implemented yet
         case GIVEN: return calcRLLviaInput(neighbor);
         default: throw cRuntimeError("Mode must be 'selfMode' OR(!) 'given'");
     }
 }
 
 int ResidualLinklifetime::calcRLLviaInput(cModule* neighbor){
-
-    NeighborLinkTimeTable* LinkTimeTable= check_and_cast<NeighborLinkTimeTable*>(getParentModule()->getSubmodule("NeighborLinkTimeTable"));
+//TODO InputLinkDist is normalized, Link duration is not.
+    NeighborLinkTimeTable* LinkTimeTable = inet::getModuleFromPar<NeighborLinkTimeTable>(par("neighborLinkTimeTable"), this);
     int tempLinkDuration=LinkTimeTable->getNeighborLinkTime(neighbor); //get link lifetime from NeighborLinkTimeTable
     auto it = InputLinkDist.find(tempLinkDuration);//find same value in distribution
     // Calculating mean value of shifted and normalized distribution function in discrete time domain. (Integration in nominator and denominator, just like in the formula)
@@ -63,7 +63,7 @@ int ResidualLinklifetime::calcRLLviaInput(cModule* neighbor){
     }
     return fraction.first/fraction.second-it->second;
 }
-//TODO
+//TODO ->
 int ResidualLinklifetime::calcRLLviaTable(cModule* neighbor){
 
     NeighborLinkTimeTable* LinkTimeTable= check_and_cast<NeighborLinkTimeTable*>(getParentModule()->getSubmodule("NeighborLinkTimeTable"));

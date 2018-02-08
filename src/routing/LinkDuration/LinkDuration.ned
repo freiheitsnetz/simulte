@@ -15,14 +15,19 @@
 
 package lte.routing.LinkDuration;
 
-//
-// TODO auto-generated module
-//
-simple ResidualLinklifetime
+module LinkDuration
 {
-    parameters:
-        @display("bgb=920,362;i=block/segm_l");
-        bool selfMode = default (true);
-        bool givenMode =default (false);
-        string neighborLinkTimeTable = default("^.NeighborLinkTimeTable");
+        parameters:
+        	@display("i=block/table2");
+        submodules:
+        NeighborLinkTimeTable: NeighborLinkTimeTable {
+            @display("p=100,307");
+        }
+        ResidualLinklifetime: ResidualLinklifetime{
+            @display("p=100,207");
+        }
+        SimpleNeighborDiscovery:SimpleNeighborDiscovery{
+            @display("p=100,107");
+        }
+            
 }

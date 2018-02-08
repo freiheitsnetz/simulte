@@ -24,7 +24,8 @@
  * This module was originally made for link lifetime calculations.
  * It gets the positions (from simulation) of all other network hosts/UEs and compares it with own transmission range
  * to decide whether it is a a direct neighbor it can transmit to or not.
- * It needs a "NeighborLinkTimeTable" module to save the link lifetimes
+ * It needs a "NeighborLinkTimeTable" module to save the link lifetimes and updates it every second
+ *
  */
 namespace inet{
 
@@ -39,7 +40,9 @@ class INET_API SimpleNeighborDiscovery:  public cSimpleModule
     std::map<cModule*,bool> neighborConnection;
     std::map<cModule*,int> nodeDistance;
     int numHosts;
+    NeighborLinkTimeTable *LinkTimeTable;
     cMessage *update;
+    cMessage *sec;
     simtime_t updateTimer;
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
@@ -49,6 +52,7 @@ class INET_API SimpleNeighborDiscovery:  public cSimpleModule
     void updateNodeDistanceEntries();
     void updateConnectionVector();
     void setAllUEsAddresses(); //From External
+    void incrementLinklifetime();
 };
 
 #endif

@@ -16,6 +16,7 @@
 #include <ModuleAccess.h>
 #include <IMobility.h>
 #include <LinkDuration/SimpleNeighborDiscovery.h>
+#include <NeighborLinkTimeTable.h>
 
 namespace inet{
 
@@ -29,16 +30,23 @@ void SimpleNeighborDiscovery::initialize()
     updateNodeDistanceEntries();
     updateConnectionVector();
     scheduleAt(simTime()+updateTimer,update);
+    update= new cMessage("Update");
+    sec= new cMessage("Second");
+    LinkTimeTable = inet::getModuleFromPar<NeighborLinkTimeTable>(par("neighborLinkTimeTable"), this);
 
 
 }
 
 void SimpleNeighborDiscovery::handleMessage(cMessage *msg)
 {
-    if(msg==update)
+    if(msg==update){
         updateNodeDistanceEntries();
         updateConnectionVector();
     scheduleAt(simTime()+updateTimer,update);
+    }
+    if(msg==sec){
+        scheduleAt(simTime()+1,sec);
+    }
 
 }
 
@@ -86,5 +94,20 @@ void SimpleNeighborDiscovery::updateConnectionVector(){
 bool SimpleNeighborDiscovery::isInConnectionRange(int txRange, int nodeDistance){
     return txRange>=nodeDistance;
 }
+void SimpleNeighborDiscovery::incrementLinklifetime(){
+
+    for(std::map<cModule*,bool>::iterator it= neighborConnection.begin();it!=neighborConnection.end();++it){
+        if(it->second==1){
+            //Just incrementing
+            LinkTimeTable->setNeighborLinkTime(it->first,getNeighborLinkTime(it->first)+1);
+        }
+        else if (it->second==1){
+            LinkTimeTable->deleteNeighborLinkTime(it->first);
+
+        }
+
+    }
+}
+
 
 }
