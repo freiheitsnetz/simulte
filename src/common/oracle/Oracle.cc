@@ -201,55 +201,62 @@ std::vector<double> Oracle::getSINR(const MacNodeId from, const MacNodeId to) co
     return channelModel->getSINR_D2D(&frame, &uinfo, to, getPosition(to), getEnodeBID());
 }
 
+double Oracle::getChannelGain(MacNodeId from, MacNodeId to, vector<Band> resources) const {
+    LteRealisticChannelModel* channelModel = nullptr;
+    if (from != getEnodeBID()) {
+        channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(from)->getChannelModel());
+    } else {
+        channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(to)->getChannelModel());
+    }
+
+    // These physical effects affect the signal on its way.
+    double antennaGainTx = channelModel->antennaGainUe_;
+    double antennaGainRx = channelModel->antennaGainUe_;
+    double cableLoss = channelModel->cableLoss_;
+    double speed = channelModel->computeSpeed(from, getPosition(from));
+    double pathAttenuation = getAttenuation(from, to);
+
+    // Now we can find the received signal strength.
+    Direction dir = determineDirection(from, to);
+    double receivedPower = getTxPower(from, dir);
+
+    receivedPower -= pathAttenuation;
+    receivedPower += antennaGainTx;
+    receivedPower += antennaGainRx;
+    receivedPower -= cableLoss;
+    // Apply fading if enabled.
+    double fading = 0.0;
+    if (channelModel->fading_) {
+        // We are interested in the average channel gain.
+        // So we find the average fading over all resource blocks used.
+        for (Band resource : resources) {
+            if (channelModel->fadingType_ == LteRealisticChannelModel::FadingType::RAYLEIGH)
+                fading += channelModel->rayleighFading(from, resource);
+            else if (channelModel->fadingType_ == LteRealisticChannelModel::FadingType::JAKES) {
+                // D2D is treated like downlink for receivers, so only if it's uplink does this have to be 'false'.
+                bool cqiDl = (dir == UL ? false : true);
+                fading += channelModel->jakesFading(from, speed, resource, cqiDl);
+            }
+        }
+        fading /= ((double) channelModel->band_);
+        receivedPower += fading;
+    }
+
+    double senderPower = getTxPower(from, dir);
+    //cout << "antennaGainTx=" << antennaGainTx << " antennaGainRx=" << antennaGainRx << " cableLoss=" << cableLoss <<  " speed=" << speed << " pathAttenuation=" << pathAttenuation << " fading=" << fading << " receiverPower=" << getTxPower(to, dir) << " senderPower=" << senderPower << " receivedPower=" << receivedPower << endl;
+
+    // Channel gain is a ratio power_in/power_out that tells you how much signal power is lost on the way.
+    double gain_dBm = receivedPower - senderPower;
+    double gain_linear = dBToLinear(gain_dBm);
+
+    return gain_linear;
+}
+
 double Oracle::getChannelGain(MacNodeId from, MacNodeId to) const {
-	LteRealisticChannelModel* channelModel = nullptr;
-	if (from != getEnodeBID()) {
-		channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(from)->getChannelModel());
-	} else {
-		channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(to)->getChannelModel());
-	}
-
-	// These physical effects affect the signal on its way.
-	double antennaGainTx = channelModel->antennaGainUe_;
-	double antennaGainRx = channelModel->antennaGainUe_;
-	double cableLoss = channelModel->cableLoss_;
-	double speed = channelModel->computeSpeed(from, getPosition(from));
-	double pathAttenuation = getAttenuation(from, to);
-
-	// Now we can find the received signal strength.
-	Direction dir = determineDirection(from, to);
-	double receivedPower = getTxPower(from, dir);
-
-	receivedPower -= pathAttenuation;
-	receivedPower += antennaGainTx;
-	receivedPower += antennaGainRx;
-	receivedPower -= cableLoss;
-	// Apply fading if enabled.
-	double fading = 0.0;
-	if (channelModel->fading_) {
-		// We are interested in the average channel gain.
-		// So we find the average fading over all resource blocks.
-		for (Band resource = 0; resource < channelModel->band_; resource++) {
-			if (channelModel->fadingType_ == LteRealisticChannelModel::FadingType::RAYLEIGH)
-				fading += channelModel->rayleighFading(from, resource);
-			else if (channelModel->fadingType_ == LteRealisticChannelModel::FadingType::JAKES) {
-				// D2D is treated like downlink for receivers, so only if it's uplink does this have to be 'false'.
-				bool cqiDl = (dir == UL ? false : true);
-				fading += channelModel->jakesFading(from, speed, resource, cqiDl);
-			}
-		}
-		fading /= ((double) channelModel->band_);
-		receivedPower += fading;
-	}
-
-	double senderPower = getTxPower(from, dir);
-	//cout << "antennaGainTx=" << antennaGainTx << " antennaGainRx=" << antennaGainRx << " cableLoss=" << cableLoss <<  " speed=" << speed << " pathAttenuation=" << pathAttenuation << " fading=" << fading << " receiverPower=" << getTxPower(to, dir) << " senderPower=" << senderPower << " receivedPower=" << receivedPower << endl;
-
-	// Channel gain is a ratio power_in/power_out that tells you how much signal power is lost on the way.
-	double gain_dBm = receivedPower - senderPower;
-	double gain_linear = dBToLinear(gain_dBm);
-
-	return gain_linear;
+	vector<Band> resources;
+	for (Band rb = 0; rb < getNumRBs(); rb++)
+	    resources.push_back(rb);
+	return getChannelGain(from, to, resources);
 }
 
 double Oracle::getAttenuation(const MacNodeId from, const MacNodeId to) const {
@@ -332,6 +339,41 @@ bool Oracle::isD2DFlow(const MacCid& nodeId) {
 }
 
 double Oracle::getD2DPenalty() const {
-	double penalty = par("d2dPenalty").doubleValue();
-	return penalty;
+	return par("d2dPenalty").doubleValue();
+}
+
+std::pair<double, double> Oracle::stackelberg_getD2DPowerLimits() const {
+    double txmax = par("stackelberg_d2dPowerLimit_max").doubleValue(),
+            txmin = par("stackelberg_d2dPowerLimit_min").doubleValue();
+    return pair<double, double>(txmax, txmin);
+}
+
+double Oracle::stackelberg_getBeta() const {
+    return par("stackelberg_beta").doubleValue();
+}
+
+double Oracle::stackelberg_getDelta() const {
+    return par("stackelberg_delta").doubleValue();
+}
+
+std::string Oracle::stackelberg_getLeaderScheduler() const {
+    return par("stackelberg_scheduleLeaders").stringValue();
+}
+
+MacNodeId Oracle::getTransmissionPartner(const MacNodeId id) const {
+    try {
+        const UeInfo* info = getUeInfo(id);
+        string targetName = info->ue->getSubmodule("udpApp", 0)->par("destAddresses").stringValue();
+        std::vector<UeInfo*>* ueList = getBinder()->getUeList();
+        for (auto iterator = ueList->begin(); iterator != ueList->end(); iterator++) {
+            const UeInfo* partnerInfo = *iterator;
+            MacNodeId partnerId = partnerInfo->id;
+            string partnerName = getName(partnerId);
+            if (partnerName == targetName)
+                return partnerId;
+        }
+    } catch (const exception& e) {
+        throw invalid_argument("Oracle::getTransmissionPartner couldn't find partner for '" + getName(id) + "'. Error: " + string(e.what()));
+    }
+    throw invalid_argument("Oracle::getTransmissionPartner couldn't find partner for '" + getName(id) + "'.");
 }

@@ -40,6 +40,13 @@ simple Oracle {
         
         // D2D Penalty value for Transferable Utility scheduler.
         double d2dPenalty = default(1.0);
+        
+        // D2D maximum/minimum transmission powers used by the Stackelberg Game scheduler.
+        double stackelberg_d2dPowerLimit_max = default(398.0); // in mW, equals 26dBm
+        double stackelberg_d2dPowerLimit_min = default(100.0); // 20 dBm
+        double stackelberg_beta = default(2.0);
+        double stackelberg_delta = default(0.04);
+        string stackelberg_scheduleLeaders = default("RR"); // Which scheduler to use to schedule leader UEs: RR=RoundRobin
     @display("i=block/table");
     @class(Oracle);    
 }

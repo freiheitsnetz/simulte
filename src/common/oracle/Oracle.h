@@ -103,7 +103,28 @@ public:
 
     double getD2DPenalty() const;
 
+    /**
+     * @return <max, min>
+     */
+    std::pair<double, double> stackelberg_getD2DPowerLimits() const;
+    double stackelberg_getBeta() const;
+    double stackelberg_getDelta() const;
+    std::string stackelberg_getLeaderScheduler() const;
+
+    /**
+     * @return Linear channel gain where fading is averaged over all resource blocks in 'resources'.
+     */
+    double getChannelGain(MacNodeId from, MacNodeId to, std::vector<Band> resources) const;
+
+    /**
+     * @return Linear channel gain where fading is averaged over all resource blocks.
+     */
     double getChannelGain(MacNodeId from, MacNodeId to) const;
+
+    /**
+     * @return The ID of that UE that is the transmission partner for 'id'.
+     */
+    MacNodeId getTransmissionPartner(const MacNodeId id) const;
 
 protected:
     double maxSimTime = 0.0;
