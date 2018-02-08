@@ -380,7 +380,7 @@ MacNodeId Oracle::getTransmissionPartner(const MacNodeId id) const {
 		}
 	} else if (appName == "inet::UDPSink") {
 		string targetName = getName(id);
-		targetName = std::regex_replace(targetName, std::regex("Rx"), "Tx");
+		targetName = std::regex_replace(targetName, std::regex("Rx"), std::string("Tx"));
 		std::vector<UeInfo*>* ueList = getBinder()->getUeList();
 		for (auto iterator = ueList->begin(); iterator != ueList->end(); iterator++) {
 			const UeInfo* partnerInfo = *iterator;
