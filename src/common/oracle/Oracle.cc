@@ -363,7 +363,7 @@ std::string Oracle::stackelberg_getLeaderScheduler() const {
 
 MacNodeId Oracle::getTransmissionPartner(const MacNodeId id) const {
 	string appName = getApplicationName(id);
-	if (appName == "inet::UDPBasicApp") {
+	if (appName == string("inet::UDPBasicApp")) {
 		try {
 			const UeInfo* info = getUeInfo(id);
 			string targetName = info->ue->getSubmodule("udpApp", 0)->par("destAddresses").stringValue();
@@ -378,16 +378,22 @@ MacNodeId Oracle::getTransmissionPartner(const MacNodeId id) const {
 		} catch (const exception& e) {
 			throw invalid_argument("Oracle::getTransmissionPartner couldn't find partner for '" + getName(id) + "'.");
 		}
-	} else if (appName == "inet::UDPSink") {
+	} else if (appName == string("inet::UDPSink")) {
+		cout << "sink app" << endl;
 		string targetName = getName(id);
 		targetName = std::regex_replace(targetName, std::regex("Rx"), std::string("Tx"));
+		cout << "target=" << targetName << endl;
 		std::vector<UeInfo*>* ueList = getBinder()->getUeList();
 		for (auto iterator = ueList->begin(); iterator != ueList->end(); iterator++) {
 			const UeInfo* partnerInfo = *iterator;
 			MacNodeId partnerId = partnerInfo->id;
 			string partnerName = getName(partnerId);
-			if (partnerName == targetName)
+			cout << "trying " << partnerName << endl;
+			if (partnerName == targetName) {
+				cout << "yep" << endl;
 				return partnerId;
+			}
+			cout << "nope" << endl;
 		}
 	}
 
