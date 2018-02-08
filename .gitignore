@@ -1,3 +1,6 @@
+src/stack/mac/scheduling_modules/common
+src/stack/mac/scheduling_modules/LteStackelbergGame/src
+src/stack/mac/scheduling_modules/LteTUGame/src
 # ignore generated files
 *_m.h
 *_m.cc
