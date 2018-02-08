@@ -3,7 +3,6 @@
 #include "stack/phy/layer/LtePhyBase.h"
 #include <fstream>
 #include <iostream>
-#include <regex>
 
 Oracle* Oracle::SINGLETON = nullptr;
 
@@ -381,7 +380,10 @@ MacNodeId Oracle::getTransmissionPartner(const MacNodeId id) const {
 	} else if (appName == string("inet::UDPSink")) {
 		cout << "sink app" << endl;
 		string targetName = getName(id);
-		targetName = std::regex_replace(targetName, std::regex("Rx"), std::string("Tx"));
+		string from = "Rx", to = "Tx";
+		size_t start_pos = targetName.find(from);
+		targetName.replace(start_pos, from.length(), to);
+
 		cout << "target=" << targetName << endl;
 		std::vector<UeInfo*>* ueList = getBinder()->getUeList();
 		for (auto iterator = ueList->begin(); iterator != ueList->end(); iterator++) {
