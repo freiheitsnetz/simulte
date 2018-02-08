@@ -389,6 +389,7 @@ MacNodeId Oracle::getTransmissionPartner(const MacNodeId id) const {
 			if (partnerName == targetName)
 				return partnerId;
 		}
-	} else
-	    throw invalid_argument("Oracle::getTransmissionPartner doesn't support '" + getName(id) + "' with app '" + appName + "'.");
+	}
+
+	throw invalid_argument("Oracle::getTransmissionPartner doesn't support '" + getName(id) + "' with app '" + appName + "'.");
 }
