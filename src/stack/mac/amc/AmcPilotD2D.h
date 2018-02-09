@@ -31,7 +31,7 @@ class AmcPilotD2D : public AmcPilot
         AmcPilot(amc)
     {
         name_ = "D2D";
-        mode_ = MIN_CQI;
+        mode_ = AVG_CQI;
         usePreconfiguredTxParams_ = false;
         preconfiguredTxParams_ = NULL;
     }
