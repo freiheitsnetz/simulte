@@ -64,10 +64,10 @@ public:
 	static void setRealtimeValues(TUGameUser* user) {
 		// Set user type.
 		if (user->getType() == TUGameUser::Type::VOIP) {
-			user->setRealtimeTarget(50/*ms*/, 1.05/*byte per TTI*/);
+			user->setRealtimeTarget(user->getDelayTarget() /*ms*/, user->getByteDemand() / 1000 /*byte per TTI*/);
 			EV << NOW << " LteTUGame::setRealtimeValues(" << user->toString() << ") realtime values set to VoIP." << endl;
 		} else if (user->getType() == TUGameUser::Type::VIDEO) {
-			user->setRealtimeTarget(100/*ms*/, 30.25/*byte per TTI*/);
+			user->setRealtimeTarget(user->getDelayTarget() /*ms*/, user->getByteDemand() / 1000 /*byte per TTI*/);
 			EV << NOW << " LteTUGame::setRealtimeValues(" << user->toString() << ") realtime values set to Video." << endl;
 		} else
 			throw invalid_argument("LteTUGame::setRealtimeValues(" + user->toString() + ") not supported.");
@@ -87,7 +87,7 @@ public:
 		throw logic_error("LteTUGame::updateUserAllocatedBytes(" + to_string(connectionId) + ", " + to_string(numBytes) + ") couldn't find user in 'users' list.");
 	}
 
-	bool haveWritten = false;
+//	bool haveWritten = false;
 
     virtual void schedule(std::set<MacCid>& connections) override {
         EV << NOW << " LteTUGame::schedule" << std::endl;
@@ -130,19 +130,19 @@ public:
 					  classDemandVid = 0;
 		// Constant Bitrate users.
 		for (const TUGameUser* user : classCbr.getMembers()) {
-			unsigned int byteDemand = getByteDemand(user);
+			unsigned int byteDemand = user->getByteDemand() / 1000; // /1000 to convert from s to ms resolution.
 			unsigned int rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
 			classDemandCbr += rbDemand;
 		}
 		// Voice-over-IP users.
 		for (const TUGameUser* user : classVoip.getMembers()) {
-			unsigned int byteDemand = getByteDemand(user);
+			unsigned int byteDemand = user->getByteDemand() / 1000;
 			unsigned int rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
 			classDemandVoip += rbDemand;
 		}
 		// Video streaming users.
 		for (const TUGameUser* user : classVid.getMembers()) {
-			unsigned int byteDemand = getByteDemand(user);
+			unsigned int byteDemand = user->getByteDemand() / 1000;
 			unsigned int rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
 			classDemandVid += rbDemand;
 		}
@@ -219,24 +219,7 @@ public:
 protected:
     std::vector<TUGameUser*> users;
     Shapley::Coalition<TUGameUser> classCbr, classVoip, classVid;
-    double d2dPenalty = 0.5;
-
-	unsigned int getByteDemand(const TUGameUser* user) {
-		switch (user->getType()) {
-			case TUGameUser::Type::VIDEO: {
-				return 30250; // Bytes per second.
-			}
-			case TUGameUser::Type::VOIP: {
-				return 1050;
-			}
-			case TUGameUser::Type::CBR: {
-				return 250;
-			}
-			default: {
-				throw invalid_argument("getByteDemand(" + user->toString() + ") not supported.");
-			}
-		}
-	}
+    double d2dPenalty = 1.0;
 };
 
 #endif /* STACK_MAC_SCHEDULING_MODULES_LTETUGAME_LTETUGAME_H_ */
