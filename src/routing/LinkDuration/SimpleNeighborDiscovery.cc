@@ -45,7 +45,9 @@ void SimpleNeighborDiscovery::handleMessage(cMessage *msg)
     scheduleAt(simTime()+updateTimer,update);
     }
     if(msg==sec){
+        incrementLinklifetime();
         scheduleAt(simTime()+1,sec);
+
     }
 
 }
@@ -78,17 +80,27 @@ void SimpleNeighborDiscovery::setAllUEsAddresses()
         char buf[20];
         sprintf(buf, "UE%d", i);
         cModule* temp = getContainingNode(getModuleByPath(buf));
-        if (temp!=ownAddress)//TODO Check if path is correct later on
+        if (temp!=ownAddress)
             otherAddressVector[i]=temp;
 
     }
 }
 void SimpleNeighborDiscovery::updateConnectionVector(){
-
+    std::map<cModule*,bool> previousConnection=neighborConnection;
     neighborConnection.clear();
     for(std::map<cModule*,int>::iterator it= nodeDistance.begin(); it!=nodeDistance.end();it++){
-        neighborConnection[it->first]=isInConnectionRange(transmissionRange, it->second);
+        bool tempConnection=isInConnectionRange(transmissionRange, it->second);
+        neighborConnection[it->first]=tempConnection;
+        /*
+         * Lost connection must be documented in histogram
+         * previous connection must  have been 1
+         */
+        if(tempConnection==0){
+        std::map<cModule*,bool>::iterator iter= previousConnection.find(it->first);
+            if(iter->second==1);
+            LinkTimeTable->updateLinkDurationHist(LinkTimeTable->getNeighborLinkTime(iter->first));
 
+        }
     }
 }
 bool SimpleNeighborDiscovery::isInConnectionRange(int txRange, int nodeDistance){
@@ -99,10 +111,10 @@ void SimpleNeighborDiscovery::incrementLinklifetime(){
     for(std::map<cModule*,bool>::iterator it= neighborConnection.begin();it!=neighborConnection.end();++it){
         if(it->second==1){
             //Just incrementing
-            LinkTimeTable->setNeighborLinkTime(it->first,getNeighborLinkTime(it->first)+1);
+            LinkTimeTable->setNeighborLinkTime(it->first,LinkTimeTable->getNeighborLinkTime(it->first)+1);
         }
-        else if (it->second==1){
-            LinkTimeTable->deleteNeighborLinkTime(it->first);
+        else if (it->second==0){
+            LinkTimeTable->deleteNeighborLinkTimeEntry(it->first);
 
         }
 

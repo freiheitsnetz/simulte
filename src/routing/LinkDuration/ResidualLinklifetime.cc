@@ -20,6 +20,20 @@ Define_Module(ResidualLinklifetime);
 
 void ResidualLinklifetime::initialize()
 {
+
+    cXMLElementList tempInputbinList=par("bin").xmlValue()->getChildren();
+    for( auto it=tempInputbinList.begin();it!=tempInputbinList;++it){
+
+    }
+
+        cXMLElementList tempInputvalueList=par("value").xmlValue()->getChildren();
+        for(int it=tempInputvalueList.begin();it!=tempInputvalueList;++it){
+
+        }
+
+
+    LinkTimeTable = inet::getModuleFromPar<NeighborLinkTimeTable>(par("neighborLinkTimeTable"), this);
+
     if((par("selfMode").boolValue()== true && par("givenMode").boolValue()== true)||(par("selfMode").boolValue()== false && par("givenMode").boolValue()== false)){
 
         if(par("selfMode").boolValue()== true)
@@ -50,7 +64,7 @@ int ResidualLinklifetime::calcResidualLinklifetime(cModule* neighbor)
 
 int ResidualLinklifetime::calcRLLviaInput(cModule* neighbor){
 //TODO InputLinkDist is normalized, Link duration is not.
-    NeighborLinkTimeTable* LinkTimeTable = inet::getModuleFromPar<NeighborLinkTimeTable>(par("neighborLinkTimeTable"), this);
+
     int tempLinkDuration=LinkTimeTable->getNeighborLinkTime(neighbor); //get link lifetime from NeighborLinkTimeTable
     auto it = InputLinkDist.find(tempLinkDuration);//find same value in distribution
     // Calculating mean value of shifted and normalized distribution function in discrete time domain. (Integration in nominator and denominator, just like in the formula)
@@ -71,4 +85,5 @@ int ResidualLinklifetime::calcRLLviaTable(cModule* neighbor){
     return 0; //avoiding error
 
 }
+
 

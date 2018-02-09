@@ -25,4 +25,6 @@ simple ResidualLinklifetime
         bool selfMode = default (true);
         bool givenMode =default (false);
         string neighborLinkTimeTable = default("^.NeighborLinkTimeTable");
+        xml bin = default(xmldoc("inputDist.xml","/root/input[@id='bin']"));
+        xml value = default(xmldoc("inputDist.xml","/root/input[@id='value']"));
 }

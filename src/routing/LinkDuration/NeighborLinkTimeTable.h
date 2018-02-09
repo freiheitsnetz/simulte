@@ -22,7 +22,11 @@
 using namespace omnetpp;
 
 /*
-  A table to store Addresses of network nodes and link lifetimes
+ *A table to store Addresses of network nodes and respective link lifetimes.
+ * Functions are only called by residual link lifetime modul
+ * or neighbordiscovery modules.
+ * Since this modul does not know if a neighbor is still a neighbor,
+ * the link lifetimes are incremented by neighbordiscovery modul.
  */
 class NeighborLinkTimeTable : public cSimpleModule
 {
@@ -30,10 +34,13 @@ class NeighborLinkTimeTable : public cSimpleModule
     void initialize();
     void handleMessage(cMessage *msg);
     std::map <cModule*,int > NeighborLinkTimeMap; //First: ID Second:Linklifetime
+    cLongHistogram measuredLinkDurations;
+
   public:
     int getNeighborLinkTime(cModule*);
     void setNeighborLinkTime(cModule*,int);
     void deleteNeighborLinkTimeEntry(cModule*);
+    void updateLinkDurationHist(int linkDuration);
 
 
 };

@@ -1,0 +1,28 @@
+<?xml>
+<root>
+    <input id="bin">
+          <param>1</param>
+          <param>2</param>
+          <param>3</param>
+          <param>4</param>
+          <param>5</param>
+          <param>6</param>
+          <param>7</param>
+          <param>8</param>
+	  	   <param>9</param>
+	      <param>10</param>
+    </input>
+    <input id="value">
+          <param>1</param>
+          <param>2</param>
+          <param>3</param>
+          <param>4</param>
+          <param>5</param>
+          <param>6</param>
+          <param>7</param>
+          <param>8</param>
+	      <param>9</param>
+	      <param>10</param>
+    </input>
+</root>
+

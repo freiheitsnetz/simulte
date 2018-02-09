@@ -46,3 +46,7 @@ void NeighborLinkTimeTable::deleteNeighborLinkTimeEntry(cModule* neighborID)
         if( it != NeighborLinkTimeMap.end() )
              NeighborLinkTimeMap.erase(it);
 }
+
+void NeighborLinkTimeTable::updateLinkDurationHist(int linkDuration){
+    measuredLinkDurations.collect(linkDuration);
+}

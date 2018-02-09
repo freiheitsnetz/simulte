@@ -21,15 +21,22 @@
 using namespace omnetpp;
 
 /**
- * TODO - Generated class
+ * This module calculates (predicts) the residual link lifetime when needed.
+ * calcResidualLinklifetime(address of neighbor module) can be called from external
+ * to get the residual link lifetime
+ * It needs a  NeighborLinkTimeTable modul to access the link lifetimes.
  */
 class ResidualLinklifetime : public cSimpleModule
 {
   protected:
+
     enum Mode {SELF, GIVEN} mode;
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
+    cXMLElement* tempInputbin;
+    cXMLElement* tempInputvalue;
     std::map<int,float> InputLinkDist;//safe the read in LinkDistribution
+    NeighborLinkTimeTable* LinkTimeTable;
     int calcRLLviaInput(cModule* neighbor);
     int calcRLLviaTable(cModule* neighbor);
   public:
