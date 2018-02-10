@@ -189,30 +189,10 @@ public:
 		}
     }
 
-    virtual void reactToSchedulingResult(const SchedulingResult& result, unsigned int numBytesGranted, const MacCid& connection) override {
-    	for (TUGameUser* user : users) {
-    		if (user->getConnectionId() == connection) {
-    			// Remember number of bytes served so that future metric computation takes it into account.
-    			user->updateDelay(numBytesGranted);
-    			break;
-    		}
-    	}
-    }
-
     virtual void commitSchedule() override {
-    	if (direction_ == UL) {
-			for (auto iterator = schedulingDecisions.begin(); iterator != schedulingDecisions.end(); iterator++) {
-				const pair<MacCid, std::vector<Band>> pair = *iterator;
-				for (TUGameUser* user : users) {
-					if (user->getConnectionId() == pair.first) {
-						user->addRBsScheduledThisTTI(pair.second.size());
-					}
-				}
-			}
+		for (TUGameUser* user : users)
+			user->onTTI();
 
-			for (TUGameUser* user : users)
-				user->onTTI();
-    	}
     	LteSchedulerBase::commitSchedule();
     }
 

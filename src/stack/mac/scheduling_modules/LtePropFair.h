@@ -23,8 +23,6 @@ public:
 
 	virtual void schedule(std::set<MacCid>& connections) override;
 
-	virtual void reactToSchedulingResult(const SchedulingResult& result, unsigned int numBytesGranted, const MacCid& connection) override;
-
 	virtual void commitSchedule();
 
 protected:

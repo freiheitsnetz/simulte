@@ -46,15 +46,6 @@ void LtePropFair::schedule(std::set<MacCid>& connections) {
 	}
 }
 
-void LtePropFair::reactToSchedulingResult(const SchedulingResult& result, unsigned int numBytesGranted, const MacCid& connection) {
-    for (TUGameUser* user : users) {
-        if (user->getConnectionId() == connection) {
-            user->updateDelay(numBytesGranted);
-            break;
-        }
-    }
-}
-
 void LtePropFair::commitSchedule() {
     for (TUGameUser* user : users)
         user->onTTI();
