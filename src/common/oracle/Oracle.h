@@ -126,6 +126,8 @@ public:
      */
     MacNodeId getTransmissionPartner(const MacNodeId id) const;
 
+//    unsigned int getAverageBytesPerBlock(const MacCid& connection) const;
+
 protected:
     double maxSimTime = 0.0;
 

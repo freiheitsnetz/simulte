@@ -92,6 +92,14 @@ public:
 		}
 	}
 
+	void setEnbSchedulerPtr(LteSchedulerEnb* scheduler) {
+        this->eNbScheduler_ = scheduler;
+    }
+
+	LteSchedulerEnb* getEnbSchedulerPtr() {
+	    return this->eNbScheduler_;
+	}
+
 protected:
 	unsigned int numBytesGrantedLast = 0;
 	/** Maps a connection to the list of resources that the schedule() function decided to schedule to it. */

@@ -6,6 +6,7 @@
 using namespace std;
 
 const std::string LteStackelbergGame::LEADER_SCHEDULER_RR = "RR";
+const std::string LteStackelbergGame::LEADER_SCHEDULER_TU = "TU";
 
 LteStackelbergGame::LteStackelbergGame() {
     pair<double, double> d2dPowerLimits = Oracle::get()->stackelberg_getD2DPowerLimits();
@@ -20,6 +21,18 @@ LteStackelbergGame::LteStackelbergGame() {
         scheduleLeaders = [this](const std::set<MacCid>& connections) {
               return this->scheduler_rr->getSchedulingMap(connections);
         };
+    } else if (leaderSchedulingDiscipline == LteStackelbergGame::LEADER_SCHEDULER_TU) {
+        scheduler_tu = new LteTUGame();
+        scheduleLeaders = [this](const std::set<MacCid>& connections) {
+            std::map<unsigned short, const TUGameUser*> map = this->scheduler_tu->getSchedulingMap(connections);
+            std::map<MacCid, std::vector<Band>> convertedMap;
+            if (!map.empty()) {
+                for (Band rb = 0; rb < Oracle::get()->getNumRBs(); rb++) {
+                    convertedMap[map[rb]->getConnectionId()].push_back(rb);
+                }
+            }
+            return convertedMap;
+        };
     } else
         throw invalid_argument("LteStackelbergGame can't recognize leader scheduling discipline: '" + leaderSchedulingDiscipline + "'.");
 
@@ -28,10 +41,15 @@ LteStackelbergGame::LteStackelbergGame() {
 
 LteStackelbergGame::~LteStackelbergGame() {
     delete scheduler_rr;
+    delete scheduler_tu;
 }
 
 void LteStackelbergGame::schedule(std::set<MacCid>& connections) {
     EV << NOW << " " << dirToA(direction_) << " LteStackelbergGame::schedule" << std::endl;
+
+    if (scheduler_tu != nullptr)
+        if (scheduler_tu->getEnbSchedulerPtr() == nullptr)
+            scheduler_tu->setEnbSchedulerPtr(eNbScheduler_);
 
     // First define our leaders and followers.
     vector<StackelbergUser*> leaders, followers;
@@ -50,11 +68,12 @@ void LteStackelbergGame::schedule(std::set<MacCid>& connections) {
         }
     }
 
+
     // Schedule leaders.
     set<MacCid> leaderConnectionIds;
     for (size_t i = 0; i < leaders.size(); i++)
         leaderConnectionIds.insert(leaders.at(i)->getConnectionId());
-    map<MacCid, vector<Band>> schedulingMap_leaders = scheduleLeaders(leaderConnectionIds);
+    map<MacCid, vector<Band>> schedulingMap_leaders = scheduleLeaders(connections);
     for (auto iterator = schedulingMap_leaders.begin(); iterator != schedulingMap_leaders.end(); iterator++) {
         MacCid connection = (*iterator).first;
         vector<Band> resources = (*iterator).second;

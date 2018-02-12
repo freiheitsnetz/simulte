@@ -411,3 +411,36 @@ MacNodeId Oracle::getTransmissionPartner(const MacNodeId id) const {
 
 	throw invalid_argument("Oracle::getTransmissionPartner doesn't support '" + getName(id) + "' with app '" + appName + "'.");
 }
+
+//unsigned int Oracle::getAverageBytesPerBlock(const MacCid& connection) {
+//    MacNodeId nodeId = MacCidToNodeId(connection);
+//
+//    unsigned int totalAvailableRBs = 0,
+//                 availableBytes = 0;
+//
+//    // Determine direction.
+//    Direction dir = this->getDirection(connection);
+//
+//    // For each antenna...
+//    getBinder()->getEnbList()->at(0)->mac
+//    if (eNbScheduler_ == nullptr)
+//        throw runtime_error("LteSchedulerBase::getAverageBytesPerBlock error: eNbScheduler_ is a nullptr!");
+//
+//
+//    const UserTxParams& info = eNbScheduler_->mac_->getAmc()->computeTxParams(nodeId, dir);
+//    for (std::set<Remote>::iterator antennaIt = info.readAntennaSet().begin(); antennaIt != info.readAntennaSet().end(); antennaIt++) {
+//        // For each resource...
+//        for (Band resource = 0; resource != Oracle::get()->getNumRBs(); resource++) {
+//            // Determine number of RBs.
+//            unsigned int availableRBs = eNbScheduler_->readAvailableRbs(nodeId, *antennaIt, resource);
+//            totalAvailableRBs += availableRBs;
+//            if (availableRBs > 1)
+//                cerr << NOW << " LteTUGame::getAverageBytesPerBlock(" << nodeId << ") with availableRBs==" << availableRBs << "!" << endl;
+//            // Determine number of bytes on this 'logical band' (which is a resource block if availableRBs==1).
+//            availableBytes += getBytesOnBand(nodeId, resource, availableRBs, dir);
+//        }
+//    }
+//
+//    // Average number of bytes available on 1 RB.
+//    return (totalAvailableRBs > 0) ? (availableBytes / totalAvailableRBs) : 0;
+//}

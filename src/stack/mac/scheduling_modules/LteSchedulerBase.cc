@@ -225,8 +225,12 @@ unsigned int LteSchedulerBase::getAverageBytesPerBlock(const MacCid& connection)
 	// Determine direction.
 	Direction dir = getDirection(connection);
 
-	// For each antenna...
+	if (eNbScheduler_ == nullptr)
+	    throw runtime_error("LteSchedulerBase::getAverageBytesPerBlock error: eNbScheduler_ == nullptr!");
+
 	const UserTxParams& info = eNbScheduler_->mac_->getAmc()->computeTxParams(nodeId, dir);
+
+	// For each antenna...
 	for (std::set<Remote>::iterator antennaIt = info.readAntennaSet().begin(); antennaIt != info.readAntennaSet().end(); antennaIt++) {
 		// For each resource...
 		for (Band resource = 0; resource != Oracle::get()->getNumRBs(); resource++) {
@@ -241,7 +245,8 @@ unsigned int LteSchedulerBase::getAverageBytesPerBlock(const MacCid& connection)
 	}
 
 	// Average number of bytes available on 1 RB.
-	return (totalAvailableRBs > 0) ? (availableBytes / totalAvailableRBs) : 0;
+	unsigned int avgBytesPerBlock = (totalAvailableRBs > 0) ? (availableBytes / totalAvailableRBs) : 0;
+	return avgBytesPerBlock;
 }
 
 

@@ -27,17 +27,6 @@ public:
 
 	virtual ~LteTUGame() {
 		for (TUGameUser* user : users) {
-//			if (user->getNodeId() == 1027) {
-//				ofstream myfile;
-//				myfile.open("schedule_record", std::ios_base::app);
-//				const std::vector<unsigned short>& scheduleVec = user->getScheduledVec();
-//				myfile << "p=" << d2dPenalty << endl;
-//				for (size_t i = 0; i < scheduleVec.size(); i++) {
-//					myfile << scheduleVec.at(i) << (i < scheduleVec.size() - 1 ? ", " : "");
-//				}
-//				myfile << endl;
-//				myfile.close();
-//			}
 			delete user;
 		}
 	}
@@ -106,13 +95,7 @@ public:
     	LteSchedulerBase::commitSchedule();
     }
 
-protected:
-    std::vector<TUGameUser*> users;
-    Shapley::Coalition<TUGameUser> classCbr, classVoip, classVid;
-    /** D2D flow metrics are multiplied by this value. So 1.0 turns off penalty application, while 0.0 disables scheduling to D2D flows. */
-    double d2dPenalty = 1.0;
-
-    std::map<unsigned short, const TUGameUser*> getSchedulingMap(std::set<MacCid>& connections) {
+    std::map<unsigned short, const TUGameUser*> getSchedulingMap(const std::set<MacCid>& connections) {
         // Update player list - adds new players and updates their active status.
         EV << NOW << " LteTUGame::updatePlayers" << std::endl;
         FlowClassUpdater::updatePlayers(connections, users, LteTUGame::getUserType, LteTUGame::setRealtimeValues, LteTUGame::setD2D);
@@ -136,25 +119,25 @@ protected:
         EV << endl;
 
         /** Demand in resource blocks.*/
-        unsigned long classDemandCbr = 0,
-                      classDemandVoip = 0,
-                      classDemandVid = 0;
+        double classDemandCbr = 0,
+               classDemandVoip = 0,
+               classDemandVid = 0;
         // Constant Bitrate users.
         for (const TUGameUser* user : classCbr.getMembers()) {
             unsigned int byteDemand = user->getByteDemand() / 1000; // /1000 to convert from s to ms resolution.
-            unsigned int rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
+            double rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
             classDemandCbr += rbDemand;
         }
         // Voice-over-IP users.
         for (const TUGameUser* user : classVoip.getMembers()) {
             unsigned int byteDemand = user->getByteDemand() / 1000;
-            unsigned int rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
+            double rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
             classDemandVoip += rbDemand;
         }
         // Video streaming users.
         for (const TUGameUser* user : classVid.getMembers()) {
             unsigned int byteDemand = user->getByteDemand() / 1000;
-            unsigned int rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
+            double rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
             classDemandVid += rbDemand;
         }
 
@@ -199,6 +182,12 @@ protected:
 
         return allocationMap;
     }
+
+protected:
+    std::vector<TUGameUser*> users;
+    Shapley::Coalition<TUGameUser> classCbr, classVoip, classVid;
+    /** D2D flow metrics are multiplied by this value. So 1.0 turns off penalty application, while 0.0 disables scheduling to D2D flows. */
+    double d2dPenalty = 1.0;
 };
 
 #endif /* STACK_MAC_SCHEDULING_MODULES_LTETUGAME_LTETUGAME_H_ */

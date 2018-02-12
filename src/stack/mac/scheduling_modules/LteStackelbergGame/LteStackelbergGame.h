@@ -10,10 +10,11 @@
 
 #include "stack/mac/scheduling_modules/LteSchedulerBase.h"
 #include "stack/mac/scheduling_modules/LteNaiveRoundRobin.h"
+#include "stack/mac/scheduling_modules/LteTUGame/LteTUGame.h"
 
 class LteStackelbergGame : public LteSchedulerBase {
 public:
-    const static std::string LEADER_SCHEDULER_RR;
+    const static std::string LEADER_SCHEDULER_RR, LEADER_SCHEDULER_TU;
 
     LteStackelbergGame();
 
@@ -34,6 +35,7 @@ protected:
 
 private:
     LteNaiveRoundRobin* scheduler_rr = nullptr;
+    LteTUGame* scheduler_tu = nullptr;
 };
 
 #endif /* STACK_MAC_SCHEDULING_MODULES_LTESTACKELBERGGAME_LTESTACKELBERGGAME_H_ */
