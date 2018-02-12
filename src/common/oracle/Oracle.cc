@@ -392,6 +392,21 @@ MacNodeId Oracle::getTransmissionPartner(const MacNodeId id) const {
 				return partnerId;
 			}
 		}
+	} else if (appName == string("VoIPSender")) {
+	    try {
+            const UeInfo* info = getUeInfo(id);
+            string targetName = info->ue->getSubmodule("udpApp", 0)->par("destAddress").stringValue();
+            std::vector<UeInfo*>* ueList = getBinder()->getUeList();
+            for (auto iterator = ueList->begin(); iterator != ueList->end(); iterator++) {
+                const UeInfo* partnerInfo = *iterator;
+                MacNodeId partnerId = partnerInfo->id;
+                string partnerName = getName(partnerId);
+                if (partnerName == targetName)
+                    return partnerId;
+            }
+        } catch (const exception& e) {
+            throw invalid_argument("Oracle::getTransmissionPartner couldn't find partner for '" + getName(id) + "'.");
+        }
 	}
 
 	throw invalid_argument("Oracle::getTransmissionPartner doesn't support '" + getName(id) + "' with app '" + appName + "'.");
