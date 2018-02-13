@@ -159,6 +159,7 @@ public:
 
         if (totalBandsToAllocate > 0) {
             if (!totalBandsToAllocate == numRBs) {
+                cerr << "shapley[cbr]=" << shapleyValues[&shapley_cbr] << " shapley[voip]=" << shapleyValues[&shapley_voip] << " shapely[vid]=" << shapleyValues[&shapley_vid] << " sum=" << totalBandsToAllocate << " < numRBs=" << numRBs << endl;
                 throw runtime_error("totalBandsToAllocate=" + to_string(totalBandsToAllocate) + " != numRBs=" + to_string(numRBs));
             }
 
@@ -183,6 +184,13 @@ public:
         }
 
         return allocationMap;
+    }
+
+    void setD2DPenalty(double penalty) {
+        this->d2dPenalty = penalty;
+    }
+    double getD2DPenalty() const {
+        return this->d2dPenalty;
     }
 
 protected:

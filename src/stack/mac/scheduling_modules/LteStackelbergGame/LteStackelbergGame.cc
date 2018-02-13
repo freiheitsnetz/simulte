@@ -23,6 +23,7 @@ LteStackelbergGame::LteStackelbergGame() {
         };
     } else if (leaderSchedulingDiscipline == LteStackelbergGame::LEADER_SCHEDULER_TU) {
         scheduler_tu = new LteTUGame();
+        scheduler_tu->setD2DPenalty(Oracle::get()->getD2DPenalty());
         scheduleLeaders = [this](const std::set<MacCid>& connections) {
             std::map<unsigned short, const TUGameUser*> map = this->scheduler_tu->getSchedulingMap(connections);
             std::map<MacCid, std::vector<Band>> convertedMap;
@@ -46,6 +47,7 @@ LteStackelbergGame::~LteStackelbergGame() {
 
 void LteStackelbergGame::schedule(std::set<MacCid>& connections) {
     EV << NOW << " " << dirToA(direction_) << " LteStackelbergGame::schedule" << std::endl;
+    assert(direction_ != Direction::DL && "Stackelberg Game only works for uplink!");
 
     if (scheduler_tu != nullptr)
         if (scheduler_tu->getEnbSchedulerPtr() == nullptr)

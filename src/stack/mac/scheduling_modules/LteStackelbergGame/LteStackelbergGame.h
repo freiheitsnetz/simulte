@@ -33,7 +33,6 @@ protected:
     /** This function returns a scheduling map. It is assigned differently in the constructor based on the leader scheduling discipline. */
     std::function<std::map<MacCid, std::vector<Band>> (const std::set<MacCid>& connections)> scheduleLeaders;
 
-private:
     LteNaiveRoundRobin* scheduler_rr = nullptr;
     LteTUGame* scheduler_tu = nullptr;
 };

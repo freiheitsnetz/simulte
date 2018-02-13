@@ -45,6 +45,8 @@ class LteSchedulerEnb
     friend class LteTUGame;
     friend class LteTUGame_reuse;
     friend class LtePropFair;
+    friend class LteStackelbergGame;
+    friend class LteModdedStackelbergGame;
 
   protected:
 

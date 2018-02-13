@@ -108,7 +108,7 @@ LtePhyBase* Oracle::getPhyBase(const MacNodeId id) const {
     }
 
     if (phyBase == nullptr)
-        throw cRuntimeError("Oracle::getPhyBase couldn't find node's LtePhyBase.");
+        throw runtime_error("Oracle::getPhyBase couldn't find node's (id=" + to_string(id) + ") LtePhyBase.");
     return phyBase;
 }
 
@@ -203,10 +203,14 @@ std::vector<double> Oracle::getSINR(const MacNodeId from, const MacNodeId to) co
 
 double Oracle::getChannelGain(MacNodeId from, MacNodeId to, vector<Band> resources) const {
     LteRealisticChannelModel* channelModel = nullptr;
-    if (from != getEnodeBID()) {
-        channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(from)->getChannelModel());
-    } else {
-        channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(to)->getChannelModel());
+    try {
+        if (from != getEnodeBID()) {
+            channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(from)->getChannelModel());
+        } else {
+            channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(to)->getChannelModel());
+        }
+    } catch (const exception& e) {
+        throw runtime_error("Oracle::getChannelGain(" + to_string(from) + ", " + to_string(to) + ") error: " + string(e.what()));
     }
 
     // These physical effects affect the signal on its way.

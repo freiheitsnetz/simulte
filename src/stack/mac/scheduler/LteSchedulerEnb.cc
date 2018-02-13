@@ -24,6 +24,7 @@
 #include "stack/mac/scheduling_modules/LteTUGame/LteTUGame.h"
 #include "stack/mac/scheduling_modules/LteTUGame/LteTUGame_reuse.h"
 #include "stack/mac/scheduling_modules/LteStackelbergGame/LteStackelbergGame.h"
+#include "stack/mac/scheduling_modules/LteStackelbergGame/LteModdedStackelbergGame.h"
 #include "stack/mac/scheduling_modules/LtePropFair.h"
 #include "stack/mac/buffer/LteMacBuffer.h"
 #include "stack/mac/buffer/LteMacQueue.h"
@@ -76,7 +77,7 @@ void LteSchedulerEnb::initialize(Direction dir, LteMacEnb* mac)
 
     // Create Allocator
     if (discipline == ALLOCATOR_BESTFIT || discipline == REUSE_TESTER || discipline == TU_GAME || discipline == TU_GAME_RANDOMREUSE
-            || discipline == STACKELBERG_GAME || discipline == NAIVE_ROUND_ROBIN_REUSE) {   // NOTE: create this type of allocator for every scheduler using Frequency Reuse
+            || discipline == STACKELBERG_GAME || discipline == MODDED_STACKELBERG_GAME || discipline == NAIVE_ROUND_ROBIN_REUSE) {   // NOTE: create this type of allocator for every scheduler using Frequency Reuse
         allocator_ = new LteAllocationModuleFrequencyReuse(mac_, direction_);
     } else
         allocator_ = new LteAllocationModule(mac_, direction_);
@@ -823,6 +824,8 @@ LteScheduler* LteSchedulerEnb::getScheduler(SchedDiscipline discipline)
             return new LteTUGame_reuse();
         case STACKELBERG_GAME:
             return new LteStackelbergGame();
+        case MODDED_STACKELBERG_GAME:
+            return new LteModdedStackelbergGame();
         case PROPFAIR:
         	return new LtePropFair();
         default:

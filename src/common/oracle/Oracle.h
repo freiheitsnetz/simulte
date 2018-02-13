@@ -25,6 +25,7 @@ public:
         Oracle::SINGLETON = this;
     }
     virtual ~Oracle() {
+        std::cout << "oracle destr" << std::endl;
     }
 
     static Oracle* get() {
