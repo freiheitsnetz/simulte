@@ -158,7 +158,9 @@ public:
         std::map<unsigned short, const TUGameUser*> allocationMap;
 
         if (totalBandsToAllocate > 0) {
-            assert(totalBandsToAllocate == numRBs);
+            if (!totalBandsToAllocate == numRBs) {
+                throw runtime_error("totalBandsToAllocate=" + to_string(totalBandsToAllocate) + " != numRBs=" + to_string(numRBs));
+            }
 
             // Estimate data rates on all RBs for all users.
             for (TUGameUser* user : users) {
