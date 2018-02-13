@@ -123,4 +123,11 @@ void LteStackelbergGame::schedule(std::set<MacCid>& connections) {
         }
     }
 
+    for (size_t i = 0; i < leaders.size(); i++)
+        delete leaders.at(i);
+    leaders.clear();
+    for (size_t i = 0; i < followers.size(); i++)
+        delete followers.at(i);
+    followers.clear();
+
 }
