@@ -59,14 +59,10 @@ void LteStackelbergGame::schedule(std::set<MacCid>& connections) {
     for (User* user : getUserManager().getActiveUsers()) {
         // Keep track of cellular UEs (leaders).
         if (!user->isD2D()) {
-            StackelbergUser* leader = new StackelbergUser(user->getNodeId(), user->getConnectionId());
-            leader->setPartnerId(user->getPartnerId());
-            leaders.push_back(leader);
+            leaders.push_back(new StackelbergUser(*user));
         // And remember all D2D UEs as followers.
         } else {
-            StackelbergUser* follower = new StackelbergUser(user->getNodeId(), user->getConnectionId());
-            follower->setPartnerId(user->getPartnerId());
-            followers.push_back(follower);
+            followers.push_back(new StackelbergUser(*user));
         }
     }
 
