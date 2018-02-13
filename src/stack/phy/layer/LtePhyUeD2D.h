@@ -54,6 +54,14 @@ class LtePhyUeD2D : public LtePhyUe
             return d2dTxPower_;
         return txPower_;
     }
+
+    /**
+     * Sets this node's transmission power.
+     * @param power In dBm.
+     */
+    void setD2DTxPower(double power_dBm) {
+        this->d2dTxPower_ = power_dBm;
+    }
 };
 
 #endif  /* _LTE_AIRPHYUED2D_H_ */

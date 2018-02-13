@@ -167,6 +167,14 @@ class LtePhyBase : public ChannelAccess
         return txAngle_;
     }
 
+    /**
+     * Sets this node's transmission power.
+     * @param power In dBm.
+     */
+    void setTxPower(double power) {
+        this->txPower_ = power;
+    }
+
   protected:
 
     /**

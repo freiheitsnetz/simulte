@@ -129,6 +129,11 @@ public:
 
 //    unsigned int getAverageBytesPerBlock(const MacCid& connection) const;
 
+    /**
+     * @param d2d Whether to set the D2D transmission power or not.
+     */
+    void setUETxPower(MacNodeId id, bool d2d, double power_dBm);
+
 protected:
     double maxSimTime = 0.0;
 

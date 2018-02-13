@@ -1,6 +1,7 @@
 #include "common/oracle/Oracle.h"
 #include "corenetwork/binder/LteBinder.h"
 #include "stack/phy/layer/LtePhyBase.h"
+#include "stack/phy/layer/LtePhyUeD2D.h"
 #include <fstream>
 #include <iostream>
 
@@ -414,6 +415,20 @@ MacNodeId Oracle::getTransmissionPartner(const MacNodeId id) const {
 	}
 
 	throw invalid_argument("Oracle::getTransmissionPartner doesn't support '" + getName(id) + "' with app '" + appName + "'.");
+}
+
+void Oracle::setUETxPower(MacNodeId id, bool d2d, double power_dBm) {
+    try {
+    LtePhyBase* phy = getPhyBase(id);
+    if (!d2d)
+        phy->setTxPower(power_dBm);
+    else {
+        LtePhyUeD2D* phyD2D = dynamic_cast<LtePhyUeD2D*>(phy);
+        phyD2D->setD2DTxPower(power_dBm);
+    }
+    } catch (const exception& e) {
+        throw runtime_error("Oracle::setUETxPower(" + to_string(id) + ", " + to_string(d2d) + ", " + to_string(power_dBm) + ") error: " + string(e.what()));
+    }
 }
 
 //unsigned int Oracle::getAverageBytesPerBlock(const MacCid& connection) {

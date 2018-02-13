@@ -26,9 +26,9 @@ public:
 	}
 
 	virtual ~LteTUGame() {
-		for (TUGameUser* user : users) {
-			delete user;
-		}
+	    for (size_t i = 0; i < users.size(); i++)
+	        delete users.at(i);
+		users.clear();
 	}
 
 	/**
@@ -158,7 +158,7 @@ public:
         std::map<unsigned short, const TUGameUser*> allocationMap;
 
         if (totalBandsToAllocate > 0) {
-            if (!totalBandsToAllocate == numRBs) {
+            if (totalBandsToAllocate != numRBs) {
                 cerr << "shapley[cbr]=" << shapleyValues[&shapley_cbr] << " shapley[voip]=" << shapleyValues[&shapley_voip] << " shapely[vid]=" << shapleyValues[&shapley_vid] << " sum=" << totalBandsToAllocate << " < numRBs=" << numRBs << endl;
                 throw runtime_error("totalBandsToAllocate=" + to_string(totalBandsToAllocate) + " != numRBs=" + to_string(numRBs));
             }

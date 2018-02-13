@@ -95,13 +95,18 @@ void LteModdedStackelbergGame::schedule(std::set<MacCid>& connections) {
             const StackelbergUser* leader = (*iterator).first;
             const StackelbergUser* follower = (*iterator).second;
             const vector<Band>& resources = schedulingMap_tu[leader->getConnectionId()];
-//            cout << Oracle::get()->getName(leader->getNodeId()) << " shares RBs [";
-            for (size_t i = 0; i < resources.size(); i++) {
-                const Band& resource = resources.at(i);
-//                cout << resource << (i < resources.size() - 1 ? " " : "] ");
-                scheduleUeReuse(follower->getConnectionId(), resource);
+            if (!resources.empty()) {
+                double txPower_linear = follower->getTxPower();
+                double txPower_dBm = linearToDBm(txPower_linear / 1000);
+                Oracle::get()->setUETxPower(follower->getNodeId(), follower->isD2D(), txPower_dBm);
+    //            cout << Oracle::get()->getName(leader->getNodeId()) << " shares RBs [";
+                for (size_t i = 0; i < resources.size(); i++) {
+                    const Band& resource = resources.at(i);
+    //                cout << resource << (i < resources.size() - 1 ? " " : "] ");
+                    scheduleUeReuse(follower->getConnectionId(), resource);
+                }
+    //            cout << "with " << Oracle::get()->getName(follower->getNodeId()) << endl;
             }
-//            cout << "with " << Oracle::get()->getName(follower->getNodeId()) << endl;
 
         }
     }
