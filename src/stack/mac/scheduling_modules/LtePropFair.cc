@@ -29,24 +29,26 @@ void LtePropFair::schedule(std::set<MacCid>& connections) {
 			user->setExpectedDatarateVec(expectedDatarateVec);
 		}
 
+		std::map<unsigned short, const TUGameUser*> allocationMap = ExpPfRule::apply_propfair(users, Oracle::get()->getNumRBs(),
+                [this](unsigned int connectionId, unsigned int numBytes) {
+                    for (TUGameUser* user : users)
+                        if (user->getConnectionId() == connectionId) {
+                            user->updateBytesAllocated(numBytes);
+                            return;
+                        }
+                });
 		// Apply Proportional Fair rule.
 		for (Band resource  = 0; resource < Oracle::get()->getNumRBs(); resource++) {
-			map<const TUGameUser*, double> map = ExpPfRule::calculate_propfair(users, resource);
-			TUGameUser* best = users.at(0);
-			for (TUGameUser* user : users) {
-				if (map[user] > map[best])
-					best = user;
-			}
+			const TUGameUser* user = allocationMap.at(resource);
 			// Schedule UE.
-			scheduleUe(best->getConnectionId(), resource);
-			// Update bytes allocated.
-			best->updateBytesAllocated(best->getExpectedDatarateVec().at(resource));
-//			cout << NOW << " RB " << resource << " -> "<< best->toString() << "." << endl;
+			scheduleUe(user->getConnectionId(), resource);
+//			cout << NOW << " RB " << resource << " -> "<< user->toString() << "." << endl;
 		}
 	}
 }
 
 void LtePropFair::commitSchedule() {
+    LteSchedulerBase::commitSchedule();
     for (TUGameUser* user : users)
         user->onTTI();
 }
