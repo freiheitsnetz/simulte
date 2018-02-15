@@ -10,6 +10,7 @@
 
 #include "stack/mac/scheduling_modules/LteSchedulerBase.h"
 #include "stack/mac/scheduling_modules/LteNaiveRoundRobin.h"
+#include "stack/mac/scheduling_modules/LteNaiveRoundRobinReuse.h"
 #include "stack/mac/scheduling_modules/LteTUGame/LteTUGame.h"
 
 class LteStackelbergGame : public LteSchedulerBase {
@@ -36,6 +37,7 @@ protected:
     std::function<std::map<MacCid, std::vector<Band>> (const std::set<MacCid>& connections)> scheduleLeaders;
 
     LteNaiveRoundRobin* scheduler_rr = nullptr;
+    LteNaiveRoundRobinReuse* scheduler_rr_reuse = nullptr;
     LteTUGame* scheduler_tu = nullptr;
 };
 

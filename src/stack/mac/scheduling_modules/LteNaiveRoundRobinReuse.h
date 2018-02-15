@@ -53,7 +53,10 @@ public:
 
 	}
 
-protected:
+	/**
+	 * @param connections These connections will be randomly picked from.
+	 * @param schedulingMap This map will be referenced to make sure we're not randomly picking the same UE that already received a resource before.
+	 */
 	std::map<MacCid, std::vector<Band>> getSchedulingMap_reuse(const std::set<MacCid>& connections, const std::map<MacCid, std::vector<Band>>& schedulingMap) {
 		std::map<MacCid, std::vector<Band>> map;
 		for (ActiveSet::iterator iterator = connections.begin(); iterator != connections.end(); iterator++) {
@@ -67,8 +70,11 @@ protected:
 			return map;
 
 		vector<MacCid> cids;
-		for (std::map<MacCid, std::vector<Band>>::const_iterator it = schedulingMap.begin(); it != schedulingMap.end(); it++)
-			cids.push_back((*it).first);
+//		for (std::map<MacCid, std::vector<Band>>::const_iterator it = schedulingMap.begin(); it != schedulingMap.end(); it++)
+//			cids.push_back((*it).first);
+		for (auto it = connections.begin(); it != connections.end(); it++)
+			cids.push_back(*it);
+
 
 		std::random_device rd; // Obtain a random number from hardware.
 		std::mt19937 eng(rd()); // Use Mersenne-Twister as generator, give it the random number as seed.
@@ -81,8 +87,12 @@ protected:
 				random = distr(eng);
 				// Make sure we've not randomly picked that UE that was already scheduled this resource.
 				cid = cids.at(random);
+				// If the connection is not originally scheduled then we're fine, it can't be double-assigned the same resource.
+				if (schedulingMap.find(cid) == schedulingMap.end())
+					break;
+				// If it has been scheduled, get the resources allocated to it.
 				const std::vector<Band>& resources = schedulingMap.at(cid);
-
+				// And make sure we're not allocating an already-allocated resource again.
 				bool found = false;
 				for (const Band& scheduled_resource : resources) {
 					if (scheduled_resource == resource) {

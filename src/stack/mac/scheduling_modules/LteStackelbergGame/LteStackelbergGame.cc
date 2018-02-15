@@ -45,12 +45,16 @@ LteStackelbergGame::LteStackelbergGame() {
     } else
         throw invalid_argument("LteStackelbergGame can't recognize leader scheduling discipline: '" + leaderSchedulingDiscipline + "'.");
 
+    if (scheduleFollowersRandomly)
+    	scheduler_rr_reuse = new LteNaiveRoundRobinReuse();
+
     cout << "d2dTxPower_max=" << d2dTxPower_max << " d2dTxPower_min=" << d2dTxPower_min << " beta=" << beta << " delta=" << delta << " leader_scheduler=" << leaderSchedulingDiscipline << " follower_scheduler=" << (scheduleFollowersRandomly ? "randomly" : "Stackelberg") << endl;
 }
 
 LteStackelbergGame::~LteStackelbergGame() {
     delete scheduler_rr;
     delete scheduler_tu;
+    delete scheduler_rr_reuse;
 }
 
 void LteStackelbergGame::schedule(std::set<MacCid>& connections) {
@@ -89,6 +93,7 @@ void LteStackelbergGame::schedule(std::set<MacCid>& connections) {
     set<MacCid> leaderConnectionIds;
     for (size_t i = 0; i < leaders.size(); i++)
         leaderConnectionIds.insert(leaders.at(i)->getConnectionId());
+
     map<MacCid, vector<Band>> schedulingMap_leaders = scheduleLeaders(leaderConnectionIds);
     for (auto iterator = schedulingMap_leaders.begin(); iterator != schedulingMap_leaders.end(); iterator++) {
         MacCid connection = (*iterator).first;
@@ -103,50 +108,71 @@ void LteStackelbergGame::schedule(std::set<MacCid>& connections) {
 
     // Schedule followers.
     if (!followers.empty()) {
-        // Set up each game's fixed parameters.
-        StackelbergGame game;
-        game.setBeta(beta);
-        game.setDelta(delta);
-        game.setTxPowerLimits(d2dTxPower_max, d2dTxPower_min);
+    	if (!scheduleFollowersRandomly) {
+			// Set up each game's fixed parameters.
+			StackelbergGame game;
+			game.setBeta(beta);
+			game.setDelta(delta);
+			game.setTxPowerLimits(d2dTxPower_max, d2dTxPower_min);
 
-        // Find all required channel gains.
-        for (StackelbergUser* leader : leaders) {
-            double g_ke = Oracle::get()->getChannelGain(leader->getNodeId(), Oracle::get()->getEnodeBID());
-            leader->setChannelGain_enb(g_ke);
-        }
-        for (StackelbergUser* follower : followers) {
-            double g_ii = Oracle::get()->getChannelGain(follower->getNodeId(), follower->getPartnerId());
-            follower->setChannelGain_d2d(follower->getPartnerId(), g_ii);
-            double g_ie = Oracle::get()->getChannelGain(follower->getNodeId(), Oracle::get()->getEnodeBID());
-            follower->setChannelGain_enb(g_ie);
-            for (StackelbergUser* leader : leaders) {
-                const vector<Band>& resources = schedulingMap_leaders[leader->getConnectionId()];
-                double g_ki = Oracle::get()->getChannelGain(leader->getNodeId(), follower->getPartnerId(), resources);
-                leader->setChannelGain_d2d(follower->getPartnerId(), g_ki);
-            }
-        }
+			// Find all required channel gains.
+			for (StackelbergUser* leader : leaders) {
+				double g_ke = Oracle::get()->getChannelGain(leader->getNodeId(), Oracle::get()->getEnodeBID());
+				leader->setChannelGain_enb(g_ke);
+			}
+			for (StackelbergUser* follower : followers) {
+				double g_ii = Oracle::get()->getChannelGain(follower->getNodeId(), follower->getPartnerId());
+				follower->setChannelGain_d2d(follower->getPartnerId(), g_ii);
+				double g_ie = Oracle::get()->getChannelGain(follower->getNodeId(), Oracle::get()->getEnodeBID());
+				follower->setChannelGain_enb(g_ie);
+				for (StackelbergUser* leader : leaders) {
+					const vector<Band>& resources = schedulingMap_leaders[leader->getConnectionId()];
+					double g_ki = Oracle::get()->getChannelGain(leader->getNodeId(), follower->getPartnerId(), resources);
+					leader->setChannelGain_d2d(follower->getPartnerId(), g_ki);
+				}
+			}
 
-        // Now we can play the Stackelberg games.
-        map<const StackelbergUser*, const StackelbergUser*> schedulingMap_followers = game.schedule(leaders, followers);
-        for (auto iterator = schedulingMap_followers.begin(); iterator != schedulingMap_followers.end(); iterator++) {
-            const StackelbergUser* leader = (*iterator).first;
-            const StackelbergUser* follower = (*iterator).second;
-            const vector<Band>& resources = schedulingMap_leaders[leader->getConnectionId()];
-            if (!resources.empty()) {
-            	if (shouldSetTxPower) {
-					double txPower_linear = follower->getTxPower();
-					double txPower_dBm = linearToDBm(txPower_linear / 1000);
-					Oracle::get()->setUETxPower(follower->getNodeId(), follower->isD2D(), txPower_dBm);
-            	}
-                cout << Oracle::get()->getName(leader->getNodeId()) << " shares RBs [";
-                for (size_t i = 0; i < resources.size(); i++) {
-                    const Band& resource = resources.at(i);
-                    cout << resource << (i < resources.size() - 1 ? " " : "] ");
-                    scheduleUeReuse(follower->getConnectionId(), resource);
-                }
-                cout << "with " << Oracle::get()->getName(follower->getNodeId()) << endl;
-            }
-        }
+			// Now we can play the Stackelberg games.
+			map<const StackelbergUser*, const StackelbergUser*> schedulingMap_followers = game.schedule(leaders, followers);
+			for (auto iterator = schedulingMap_followers.begin(); iterator != schedulingMap_followers.end(); iterator++) {
+				const StackelbergUser* leader = (*iterator).first;
+				const StackelbergUser* follower = (*iterator).second;
+				const vector<Band>& resources = schedulingMap_leaders[leader->getConnectionId()];
+				if (!resources.empty()) {
+					if (shouldSetTxPower) {
+						double txPower_linear = follower->getTxPower();
+						double txPower_dBm = linearToDBm(txPower_linear / 1000);
+						Oracle::get()->setUETxPower(follower->getNodeId(), follower->isD2D(), txPower_dBm);
+					}
+					cout << Oracle::get()->getName(leader->getNodeId()) << " shares RBs [";
+					for (size_t i = 0; i < resources.size(); i++) {
+						const Band& resource = resources.at(i);
+						cout << resource << (i < resources.size() - 1 ? " " : "] ");
+						scheduleUeReuse(follower->getConnectionId(), resource);
+					}
+					cout << "with " << Oracle::get()->getName(follower->getNodeId()) << endl;
+				}
+			}
+		// Random follower scheduling.
+    	} else {
+    		set<MacCid> followerConnectionIds;
+    		for (size_t i = 0; i < followers.size(); i++)
+				followerConnectionIds.insert(followers.at(i)->getConnectionId());
+
+    		std::map<MacCid, std::vector<Band>> schedulingMap_followers = scheduler_rr_reuse->getSchedulingMap_reuse(followerConnectionIds, schedulingMap_leaders);
+    		for (auto it = schedulingMap_followers.begin(); it != schedulingMap_followers.end(); it++) {
+    			const MacCid& connection = (*it).first;
+    			const vector<Band>& resources = (*it).second;
+    			if (!resources.empty()) {
+    				cout << "Follower " << Oracle::get()->getName(MacCidToNodeId(connection)) << " gets RBs ";
+    				for (const Band& resource : resources) {
+    					cout << resource << " ";
+    					scheduleUeReuse(connection, resource);
+    				}
+    				cout << endl;
+    			}
+    		}
+    	}
     }
 
     for (size_t i = 0; i < leaders.size(); i++)
