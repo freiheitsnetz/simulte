@@ -107,18 +107,18 @@ public:
         FlowClassUpdater::updateClasses(users, classCbr, classVoip, classVid);
 
         // Print status.
-        cout << "\t" << classVid.size() << " video flows:\n\t";
-        for (const TUGameUser* user : classVid.getMembers())
-        	cout << user->toString() << " ";
-        cout << endl;
-        cout << "\t" << classVoip.size() << " VoIP flows:\n\t";
-        for (const TUGameUser* user : classVoip.getMembers())
-        	cout << user->toString() << " ";
-        cout << endl;
-        cout << "\t" << classCbr.size() << " CBR flows:\n\t";
-        for (const TUGameUser* user : classCbr.getMembers())
-        	cout << user->toString() << " ";
-        cout << endl;
+//        cout << "\t" << classVid.size() << " video flows:\n\t";
+//        for (const TUGameUser* user : classVid.getMembers())
+//        	cout << user->toString() << " ";
+//        cout << endl;
+//        cout << "\t" << classVoip.size() << " VoIP flows:\n\t";
+//        for (const TUGameUser* user : classVoip.getMembers())
+//        	cout << user->toString() << " ";
+//        cout << endl;
+//        cout << "\t" << classCbr.size() << " CBR flows:\n\t";
+//        for (const TUGameUser* user : classCbr.getMembers())
+//        	cout << user->toString() << " ";
+//        cout << endl;
 
         /** Demand in resource blocks.*/
         double classDemandCbr = 0,
@@ -127,21 +127,21 @@ public:
         // Constant Bitrate users.
         for (const TUGameUser* user : classCbr.getMembers()) {
             unsigned int byteDemand = user->getByteDemand() / 1000; // /1000 to convert from s to ms resolution.
-            cout << "cbr byte demand = " << byteDemand << endl;
+//            cout << "cbr byte demand = " << byteDemand << endl;
             double rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
             rbDemand = max(1.0, rbDemand);
-            cout << "cbr rb demand = " << rbDemand << endl;
-            cout << "cbr user avg bytes per block = " << getAverageBytesPerBlock(user->getConnectionId()) << endl;
+//            cout << "cbr rb demand = " << rbDemand << endl;
+//            cout << "cbr user avg bytes per block = " << getAverageBytesPerBlock(user->getConnectionId()) << endl;
             classDemandCbr += rbDemand;
         }
         // Voice-over-IP users.
         for (const TUGameUser* user : classVoip.getMembers()) {
             unsigned int byteDemand = user->getByteDemand() / 1000;
-            cout << "voip byte demand = " << byteDemand << endl;
+//            cout << "voip byte demand = " << byteDemand << endl;
             double rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
             rbDemand = max(1.0, rbDemand);
-            cout << "voip rb demand = " << rbDemand << endl;
-            cout << "voip user avg bytes per block = " << getAverageBytesPerBlock(user->getConnectionId()) << endl;
+//            cout << "voip rb demand = " << rbDemand << endl;
+//            cout << "voip user avg bytes per block = " << getAverageBytesPerBlock(user->getConnectionId()) << endl;
             classDemandVoip += rbDemand;
         }
         // Video streaming users.
@@ -152,7 +152,7 @@ public:
             classDemandVid += rbDemand;
         }
 
-        cout << NOW << " demand_cbr=" << classDemandCbr << " demand_voip=" << classDemandVoip << " demand_vid=" << classDemandVid << endl;
+//        cout << NOW << " demand_cbr=" << classDemandCbr << " demand_voip=" << classDemandVoip << " demand_vid=" << classDemandVid << endl;
 
         // Apply Shapley's value to find fair division of available resources to our user classes.
         TUGame_Shapley::TUGamePlayer shapley_cbr(classDemandCbr),
@@ -164,10 +164,10 @@ public:
         players.add(&shapley_cbr);
         unsigned int numRBs = Oracle::get()->getNumRBs();
         std::map<const TUGame_Shapley::TUGamePlayer*, double> shapleyValues = TUGame_Shapley::play(players, numRBs);
-        cout << NOW << " shapley[cbr]=" << shapleyValues[&shapley_cbr] << " shapley[voip]=" << shapleyValues[&shapley_voip] << " shapley[vid]=" << shapleyValues[&shapley_vid] << endl;
+//        cout << NOW << " shapley[cbr]=" << shapleyValues[&shapley_cbr] << " shapley[voip]=" << shapleyValues[&shapley_voip] << " shapley[vid]=" << shapleyValues[&shapley_vid] << endl;
         // Post-processing ensures that all resource blocks are distributed, and no fractions of resource blocks are set.
         TUGame_Shapley::postProcess(players, shapleyValues, numRBs);
-        cout << NOW << " after post-processing shapley[cbr]=" << shapleyValues[&shapley_cbr] << " shapley[voip]=" << shapleyValues[&shapley_voip] << " shapley[vid]=" << shapleyValues[&shapley_vid] << endl;
+//        EV << NOW << " after post-processing shapley[cbr]=" << shapleyValues[&shapley_cbr] << " shapley[voip]=" << shapleyValues[&shapley_voip] << " shapley[vid]=" << shapleyValues[&shapley_vid] << endl;
 
         unsigned int totalBandsToAllocate = shapleyValues[&shapley_cbr] + shapleyValues[&shapley_voip] + shapleyValues[&shapley_vid];
         numRBs_cbr += shapleyValues[&shapley_cbr];
@@ -192,13 +192,13 @@ public:
             }
 
             // For each user class, distribute the RBs provided by Shapley among the flows in the class according to the EXP-PF-Rule.
-            cout << NOW << " LteTUGame " << dirToA(direction_) << " Resource Block Distribution... " << endl;
+//            cout << NOW << " LteTUGame " << dirToA(direction_) << " Resource Block Distribution... " << endl;
             allocationMap = ExpPfRule::apply(classCbr, classVoip, classVid,
                     shapleyValues[&shapley_cbr], shapleyValues[&shapley_voip], shapleyValues[&shapley_vid], numRBs, d2dPenalty, std::bind(&LteTUGame::updateUserAllocatedBytes, this, std::placeholders::_1, std::placeholders::_2));
 
-            cout << "\tDistributing " << shapleyValues[&shapley_vid] << "/" << numRBs << "RBs to " << classVid.size() << " Video flows that require " << classDemandVid << "." << endl;
-            cout << "\tDistributing " << shapleyValues[&shapley_voip] << "/" << numRBs << "RBs to " << classVoip.size() << " VoIP flows that require " << classDemandVoip << "." << endl;
-            cout << "\tDistributing " << shapleyValues[&shapley_cbr] << "/" << numRBs << "RBs to " << classCbr.size() << " CBR flows that require " << classDemandCbr << "." << endl;
+//            cout << "\tDistributing " << shapleyValues[&shapley_vid] << "/" << numRBs << "RBs to " << classVid.size() << " Video flows that require " << classDemandVid << "." << endl;
+//            cout << "\tDistributing " << shapleyValues[&shapley_voip] << "/" << numRBs << "RBs to " << classVoip.size() << " VoIP flows that require " << classDemandVoip << "." << endl;
+//            cout << "\tDistributing " << shapleyValues[&shapley_cbr] << "/" << numRBs << "RBs to " << classCbr.size() << " CBR flows that require " << classDemandCbr << "." << endl;
         }
 
         return allocationMap;
