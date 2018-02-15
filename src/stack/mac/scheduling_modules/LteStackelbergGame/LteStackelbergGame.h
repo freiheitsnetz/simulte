@@ -14,7 +14,7 @@
 
 class LteStackelbergGame : public LteSchedulerBase {
 public:
-    const static std::string LEADER_SCHEDULER_RR, LEADER_SCHEDULER_TU;
+    const static std::string LEADER_SCHEDULER_RR, LEADER_SCHEDULER_TU, FOLLOWER_SCHEDULER_STA, FOLLOWER_SCHEDULER_RAND;
 
     LteStackelbergGame();
 
@@ -30,6 +30,7 @@ protected:
     /** Adjusts how much past TTIs influence the priority of a follower (fairness). */
     double delta = 0.04;
     bool shouldSetTxPower = false;
+    bool scheduleFollowersRandomly = false;
 
     /** This function returns a scheduling map. It is assigned differently in the constructor based on the leader scheduling discipline. */
     std::function<std::map<MacCid, std::vector<Band>> (const std::set<MacCid>& connections)> scheduleLeaders;

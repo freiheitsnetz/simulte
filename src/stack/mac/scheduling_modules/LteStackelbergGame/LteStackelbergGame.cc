@@ -5,8 +5,14 @@
 
 using namespace std;
 
+/** Schedule leader UEs with Round Robin. */
 const std::string LteStackelbergGame::LEADER_SCHEDULER_RR = "RR";
+/** Schedule leader UEs with Transferable Utility. */
 const std::string LteStackelbergGame::LEADER_SCHEDULER_TU = "TU";
+/** Schedule follower UEs with Stackelberg. */
+const std::string LteStackelbergGame::FOLLOWER_SCHEDULER_STA = "STA";
+/** Schedule follower UEs randomly. */
+const std::string LteStackelbergGame::FOLLOWER_SCHEDULER_RAND = "RAND";
 
 LteStackelbergGame::LteStackelbergGame() {
     pair<double, double> d2dPowerLimits = Oracle::get()->stackelberg_getD2DPowerLimits();
@@ -15,6 +21,7 @@ LteStackelbergGame::LteStackelbergGame() {
     beta = Oracle::get()->stackelberg_getBeta();
     delta = Oracle::get()->stackelberg_getDelta();
     shouldSetTxPower = Oracle::get()->stackelberg_shouldSetTxPower();
+    scheduleFollowersRandomly = Oracle::get()->stackelberg_getFollowerScheduler() == FOLLOWER_SCHEDULER_RAND;
 
     string leaderSchedulingDiscipline = Oracle::get()->stackelberg_getLeaderScheduler();
     if (leaderSchedulingDiscipline == LteStackelbergGame::LEADER_SCHEDULER_RR) {
@@ -38,7 +45,7 @@ LteStackelbergGame::LteStackelbergGame() {
     } else
         throw invalid_argument("LteStackelbergGame can't recognize leader scheduling discipline: '" + leaderSchedulingDiscipline + "'.");
 
-    cout << "d2dTxPower_max=" << d2dTxPower_max << " d2dTxPower_min=" << d2dTxPower_min << " beta=" << beta << " delta=" << delta << " scheduler=" << leaderSchedulingDiscipline << endl;
+    cout << "d2dTxPower_max=" << d2dTxPower_max << " d2dTxPower_min=" << d2dTxPower_min << " beta=" << beta << " delta=" << delta << " leader_scheduler=" << leaderSchedulingDiscipline << " follower_scheduler=" << (scheduleFollowersRandomly ? "randomly" : "Stackelberg") << endl;
 }
 
 LteStackelbergGame::~LteStackelbergGame() {
@@ -56,10 +63,11 @@ void LteStackelbergGame::schedule(std::set<MacCid>& connections) {
 
     // First define our leaders and followers.
     vector<StackelbergUser*> leaders, followers;
-    unsigned long numRBsScheduled = 0, totalRBs = Oracle::get()->getNumRBs();
     for (User* user : getUserManager().getActiveUsers()) {
     	StackelbergUser* stackeluser = new StackelbergUser(*user);
-    	stackeluser->setTxPower(Oracle::get()->getTxPower(stackeluser->getNodeId(), (stackeluser->isD2D() ? Direction::D2D : Direction::UL)));
+    	double txPower_dBm = Oracle::get()->getTxPower(stackeluser->getNodeId(), (stackeluser->isD2D() ? Direction::D2D : Direction::UL));
+    	double txPower_linear = dBmToLinear(txPower_dBm) * 1000;
+    	stackeluser->setTxPower(txPower_linear);
         // Keep track of cellular UEs (leaders).
         if (!user->isD2D()) {
             leaders.push_back(stackeluser);
@@ -69,17 +77,28 @@ void LteStackelbergGame::schedule(std::set<MacCid>& connections) {
         }
     }
 
+    cout << NOW << " Leaders: ";
+    for (const StackelbergUser* leader : leaders)
+    	cout << Oracle::get()->getName(leader->getNodeId()) << " ";
+    cout << endl << " Followers: ";
+    for (const StackelbergUser* follower : followers)
+    	cout << Oracle::get()->getName(follower->getNodeId()) << " ";
+    cout << endl;
 
     // Schedule leaders.
     set<MacCid> leaderConnectionIds;
     for (size_t i = 0; i < leaders.size(); i++)
         leaderConnectionIds.insert(leaders.at(i)->getConnectionId());
-    map<MacCid, vector<Band>> schedulingMap_leaders = scheduleLeaders(connections);
+    map<MacCid, vector<Band>> schedulingMap_leaders = scheduleLeaders(leaderConnectionIds);
     for (auto iterator = schedulingMap_leaders.begin(); iterator != schedulingMap_leaders.end(); iterator++) {
         MacCid connection = (*iterator).first;
         vector<Band> resources = (*iterator).second;
-        for (Band resource : resources)
+        cout << "Leader " << Oracle::get()->getName(MacCidToNodeId(connection)) << " -RBs> ";
+        for (Band resource : resources) {
+        	cout << (int) resource << " ";
             scheduleUeReuse(connection, resource);
+        }
+        cout << endl;
     }
 
     // Schedule followers.
@@ -119,13 +138,13 @@ void LteStackelbergGame::schedule(std::set<MacCid>& connections) {
 					double txPower_dBm = linearToDBm(txPower_linear / 1000);
 					Oracle::get()->setUETxPower(follower->getNodeId(), follower->isD2D(), txPower_dBm);
             	}
-    //            cout << Oracle::get()->getName(leader->getNodeId()) << " shares RBs [";
+                cout << Oracle::get()->getName(leader->getNodeId()) << " shares RBs [";
                 for (size_t i = 0; i < resources.size(); i++) {
                     const Band& resource = resources.at(i);
-    //                cout << resource << (i < resources.size() - 1 ? " " : "] ");
+                    cout << resource << (i < resources.size() - 1 ? " " : "] ");
                     scheduleUeReuse(follower->getConnectionId(), resource);
                 }
-    //            cout << "with " << Oracle::get()->getName(follower->getNodeId()) << endl;
+                cout << "with " << Oracle::get()->getName(follower->getNodeId()) << endl;
             }
         }
     }

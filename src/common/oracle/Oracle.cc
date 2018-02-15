@@ -365,6 +365,10 @@ std::string Oracle::stackelberg_getLeaderScheduler() const {
     return par("stackelberg_scheduleLeaders").stringValue();
 }
 
+std::string Oracle::stackelberg_getFollowerScheduler() const {
+	return par("stackelberg_scheduleFollowers").stringValue();
+}
+
 bool Oracle::stackelberg_shouldSetTxPower() const {
 	return par("stackelberg_setTxPower").boolValue();
 }

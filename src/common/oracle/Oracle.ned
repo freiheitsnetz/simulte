@@ -46,8 +46,9 @@ simple Oracle {
         double stackelberg_d2dPowerLimit_min = default(100.0); // 20 dBm
         double stackelberg_beta = default(2.0);
         double stackelberg_delta = default(0.04);
-        string stackelberg_scheduleLeaders = default("RR"); // Which scheduler to use to schedule leader UEs: RR=RoundRobin
+        string stackelberg_scheduleLeaders = default("RR"); // Which scheduler to use to schedule leader UEs: RR=RoundRobin TU=TransferableUtility
         bool stackelberg_setTxPower = default(false); // Whether to set follower's transmission power to what's been computed while playing the game.
+        string stackelberg_scheduleFollowers = default("STA"); // Which scheduler to use to scheduler follower UEs: STA=Stackelberg RAND=randomly
     @display("i=block/table");
     @class(Oracle);    
 }

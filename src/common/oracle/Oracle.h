@@ -72,7 +72,7 @@ public:
     double getDistance(inet::Coord from, inet::Coord to) const;
 
     /**
-     * @return The node's transmission power in the specified direction in dB.
+     * @return The node's transmission power in the specified direction in dBm.
      */
     double getTxPower(const MacNodeId id, Direction dir) const;
 
@@ -111,6 +111,7 @@ public:
     double stackelberg_getBeta() const;
     double stackelberg_getDelta() const;
     std::string stackelberg_getLeaderScheduler() const;
+    std::string stackelberg_getFollowerScheduler() const;
     bool stackelberg_shouldSetTxPower() const;
 
     /**

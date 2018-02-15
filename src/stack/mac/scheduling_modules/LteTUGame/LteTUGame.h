@@ -26,10 +26,10 @@ public:
 	}
 
 	virtual ~LteTUGame() {
-	    for (size_t i = 0; i < users.size(); i++)
+	    for (size_t i = 0; i < users.size(); i++) {
 	        delete users.at(i);
-		users.clear();
-
+	    }
+	    users.clear();
 		cout << "numRBs_cbr=" << numRBs_cbr << " numRBs_voip=" << numRBs_voip << " numRBs_vid=" << numRBs_vid << endl;
 	}
 
