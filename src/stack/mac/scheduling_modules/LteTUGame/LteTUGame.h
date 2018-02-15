@@ -29,6 +29,8 @@ public:
 	    for (size_t i = 0; i < users.size(); i++)
 	        delete users.at(i);
 		users.clear();
+
+		cout << "numRBs_cbr=" << numRBs_cbr << " numRBs_voip=" << numRBs_voip << " numRBs_vid=" << numRBs_vid << endl;
 	}
 
 	/**
@@ -105,18 +107,18 @@ public:
         FlowClassUpdater::updateClasses(users, classCbr, classVoip, classVid);
 
         // Print status.
-        EV << "\t" << classVid.size() << " video flows:\n\t";
+        cout << "\t" << classVid.size() << " video flows:\n\t";
         for (const TUGameUser* user : classVid.getMembers())
-            EV << user->toString() << " ";
-        EV << endl;
-        EV << "\t" << classVoip.size() << " VoIP flows:\n\t";
+        	cout << user->toString() << " ";
+        cout << endl;
+        cout << "\t" << classVoip.size() << " VoIP flows:\n\t";
         for (const TUGameUser* user : classVoip.getMembers())
-            EV << user->toString() << " ";
-        EV << endl;
-        EV << "\t" << classCbr.size() << " CBR flows:\n\t";
+        	cout << user->toString() << " ";
+        cout << endl;
+        cout << "\t" << classCbr.size() << " CBR flows:\n\t";
         for (const TUGameUser* user : classCbr.getMembers())
-            EV << user->toString() << " ";
-        EV << endl;
+        	cout << user->toString() << " ";
+        cout << endl;
 
         /** Demand in resource blocks.*/
         double classDemandCbr = 0,
@@ -125,41 +127,57 @@ public:
         // Constant Bitrate users.
         for (const TUGameUser* user : classCbr.getMembers()) {
             unsigned int byteDemand = user->getByteDemand() / 1000; // /1000 to convert from s to ms resolution.
+            cout << "cbr byte demand = " << byteDemand << endl;
             double rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
+            rbDemand = max(1.0, rbDemand);
+            cout << "cbr rb demand = " << rbDemand << endl;
+            cout << "cbr user avg bytes per block = " << getAverageBytesPerBlock(user->getConnectionId()) << endl;
             classDemandCbr += rbDemand;
         }
         // Voice-over-IP users.
         for (const TUGameUser* user : classVoip.getMembers()) {
             unsigned int byteDemand = user->getByteDemand() / 1000;
+            cout << "voip byte demand = " << byteDemand << endl;
             double rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
+            rbDemand = max(1.0, rbDemand);
+            cout << "voip rb demand = " << rbDemand << endl;
+            cout << "voip user avg bytes per block = " << getAverageBytesPerBlock(user->getConnectionId()) << endl;
             classDemandVoip += rbDemand;
         }
         // Video streaming users.
         for (const TUGameUser* user : classVid.getMembers()) {
             unsigned int byteDemand = user->getByteDemand() / 1000;
             double rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
+            rbDemand = max(1.0, rbDemand);
             classDemandVid += rbDemand;
         }
+
+        cout << NOW << " demand_cbr=" << classDemandCbr << " demand_voip=" << classDemandVoip << " demand_vid=" << classDemandVid << endl;
 
         // Apply Shapley's value to find fair division of available resources to our user classes.
         TUGame_Shapley::TUGamePlayer shapley_cbr(classDemandCbr),
                                      shapley_voip(classDemandVoip),
                                      shapley_vid(classDemandVid);
         Shapley::Coalition<TUGame_Shapley::TUGamePlayer> players;
-        players.add(&shapley_cbr);
-        players.add(&shapley_voip);
         players.add(&shapley_vid);
+        players.add(&shapley_voip);
+        players.add(&shapley_cbr);
         unsigned int numRBs = Oracle::get()->getNumRBs();
         std::map<const TUGame_Shapley::TUGamePlayer*, double> shapleyValues = TUGame_Shapley::play(players, numRBs);
+        cout << NOW << " shapley[cbr]=" << shapleyValues[&shapley_cbr] << " shapley[voip]=" << shapleyValues[&shapley_voip] << " shapley[vid]=" << shapleyValues[&shapley_vid] << endl;
         // Post-processing ensures that all resource blocks are distributed, and no fractions of resource blocks are set.
         TUGame_Shapley::postProcess(players, shapleyValues, numRBs);
+        cout << NOW << " after post-processing shapley[cbr]=" << shapleyValues[&shapley_cbr] << " shapley[voip]=" << shapleyValues[&shapley_voip] << " shapley[vid]=" << shapleyValues[&shapley_vid] << endl;
 
         unsigned int totalBandsToAllocate = shapleyValues[&shapley_cbr] + shapleyValues[&shapley_voip] + shapleyValues[&shapley_vid];
+        numRBs_cbr += shapleyValues[&shapley_cbr];
+        numRBs_voip += shapleyValues[&shapley_voip];
+        numRBs_vid += shapleyValues[&shapley_vid];
         std::map<unsigned short, const TUGameUser*> allocationMap;
 
         if (totalBandsToAllocate > 0) {
             if (totalBandsToAllocate != numRBs) {
-                cerr << "shapley[cbr]=" << shapleyValues[&shapley_cbr] << " shapley[voip]=" << shapleyValues[&shapley_voip] << " shapely[vid]=" << shapleyValues[&shapley_vid] << " sum=" << totalBandsToAllocate << " < numRBs=" << numRBs << endl;
+                cerr << "shapley[cbr]=" << shapleyValues[&shapley_cbr] << " shapley[voip]=" << shapleyValues[&shapley_voip] << " shapely[vid]=" << shapleyValues[&shapley_vid] << " sum=" << totalBandsToAllocate << " > numRBs=" << numRBs << endl;
                 throw runtime_error("totalBandsToAllocate=" + to_string(totalBandsToAllocate) + " != numRBs=" + to_string(numRBs));
             }
 
@@ -174,13 +192,13 @@ public:
             }
 
             // For each user class, distribute the RBs provided by Shapley among the flows in the class according to the EXP-PF-Rule.
-            EV << NOW << " LteTUGame " << dirToA(direction_) << " Resource Block Distribution... " << endl;
+            cout << NOW << " LteTUGame " << dirToA(direction_) << " Resource Block Distribution... " << endl;
             allocationMap = ExpPfRule::apply(classCbr, classVoip, classVid,
                     shapleyValues[&shapley_cbr], shapleyValues[&shapley_voip], shapleyValues[&shapley_vid], numRBs, d2dPenalty, std::bind(&LteTUGame::updateUserAllocatedBytes, this, std::placeholders::_1, std::placeholders::_2));
 
-            EV << "\tDistributing " << shapleyValues[&shapley_vid] << "/" << numRBs << "RBs to " << classVid.size() << " Video flows that require " << classDemandVid << "." << endl;
-            EV << "\tDistributing " << shapleyValues[&shapley_voip] << "/" << numRBs << "RBs to " << classVoip.size() << " VoIP flows that require " << classDemandVoip << "." << endl;
-            EV << "\tDistributing " << shapleyValues[&shapley_cbr] << "/" << numRBs << "RBs to " << classCbr.size() << " CBR flows that require " << classDemandCbr << "." << endl;
+            cout << "\tDistributing " << shapleyValues[&shapley_vid] << "/" << numRBs << "RBs to " << classVid.size() << " Video flows that require " << classDemandVid << "." << endl;
+            cout << "\tDistributing " << shapleyValues[&shapley_voip] << "/" << numRBs << "RBs to " << classVoip.size() << " VoIP flows that require " << classDemandVoip << "." << endl;
+            cout << "\tDistributing " << shapleyValues[&shapley_cbr] << "/" << numRBs << "RBs to " << classCbr.size() << " CBR flows that require " << classDemandCbr << "." << endl;
         }
 
         return allocationMap;
@@ -198,6 +216,7 @@ protected:
     Shapley::Coalition<TUGameUser> classCbr, classVoip, classVid;
     /** D2D flow metrics are multiplied by this value. So 1.0 turns off penalty application, while 0.0 disables scheduling to D2D flows. */
     double d2dPenalty = 1.0;
+    unsigned long numRBs_cbr = 0, numRBs_voip = 0, numRBs_vid = 0;
 };
 
 #endif /* STACK_MAC_SCHEDULING_MODULES_LTETUGAME_LTETUGAME_H_ */

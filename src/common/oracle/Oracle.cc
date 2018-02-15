@@ -416,6 +416,36 @@ MacNodeId Oracle::getTransmissionPartner(const MacNodeId id) const {
         } catch (const exception& e) {
             throw invalid_argument("Oracle::getTransmissionPartner couldn't find partner for '" + getName(id) + "'.");
         }
+	} else if (appName == string("inet::UDPVideoStreamSvr")) {
+		string targetName = getName(id);
+		string from = "Tx", to = "Rx";
+		size_t start_pos = targetName.find(from);
+		targetName.replace(start_pos, from.length(), to);
+
+		std::vector<UeInfo*>* ueList = getBinder()->getUeList();
+		for (auto iterator = ueList->begin(); iterator != ueList->end(); iterator++) {
+			const UeInfo* partnerInfo = *iterator;
+			MacNodeId partnerId = partnerInfo->id;
+			string partnerName = getName(partnerId);			;
+			if (partnerName == targetName) {
+				return partnerId;
+			}
+		}
+	} else if (appName == string("inet::UDPVideoStreamCli")) {
+		string targetName = getName(id);
+		string from = "Rx", to = "Tx";
+		size_t start_pos = targetName.find(from);
+		targetName.replace(start_pos, from.length(), to);
+
+		std::vector<UeInfo*>* ueList = getBinder()->getUeList();
+		for (auto iterator = ueList->begin(); iterator != ueList->end(); iterator++) {
+			const UeInfo* partnerInfo = *iterator;
+			MacNodeId partnerId = partnerInfo->id;
+			string partnerName = getName(partnerId);			;
+			if (partnerName == targetName) {
+				return partnerId;
+			}
+		}
 	}
 
 	throw invalid_argument("Oracle::getTransmissionPartner doesn't support '" + getName(id) + "' with app '" + appName + "'.");
