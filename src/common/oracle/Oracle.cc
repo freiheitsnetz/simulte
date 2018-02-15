@@ -366,7 +366,7 @@ std::string Oracle::stackelberg_getLeaderScheduler() const {
 }
 
 bool Oracle::stackelberg_shouldSetTxPower() const {
-	return par("stackelberg_setTxPower").stringValue();
+	return par("stackelberg_setTxPower").boolValue();
 }
 
 MacNodeId Oracle::getTransmissionPartner(const MacNodeId id) const {
