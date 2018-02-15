@@ -111,6 +111,7 @@ public:
     double stackelberg_getBeta() const;
     double stackelberg_getDelta() const;
     std::string stackelberg_getLeaderScheduler() const;
+    bool stackelberg_shouldSetTxPower() const;
 
     /**
      * @return Linear channel gain where fading is averaged over all resource blocks in 'resources'.

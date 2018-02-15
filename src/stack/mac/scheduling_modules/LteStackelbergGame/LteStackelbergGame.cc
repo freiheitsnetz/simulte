@@ -14,6 +14,7 @@ LteStackelbergGame::LteStackelbergGame() {
     d2dTxPower_min = d2dPowerLimits.second;
     beta = Oracle::get()->stackelberg_getBeta();
     delta = Oracle::get()->stackelberg_getDelta();
+    shouldSetTxPower = Oracle::get()->stackelberg_shouldSetTxPower();
 
     string leaderSchedulingDiscipline = Oracle::get()->stackelberg_getLeaderScheduler();
     if (leaderSchedulingDiscipline == LteStackelbergGame::LEADER_SCHEDULER_RR) {
@@ -57,12 +58,14 @@ void LteStackelbergGame::schedule(std::set<MacCid>& connections) {
     vector<StackelbergUser*> leaders, followers;
     unsigned long numRBsScheduled = 0, totalRBs = Oracle::get()->getNumRBs();
     for (User* user : getUserManager().getActiveUsers()) {
+    	StackelbergUser* stackeluser = new StackelbergUser(*user);
+    	stackeluser->setTxPower(Oracle::get()->getTxPower(stackeluser->getNodeId(), (stackeluser->isD2D() ? Direction::D2D : Direction::UL)));
         // Keep track of cellular UEs (leaders).
         if (!user->isD2D()) {
-            leaders.push_back(new StackelbergUser(*user));
+            leaders.push_back(stackeluser);
         // And remember all D2D UEs as followers.
         } else {
-            followers.push_back(new StackelbergUser(*user));
+            followers.push_back(stackeluser);
         }
     }
 
@@ -111,9 +114,11 @@ void LteStackelbergGame::schedule(std::set<MacCid>& connections) {
             const StackelbergUser* follower = (*iterator).second;
             const vector<Band>& resources = schedulingMap_leaders[leader->getConnectionId()];
             if (!resources.empty()) {
-                double txPower_linear = follower->getTxPower();
-                double txPower_dBm = linearToDBm(txPower_linear / 1000);
-//                Oracle::get()->setUETxPower(follower->getNodeId(), follower->isD2D(), txPower_dBm);
+            	if (shouldSetTxPower) {
+					double txPower_linear = follower->getTxPower();
+					double txPower_dBm = linearToDBm(txPower_linear / 1000);
+					Oracle::get()->setUETxPower(follower->getNodeId(), follower->isD2D(), txPower_dBm);
+            	}
     //            cout << Oracle::get()->getName(leader->getNodeId()) << " shares RBs [";
                 for (size_t i = 0; i < resources.size(); i++) {
                     const Band& resource = resources.at(i);

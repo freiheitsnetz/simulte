@@ -365,6 +365,10 @@ std::string Oracle::stackelberg_getLeaderScheduler() const {
     return par("stackelberg_scheduleLeaders").stringValue();
 }
 
+bool Oracle::stackelberg_shouldSetTxPower() const {
+	return par("stackelberg_setTxPower").stringValue();
+}
+
 MacNodeId Oracle::getTransmissionPartner(const MacNodeId id) const {
 	string appName = getApplicationName(id);
 	if (appName == string("inet::UDPBasicApp")) {

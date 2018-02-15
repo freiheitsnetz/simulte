@@ -47,6 +47,7 @@ simple Oracle {
         double stackelberg_beta = default(2.0);
         double stackelberg_delta = default(0.04);
         string stackelberg_scheduleLeaders = default("RR"); // Which scheduler to use to schedule leader UEs: RR=RoundRobin
+        bool stackelberg_setTxPower = default(false); // Whether to set follower's transmission power to what's been computed while playing the game.
     @display("i=block/table");
     @class(Oracle);    
 }

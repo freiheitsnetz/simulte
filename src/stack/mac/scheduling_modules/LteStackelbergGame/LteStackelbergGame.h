@@ -29,6 +29,7 @@ protected:
     double beta = 2.0;
     /** Adjusts how much past TTIs influence the priority of a follower (fairness). */
     double delta = 0.04;
+    bool shouldSetTxPower = false;
 
     /** This function returns a scheduling map. It is assigned differently in the constructor based on the leader scheduling discipline. */
     std::function<std::map<MacCid, std::vector<Band>> (const std::set<MacCid>& connections)> scheduleLeaders;
