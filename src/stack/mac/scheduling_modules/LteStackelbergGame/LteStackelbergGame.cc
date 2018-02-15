@@ -113,7 +113,7 @@ void LteStackelbergGame::schedule(std::set<MacCid>& connections) {
             if (!resources.empty()) {
                 double txPower_linear = follower->getTxPower();
                 double txPower_dBm = linearToDBm(txPower_linear / 1000);
-                Oracle::get()->setUETxPower(follower->getNodeId(), follower->isD2D(), txPower_dBm);
+//                Oracle::get()->setUETxPower(follower->getNodeId(), follower->isD2D(), txPower_dBm);
     //            cout << Oracle::get()->getName(leader->getNodeId()) << " shares RBs [";
                 for (size_t i = 0; i < resources.size(); i++) {
                     const Band& resource = resources.at(i);
