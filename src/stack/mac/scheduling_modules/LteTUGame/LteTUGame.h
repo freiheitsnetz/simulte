@@ -107,18 +107,18 @@ public:
         FlowClassUpdater::updateClasses(users, classCbr, classVoip, classVid);
 
         // Print status.
-        cout << "\n\t" << classVid.size() << " video flows:\n\t";
-        for (const TUGameUser* user : classVid.getMembers())
-        	cout << user->toString() << " ";
-        cout << endl;
-        cout << "\t" << classVoip.size() << " VoIP flows:\n\t";
-        for (const TUGameUser* user : classVoip.getMembers())
-        	cout << user->toString() << " ";
-        cout << endl;
-        cout << "\t" << classCbr.size() << " CBR flows:\n\t";
-        for (const TUGameUser* user : classCbr.getMembers())
-        	cout << user->toString() << " ";
-        cout << endl;
+//        cout << "\n\t" << classVid.size() << " video flows:\n\t";
+//        for (const TUGameUser* user : classVid.getMembers())
+//        	cout << user->toString() << " ";
+//        cout << endl;
+//        cout << "\t" << classVoip.size() << " VoIP flows:\n\t";
+//        for (const TUGameUser* user : classVoip.getMembers())
+//        	cout << user->toString() << " ";
+//        cout << endl;
+//        cout << "\t" << classCbr.size() << " CBR flows:\n\t";
+//        for (const TUGameUser* user : classCbr.getMembers())
+//        	cout << user->toString() << " ";
+//        cout << endl;
 
         /** Demand in resource blocks.*/
         double classDemandCbr = 0,
