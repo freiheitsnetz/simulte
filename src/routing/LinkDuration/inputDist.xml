@@ -1,28 +1,16 @@
 <?xml>
-<root>
-    <input id="bin">
-          <param>1</param>
-          <param>2</param>
-          <param>3</param>
-          <param>4</param>
-          <param>5</param>
-          <param>6</param>
-          <param>7</param>
-          <param>8</param>
-	  	   <param>9</param>
-	      <param>10</param>
-    </input>
-    <input id="value">
-          <param>1</param>
-          <param>2</param>
-          <param>3</param>
-          <param>4</param>
-          <param>5</param>
-          <param>6</param>
-          <param>7</param>
-          <param>8</param>
-	      <param>9</param>
-	      <param>10</param>
-    </input>
-</root>
+<input>
+        <param>bin="1" value="1"</param>
+        <param>bin="2" value="2"</param>
+        <param>bin="3" value="4"</param>
+        <param>bin="5" value="1"</param>
+        <param>bin="1" value="1"</param>
+        <param>bin="1" value="1"</param>
+        <param>bin="1" value="1"</param>
+        <param>bin="1" value="1"</param>
+	    <param>bin="1" value="1"</param>
+	    <param>bin="1" value="1"</param>
+	      
+</input>
+
 

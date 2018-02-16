@@ -17,6 +17,7 @@
 #define __SIMULTE_RESIDUALLINKLIFETIME_H_
 
 #include <omnetpp.h>
+#include <LinkDuration/NeighborLinkTimeTable.h>
 
 using namespace omnetpp;
 
@@ -35,12 +36,13 @@ class ResidualLinklifetime : public cSimpleModule
     virtual void handleMessage(cMessage *msg);
     cXMLElement* tempInputbin;
     cXMLElement* tempInputvalue;
-    std::map<int,float> InputLinkDist;//safe the read in LinkDistribution
-    NeighborLinkTimeTable* LinkTimeTable;
+    std::map<int,double> InputLinkDist;//safe the read in LinkDistribution
+    NeighborLinkTimeTable* LinkTimeTable=nullptr;
     int calcRLLviaInput(cModule* neighbor);
     int calcRLLviaTable(cModule* neighbor);
+    void setDistbyInput();
   public:
-    int calcResidualLinklifetime(cModule* neighbor);
+    simtime_t calcResidualLinklifetime(cModule* neighbor);
 
 
 };

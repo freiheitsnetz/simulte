@@ -27,9 +27,10 @@
 #include "inet/common/lifecycle/ILifecycle.h"
 #include "inet/common/lifecycle/NodeStatus.h"
 #include "inet/transportlayer/contract/udp/UDPSocket.h"
-#include "lte/routing/aodvLD/AODVLDRouteData.h"
+#include <aodvLD/AODVLDRouteData.h>
 #include "inet/transportlayer/udp/UDPPacket.h"
-#include "lte/routing/aodvLD/AODVLDControlPackets_m.h"
+#include <aodvLD/AODVLDControlPackets_m.h>
+#include <LinkDuration/ResidualLinklifetime.h>
 #include <map>
 
 namespace inet {
@@ -44,7 +45,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
   protected:
     /*
      * It implements a unique identifier for an arbitrary RREQ message
-     * in the network. See: rreqsArrivalTime.
+     * in the network. See: rreqsArrivalTime.metrikmodule
      */
     class RREQIdentifier
     {
@@ -78,10 +79,11 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     IRoutingTable *routingTable = nullptr;
     IInterfaceTable *interfaceTable = nullptr;
     INetfilter *networkProtocol = nullptr;
+    ResidualLinklifetime *metrikmodule=nullptr;
 
     // AODVLD parameters: the following parameters are configurable, see the NED file for more info.
     unsigned int rerrRatelimit = 0;
-    unsigned int aodvLDUDPPort = 0;
+    unsigned int aodvLDUDPPort = 0;//AODVLDUDPPort
     bool askGratuitousRREP = false;
     bool useHelloMessages = false;
     simtime_t maxJitter;
@@ -163,27 +165,27 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     /* Control packet creators */
     AODVLDRREPACK *createRREPACK();
     AODVLDRREP *createHelloMessage();
-    AODVRLDREQ *createRREQ(const L3Address& destAddr);
-    AODVRREP *createRREP(AODVRREQ *rreq, IRoute *destRoute, IRoute *originatorRoute, const L3Address& sourceAddr);
-    AODVRREP *createGratuitousRREP(AODVRREQ *rreq, IRoute *originatorRoute);
-    AODVRERR *createRERR(const std::vector<UnreachableNode>& unreachableNodes);
+    AODVLDRREQ *createRREQ(const L3Address& destAddr);
+    AODVLDRREP *createRREP(AODVLDRREQ *rreq, IRoute *destRoute, IRoute *originatorRoute, const L3Address& sourceAddr);
+    AODVLDRREP *createGratuitousRREP(AODVLDRREQ *rreq, IRoute *originatorRoute);
+    AODVLDRERR *createRERR(const std::vector<UnreachableNode>& unreachableNodes);
 
     /* Control Packet handlers */
-    void handleRREP(AODVRREP *rrep, const L3Address& sourceAddr);
-    void handleRREQ(AODVRREQ *rreq, const L3Address& sourceAddr, unsigned int timeToLive);
-    void handleRERR(AODVRERR *rerr, const L3Address& sourceAddr);
-    void handleHelloMessage(AODVRREP *helloMessage);
-    void handleRREPACK(AODVRREPACK *rrepACK, const L3Address& neighborAddr);
+    void handleRREP(AODVLDRREP *rrep, const L3Address& sourceAddr);
+    void handleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr, unsigned int timeToLive);
+    void handleRERR(AODVLDRERR *rerr, const L3Address& sourceAddr);
+    void handleHelloMessage(AODVLDRREP *helloMessage);
+    void handleRREPACK(AODVLDRREPACK *rrepACK, const L3Address& neighborAddr);
 
     /* Control Packet sender methods */
-    void sendRREQ(AODVRREQ *rreq, const L3Address& destAddr, unsigned int timeToLive);
-    void sendRREPACK(AODVRREPACK *rrepACK, const L3Address& destAddr);
-    void sendRREP(AODVRREP *rrep, const L3Address& destAddr, unsigned int timeToLive);
-    void sendGRREP(AODVRREP *grrep, const L3Address& destAddr, unsigned int timeToLive);
+    void sendRREQ(AODVLDRREQ *rreq, const L3Address& destAddr, unsigned int timeToLive);
+    void sendRREPACK(AODVLDRREPACK *rrepACK, const L3Address& destAddr);
+    void sendRREP(AODVLDRREP *rrep, const L3Address& destAddr, unsigned int timeToLive);
+    void sendGRREP(AODVLDRREP *grrep, const L3Address& destAddr, unsigned int timeToLive);
 
     /* Control Packet forwarders */
-    void forwardRREP(AODVRREP *rrep, const L3Address& destAddr, unsigned int timeToLive);
-    void forwardRREQ(AODVRREQ *rreq, unsigned int timeToLive);
+    void forwardRREP(AODVLDRREP *rrep, const L3Address& destAddr, unsigned int timeToLive);
+    void forwardRREQ(AODVLDRREQ *rreq, unsigned int timeToLive);
 
     /* Self message handlers */
     void handleRREPACKTimer();
@@ -207,7 +209,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
 
     /* Helper functions */
     L3Address getSelfIPAddress() const;
-    void sendAODVPacket(AODVControlPacket *packet, const L3Address& destAddr, unsigned int timeToLive, double delay);
+    void sendAODVLDPacket(AODVLDControlPacket *packet, const L3Address& destAddr, unsigned int timeToLive, double delay);
     void clearState();
 
     /* Lifecycle */

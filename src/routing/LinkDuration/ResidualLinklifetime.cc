@@ -15,21 +15,12 @@
 
 #include "ResidualLinklifetime.h"
 #include <ModuleAccess.h>
-#include <LinkDuration/NeighborLinkTimeTable.h>
+#include <string.h>
+
 Define_Module(ResidualLinklifetime);
 
 void ResidualLinklifetime::initialize()
 {
-
-    cXMLElementList tempInputbinList=par("bin").xmlValue()->getChildren();
-    for( auto it=tempInputbinList.begin();it!=tempInputbinList;++it){
-
-    }
-
-        cXMLElementList tempInputvalueList=par("value").xmlValue()->getChildren();
-        for(int it=tempInputvalueList.begin();it!=tempInputvalueList;++it){
-
-        }
 
 
     LinkTimeTable = inet::getModuleFromPar<NeighborLinkTimeTable>(par("neighborLinkTimeTable"), this);
@@ -40,20 +31,19 @@ void ResidualLinklifetime::initialize()
             mode=SELF;
         if(par("givenMode").boolValue()==true)
             mode=GIVEN;
+            setDistbyInput();
     }
         else
             throw cRuntimeError("Mode must be 'selfMode' OR(!) 'givenMode'");
     }
 
 
-
-
 void ResidualLinklifetime::handleMessage(cMessage *msg)
 {
-    // TODO - Generated method body
+    // Nothing to do here
 }
 
-int ResidualLinklifetime::calcResidualLinklifetime(cModule* neighbor)
+simtime_t ResidualLinklifetime::calcResidualLinklifetime(cModule* neighbor)
 {
     switch(mode){
         case SELF: return calcRLLviaTable(neighbor); //Not implemented yet
@@ -63,13 +53,13 @@ int ResidualLinklifetime::calcResidualLinklifetime(cModule* neighbor)
 }
 
 int ResidualLinklifetime::calcRLLviaInput(cModule* neighbor){
-//TODO InputLinkDist is normalized, Link duration is not.
+
 
     int tempLinkDuration=LinkTimeTable->getNeighborLinkTime(neighbor); //get link lifetime from NeighborLinkTimeTable
     auto it = InputLinkDist.find(tempLinkDuration);//find same value in distribution
     // Calculating mean value of shifted and normalized distribution function in discrete time domain. (Integration in nominator and denominator, just like in the formula)
-    std::pair<int,int> fraction;
-    for (std::map<int,float>::iterator i = it; i!= InputLinkDist.end();++i)
+    std::pair<float,float> fraction;
+    for (std::map<int,double>::iterator i = it; i!= InputLinkDist.end();++i)
     {
        fraction.first+= i->first*i->second;
        fraction.second+= i->second;
@@ -86,4 +76,17 @@ int ResidualLinklifetime::calcRLLviaTable(cModule* neighbor){
 
 }
 
+void ResidualLinklifetime::setDistbyInput(){
+
+    cXMLElementList parameters =par("inputDist").xmlValue()->getElementsByTagName("param");
+
+    for (cXMLElementList::const_iterator it = parameters.begin(); it != parameters.end(); it++)
+        {
+
+        const char* bin = (*it)->getAttribute("bin");
+        const char* value = (*it)->getAttribute("value");
+        InputLinkDist[atoi(bin)]=strtod(value,0);
+
+        }
+}
 

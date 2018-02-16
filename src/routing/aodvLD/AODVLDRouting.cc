@@ -16,7 +16,7 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 //
 
-#include "lte/routing/aodvLD/AODVLDRouting.h"
+#include <AODVLDRouting.h>
 #include "inet/networklayer/ipv4/ICMPMessage.h"
 #include "inet/networklayer/ipv4/IPv4Route.h"
 
@@ -60,7 +60,7 @@ Define_Module(AODVLDRouting);
 void AODVLDRouting::initialize(int stage)
 {
     if (stage == INITSTAGE_LOCAL) {
-        lastBroadcastTime = SIMTIME_ZERO;AODVLDRREQ
+        lastBroadcastTime = SIMTIME_ZERO;
         rebootTime = SIMTIME_ZERO;
         rreqId = sequenceNum = 0;
         rreqCount = rerrCount = 0;
@@ -68,8 +68,9 @@ void AODVLDRouting::initialize(int stage)
         routingTable = getModuleFromPar<IRoutingTable>(par("routingTableModule"), this);
         interfaceTable = getModuleFromPar<IInterfaceTable>(par("interfaceTableModule"), this);
         networkProtocol = getModuleFromPar<INetfilter>(par("networkProtocolModule"), this);
+        metrikmodule = getModuleFromPar<ResidualLinklifetime>(par("residualLinklifetime"),this);
 
-        AODVLDUDPPort = par("udpPort");
+        aodvLDUDPPort = par("udpPort");
         askGratuitousRREP = par("askGratuitousRREP");
         useHelloMessages = par("useHelloMessages");
         activeRouteTimeout = par("activeRouteTimeout");
@@ -256,7 +257,7 @@ bool AODVLDRouting::hasOngoingRouteDiscovery(const L3Address& target)
     return waitForRREPTimers.find(target) != waitForRREPTimers.end();
 }
 
-void AODVLDRouting::startRouteDiscovery(const L3Address& target, unsigned timeToLive)
+void AODVLDRouting::startRouteDiscovery(const L3Address& target, unsigned tcalculateimeToLive)
 {
     EV_INFO << "Starting route discovery with originator " << getSelfIPAddress() << " and destination " << target << endl;
     ASSERT(!hasOngoingRouteDiscovery(target));
@@ -734,7 +735,7 @@ void AODVLDRouting::updateRoutingTable(IRoute *route, const L3Address& nextHop, 
     scheduleExpungeRoutes();
 }
 
-unsigned int AODVLDRouting::calculateResidualLinklifetime(){
+unsigned int AODVLDRouting::readResidualLinklifetime(){
 
 
 };

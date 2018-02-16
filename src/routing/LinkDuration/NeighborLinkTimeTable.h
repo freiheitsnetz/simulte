@@ -36,6 +36,7 @@ class NeighborLinkTimeTable : public cSimpleModule
     std::map <cModule*,int > NeighborLinkTimeMap; //First: ID Second:Linklifetime
     cLongHistogram measuredLinkDurations;
 
+
   public:
     int getNeighborLinkTime(cModule*);
     void setNeighborLinkTime(cModule*,int);

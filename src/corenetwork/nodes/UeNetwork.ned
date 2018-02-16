@@ -13,18 +13,4 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-package lte.routing.LinkDuration;
-
-//
-// TODO auto-generated module
-//
-simple ResidualLinklifetime
-{
-    parameters:
-        @display("bgb=920,362;i=block/segm_l");
-        bool selfMode = default (true);
-        bool givenMode =default (false);
-        string neighborLinkTimeTable = default("^.NeighborLinkTimeTable");
-        xml inputDist = default(xmldoc("inputDist.xml"));
-        
-}
+package lte.corenetwork.nodes;
