@@ -133,6 +133,7 @@ public:
 
     /**
      * @param d2d Whether to set the D2D transmission power or not.
+     * @param power_dBm in dBm.
      */
     void setUETxPower(MacNodeId id, bool d2d, double power_dBm);
 

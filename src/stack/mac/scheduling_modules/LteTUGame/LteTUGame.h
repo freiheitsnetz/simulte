@@ -107,18 +107,18 @@ public:
         FlowClassUpdater::updateClasses(users, classCbr, classVoip, classVid);
 
         // Print status.
-//        cout << "\t" << classVid.size() << " video flows:\n\t";
-//        for (const TUGameUser* user : classVid.getMembers())
-//        	cout << user->toString() << " ";
-//        cout << endl;
-//        cout << "\t" << classVoip.size() << " VoIP flows:\n\t";
-//        for (const TUGameUser* user : classVoip.getMembers())
-//        	cout << user->toString() << " ";
-//        cout << endl;
-//        cout << "\t" << classCbr.size() << " CBR flows:\n\t";
-//        for (const TUGameUser* user : classCbr.getMembers())
-//        	cout << user->toString() << " ";
-//        cout << endl;
+        cout << "\n\t" << classVid.size() << " video flows:\n\t";
+        for (const TUGameUser* user : classVid.getMembers())
+        	cout << user->toString() << " ";
+        cout << endl;
+        cout << "\t" << classVoip.size() << " VoIP flows:\n\t";
+        for (const TUGameUser* user : classVoip.getMembers())
+        	cout << user->toString() << " ";
+        cout << endl;
+        cout << "\t" << classCbr.size() << " CBR flows:\n\t";
+        for (const TUGameUser* user : classCbr.getMembers())
+        	cout << user->toString() << " ";
+        cout << endl;
 
         /** Demand in resource blocks.*/
         double classDemandCbr = 0,
@@ -128,7 +128,7 @@ public:
         for (const TUGameUser* user : classCbr.getMembers()) {
             unsigned int byteDemand = user->getByteDemand() / 1000; // /1000 to convert from s to ms resolution.
 //            cout << "cbr byte demand = " << byteDemand << endl;
-            double rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
+            double rbDemand = getRBsRequired(user->getConnectionId(), byteDemand);
             rbDemand = max(1.0, rbDemand);
 //            cout << "cbr rb demand = " << rbDemand << endl;
 //            cout << "cbr user avg bytes per block = " << getAverageBytesPerBlock(user->getConnectionId()) << endl;
@@ -138,7 +138,7 @@ public:
         for (const TUGameUser* user : classVoip.getMembers()) {
             unsigned int byteDemand = user->getByteDemand() / 1000;
 //            cout << "voip byte demand = " << byteDemand << endl;
-            double rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
+            double rbDemand = getRBsRequired(user->getConnectionId(), byteDemand);
             rbDemand = max(1.0, rbDemand);
 //            cout << "voip rb demand = " << rbDemand << endl;
 //            cout << "voip user avg bytes per block = " << getAverageBytesPerBlock(user->getConnectionId()) << endl;
@@ -147,7 +147,7 @@ public:
         // Video streaming users.
         for (const TUGameUser* user : classVid.getMembers()) {
             unsigned int byteDemand = user->getByteDemand() / 1000;
-            double rbDemand = getRBDemand(user->getConnectionId(), byteDemand);
+            double rbDemand = getRBsRequired(user->getConnectionId(), byteDemand);
             rbDemand = max(1.0, rbDemand);
             classDemandVid += rbDemand;
         }
@@ -185,7 +185,7 @@ public:
             for (TUGameUser* user : users) {
                 vector<double> expectedDatarateVec;
                 for (Band band = 0; band < Oracle::get()->getNumRBs(); band++) {
-                    double bytesOnBand = (double) getBytesOnBand(user->getNodeId(), band, 1, getDirection(user->getConnectionId()));
+                    double bytesOnBand = (double) getBytesOnBandFunc(user->getNodeId(), band, 1, getDirection(user->getConnectionId()));
                     expectedDatarateVec.push_back(bytesOnBand);
                 }
                 user->setExpectedDatarateVec(expectedDatarateVec);
@@ -211,12 +211,17 @@ public:
         return this->d2dPenalty;
     }
 
+    /** When LteTUGame is just a variable in another scheduler this function needs to be replaced with the actual scheduler's so that all pointers are set correctly. */
+    std::function<double(const MacCid& connection, const unsigned int& numBytes)> getRBsRequired = [&](const MacCid& connection, const unsigned int& numBytes) {return getRBDemand(connection, numBytes);};
+    std::function<unsigned int(const MacNodeId& nodeId, const Band& band, const unsigned int& numBlocks, const Direction& dir)> getBytesOnBandFunc = [&](const MacNodeId& nodeId, const Band& band, const unsigned int& numBlocks, const Direction& dir) {return getBytesOnBand(nodeId, band, numBlocks, dir);};
+
 protected:
     std::vector<TUGameUser*> users;
     Shapley::Coalition<TUGameUser> classCbr, classVoip, classVid;
     /** D2D flow metrics are multiplied by this value. So 1.0 turns off penalty application, while 0.0 disables scheduling to D2D flows. */
     double d2dPenalty = 1.0;
     unsigned long numRBs_cbr = 0, numRBs_voip = 0, numRBs_vid = 0;
+
 };
 
 #endif /* STACK_MAC_SCHEDULING_MODULES_LTETUGAME_LTETUGAME_H_ */

@@ -175,6 +175,11 @@ class LteScheduler
         return activeConnectionSet_;
     }
 
+    /** Useful when a scheduler is instantiated as part of another scheduler, where direction_ is not automatically set. */
+    void setDirection(Direction dir) {
+    	direction_ = dir;
+    }
+
   private:
 
     /**

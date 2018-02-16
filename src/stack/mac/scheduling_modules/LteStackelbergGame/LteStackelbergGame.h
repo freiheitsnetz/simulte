@@ -30,6 +30,8 @@ protected:
     double beta = 2.0;
     /** Adjusts how much past TTIs influence the priority of a follower (fairness). */
     double delta = 0.04;
+    /** in dBm. */
+    double defaultTxPower = 26;
     bool shouldSetTxPower = false;
     bool scheduleFollowersRandomly = false;
 
