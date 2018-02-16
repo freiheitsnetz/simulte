@@ -176,12 +176,12 @@ void LteStackelbergGame::schedule(std::set<MacCid>& connections) {
 					const MacCid& connection = (*it).first;
 					const vector<Band>& resources = (*it).second;
 					if (!resources.empty()) {
-						cout << "Follower " << Oracle::get()->getName(MacCidToNodeId(connection)) << " (randomly) gets RBs ";
+//						cout << "Follower " << Oracle::get()->getName(MacCidToNodeId(connection)) << " (randomly) gets RBs ";
 						for (const Band& resource : resources) {
-							cout << resource << " ";
+//							cout << resource << " ";
 							scheduleUeReuse(connection, resource);
 						}
-						cout << endl;
+//						cout << endl;
 					}
 				}
 			}
