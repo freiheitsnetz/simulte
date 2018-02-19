@@ -19,6 +19,8 @@ LteModdedStackelbergGame::LteModdedStackelbergGame() {
     // Only supports TU game for leader scheduling.
     scheduler_tu = new LteTUGame();
     scheduler_tu->setD2DPenalty(Oracle::get()->getD2DPenalty());
+    scheduler_tu->getRBsRequired = [&](const MacCid& connection, const unsigned int& numBytes) {return getRBDemand(connection, numBytes);};
+	scheduler_tu->getBytesOnBandFunc = [&](const MacNodeId& nodeId, const Band& band, const unsigned int& numBlocks, const Direction& dir) {return getBytesOnBand(nodeId, band, numBlocks, dir);};
     scheduleLeaders = [this](const std::set<MacCid>& connections) {
         std::map<unsigned short, const TUGameUser*> map = this->scheduler_tu->getSchedulingMap(connections);
         std::map<MacCid, std::vector<Band>> convertedMap;
