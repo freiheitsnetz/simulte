@@ -50,16 +50,19 @@ void LteModdedStackelbergGame::schedule(std::set<MacCid>& connections) {
     vector<StackelbergUser*> leaders, followers;
     for (const User* user : getUserManager().getActiveUsers()) {
         const MacCid& connection = user->getConnectionId();
+        StackelbergUser* stackeluser = new StackelbergUser(*user);
+        stackeluser->setTxPower(defaultTxPower);
+		Oracle::get()->setUETxPower(stackeluser->getNodeId(), stackeluser->isD2D(), defaultTxPower);
         // Not present in scheduling map? Then it's a follower.
         if (schedulingMap_tu.find(connection) == schedulingMap_tu.end()) {
-            followers.push_back(new StackelbergUser(*user));
+            followers.push_back(stackeluser);
         } else {
             const vector<Band>& resources = schedulingMap_tu.at(connection);
             // Didn't get any resources? Follower.
             if (resources.empty()) {
-                followers.push_back(new StackelbergUser(*user));
+                followers.push_back(stackeluser);
             } else { // Did get resources -> leader.
-                leaders.push_back(new StackelbergUser(*user));
+                leaders.push_back(stackeluser);
             }
         }
     }
