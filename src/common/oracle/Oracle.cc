@@ -63,6 +63,13 @@ void Oracle::configure() {
     }
 }
 
+void Oracle::finish() {
+	cout << "FINIIIISH" << endl;
+	for (std::pair<std::string, unsigned long> scalarPair : scalarVec)
+		recordScalar(scalarPair.first.c_str(), scalarPair.second);
+	cSimpleModule::finish();
+}
+
 void Oracle::handleMessage(cMessage *msg) {
     EV << "Oracle::handleMessage" << std::endl;
     if (msg == &configMessage) {
@@ -482,6 +489,18 @@ void Oracle::setUETxPower(MacNodeId id, bool d2d, double power_dBm) {
     } catch (const exception& e) {
         throw runtime_error("Oracle::setUETxPower(" + to_string(id) + ", " + to_string(d2d) + ", " + to_string(power_dBm) + ") error: " + string(e.what()));
     }
+}
+
+void Oracle::scalar(std::string name, unsigned long value) {
+	for (size_t i = 0; i < scalarVec.size(); i++) {
+		std::pair<std::string, unsigned long>& current = scalarVec.at(i);
+		if (current.first == name) {
+			current.second = value;
+			scalarVec.at(i) = current;
+			return;
+		}
+	}
+	scalarVec.push_back(std::pair<std::string, unsigned long>(name, value));
 }
 
 //unsigned int Oracle::getAverageBytesPerBlock(const MacCid& connection) {

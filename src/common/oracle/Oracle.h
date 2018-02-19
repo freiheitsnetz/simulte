@@ -32,6 +32,8 @@ public:
         return SINGLETON;
     }
 
+    void finish() override;
+
     /**
      * @return Maximum simulation time.
      */
@@ -137,8 +139,11 @@ public:
      */
     void setUETxPower(MacNodeId id, bool d2d, double power_dBm);
 
+    void scalar(std::string name, unsigned long value);
+
 protected:
     double maxSimTime = 0.0;
+    std::vector<std::pair<std::string, unsigned long>> scalarVec;
 
     void initialize() override;
 

@@ -99,6 +99,15 @@ void LteModdedStackelbergGame::schedule(std::set<MacCid>& connections) {
             const StackelbergUser* follower = (*iterator).second;
             const vector<Band>& resources = schedulingMap_tu[leader->getConnectionId()];
             if (!resources.empty()) {
+            	// Remember which type of game was played.
+            	if (!leader->isD2D() && follower->isD2D())
+            		numCellD2DGames++;
+            	else if (leader->isD2D() && !follower->isD2D())
+            		numD2DCellGames++;
+            	else if (leader->isD2D() && follower->isD2D())
+            		numD2DD2DGames++;
+            	else
+            		throw logic_error("A Stackelberg Game between two cellular users was played?!");
                 double txPower_linear = follower->getTxPower();
                 double txPower_dBm = linearToDBm(txPower_linear / 1000);
                 Oracle::get()->setUETxPower(follower->getNodeId(), follower->isD2D(), txPower_dBm);
@@ -120,4 +129,8 @@ void LteModdedStackelbergGame::schedule(std::set<MacCid>& connections) {
     for (size_t i = 0; i < followers.size(); i++)
         delete followers.at(i);
     followers.clear();
+
+    Oracle::get()->scalar("numCellD2DGames", numCellD2DGames);
+	Oracle::get()->scalar("numD2DCellGames", numD2DCellGames);
+	Oracle::get()->scalar("numD2DD2DGames", numD2DD2DGames);
 }
