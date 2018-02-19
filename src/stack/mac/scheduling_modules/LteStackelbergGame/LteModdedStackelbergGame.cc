@@ -29,6 +29,8 @@ LteModdedStackelbergGame::LteModdedStackelbergGame() {
         }
         return convertedMap;
     };
+
+    cout << "Running modded Stackelberg scheduler." << endl;
 }
 
 LteModdedStackelbergGame::~LteModdedStackelbergGame() {
