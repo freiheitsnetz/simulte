@@ -257,7 +257,7 @@ bool AODVLDRouting::hasOngoingRouteDiscovery(const L3Address& target)
     return waitForRREPTimers.find(target) != waitForRREPTimers.end();
 }
 
-void AODVLDRouting::startRouteDiscovery(const L3Address& target, unsigned tcalculateimeToLive)
+void AODVLDRouting::startRouteDiscovery(const L3Address& target, unsigned timeToLive)
 {
     EV_INFO << "Starting route discovery with originator " << getSelfIPAddress() << " and destination " << target << endl;
     ASSERT(!hasOngoingRouteDiscovery(target));
@@ -735,15 +735,7 @@ void AODVLDRouting::updateRoutingTable(IRoute *route, const L3Address& nextHop, 
     scheduleExpungeRoutes();
 }
 
-unsigned int AODVLDRouting::readResidualLinklifetime(){
 
-
-};
-
-void AODVLDRouting::updateResidualLinklifetime(calculateResidualLinklifetime())
-{
-
-}
 
 void AODVLDRouting::sendAODVLDPacket(AODVLDControlPacket *packet, const L3Address& destAddr, unsigned int timeToLive, double delay)
 {
@@ -763,8 +755,8 @@ void AODVLDRouting::sendAODVLDPacket(AODVLDControlPacket *packet, const L3Addres
 
     UDPPacket *udpPacket = new UDPPacket(packet->getName());
     udpPacket->encapsulate(packet);
-    udpPacket->setSourcePort(AODVLDUDPPort);
-    udpPacket->setDestinationPort(AODVLDUDPPort);
+    udpPacket->setSourcePort(aodvLDUDPPort);
+    udpPacket->setDestinationPort(aodvLDUDPPort);
     udpPacket->setControlInfo(dynamic_cast<cObject *>(networkProtocolControlInfo));
 
     if (destAddr.isBroadcast())
@@ -806,44 +798,47 @@ void AODVLDRouting::handleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr, un
     // then checks to determine whether it has received a RREQ with the same
     // Originator IP Address and RREQ ID within at least the last PATH_DISCOVERY_TIME.
     // If such a RREQ has been received, the node silently discards the newly received RREQ.
+    // NOT ANYMORE
 
-    //TODO: SOMEHOW GET RLLT FROM TRANSMITTING NEIGHBOR. FOR NOW USE RLLTmap.
     RREQIdentifier rreqIdentifier(rreq->getOriginatorAddr(), rreq->getRreqId());
     auto checkRREQArrivalTime = rreqsArrivalTime.find(rreqIdentifier);
-    //TODO First Check if mRLLT in RREQ is higher, than the last link, if yes the mRLLT in the packet has to be set to the last link RLLT
-    if(rreq->getResidualLinklifetime > mRLLTmap.find("NEIGHBOR from which RREQ was received")->second)
-        rreq->setResidualLinklifetime (mRLLTmap.find("NEIGHBOR from which RREQ was received")->second);
+    //Check if the minRLL of the RREQ is higher than the last hop.
+    simtime_t tempMetrik=metrikmodule->getMetrik(sourceAddr);
+    if(rreq->getResidualLinklifetime()>tempMetrik)
+        //The lower one has to be used. If true update the min RLL to to the last hop.
+        rreq->setResidualLinklifetime (tempMetrik);
 
     //Check if there was a RREQ with the same ID from same source with lower mRLLT
     if (checkRREQArrivalTime != rreqsArrivalTime.end()){
-        if(checkRREQArrivalTime->first.minimumResidualLinklifetime < rreq->getResidualLinklifetime()){
-            //True? Older is smaller than newer. Erase older map, create new map
+
+
+            std::map<L3Address,AODVLDRREQ*>::iterator it = LastTransmittedRREQ.find(rreq->getOriginatorAddr());
+            if(it!=LastTransmittedRREQ.end()){
+                if(it->second->getResidualLinklifetime() < rreq->getResidualLinklifetime()){
+                    std::map<L3Address,AODVLDRREQ*>::iterator iter = CurrentBestRREQ.find(rreq->getOriginatorAddr());
+                    if(iter->second->getResidualLinklifetime()<rreq->getResidualLinklifetime()){
+                        CurrentBestRREQ[rreq->getOriginatorAddr()]=rreq;
+                    }
+
+                     else delete rreq;
+
+                }
+                else delete rreq;
+            }
+            else {
+                 std::map<L3Address,AODVLDRREQ*>::iterator iter = CurrentBestRREQ.find(rreq->getOriginatorAddr());
+                 if(iter->second->getResidualLinklifetime()<rreq->getResidualLinklifetime()){
+                    CurrentBestRREQ[rreq->getOriginatorAddr()]=rreq;
+                   }
+            }
+
             rreqsArrivalTime.erase(checkRREQArrivalTime);
 
-            //Following is done after if clause
-            /*Put actual mRLLT into rreqIdentifier
-            //rreqIdentifier.minimumResidualLinklifetime = rreq->getResidualLinklifetime();
-            //create new map with the actual highest mRLLT
-            //rreqsArrivalTime[rreqIdentifier] = simTime();*/
         }
-        else{
 
-            EV_WARN << "The same packet has arrived with a lower or equal minimum Residual Linklifetime. Discarding it" << endl;
-            delete rreq;
-            return;
-        }
-    }
-
-//second= zweiter Eintrag (nicht Sekunde)
-    /*if (checkRREQArrivalTime != rreqsArrivalTime.end() && simTime() - checkRREQArrivalTime->second <= pathDiscoveryTime) {
-        EV_WARN << "The same packet has arrived within PATH_DISCOVERY_TIME= " << pathDiscoveryTime << ". Discarding it" << endl;
-
-    }*/
 //-----------------------------------------------
 
 
-    // update or create
-    rreqIdentifier.minimumResidualLinklifetime = rreq->getResidualLinklifetime();
     rreqsArrivalTime[rreqIdentifier] = simTime();
 
     // First, it first increments the hop count value in the RREQ by one, to
@@ -1035,7 +1030,7 @@ IRoute *AODVLDRouting::createRoute(const L3Address& destAddr, const L3Address& n
         newRoute->setInterface(ifEntry);
 
     newRoute->setDestination(destAddr);
-    newRoute->setSourceType(IRoute::AODVLD);
+    newRoute->setSourceType(IRoute::AODV);//TODO check if correct
     newRoute->setSource(this);
     newRoute->setProtocolData(newProtocolData);
     newRoute->setMetric(hopCount);
@@ -1151,7 +1146,7 @@ void AODVLDRouting::handleLinkBreakSendRERR(const L3Address& unreachableAddr)
             EV_DETAIL << "Marking route to " << route->getDestinationAsGeneric() << " as inactive" << endl;
 
             routeData->setIsActive(false);
-            routeData->setLifeTime(simTime(setNextHop) + deletePeriod);
+            routeData->setLifeTime(simTime() + deletePeriod);
             scheduleExpungeRoutes();
 
             UnreachableNode node;

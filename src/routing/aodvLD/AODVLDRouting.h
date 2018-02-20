@@ -123,9 +123,9 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     simtime_t lastBroadcastTime;    // the last time when any control packet was broadcasted
     std::map<L3Address, unsigned int> addressToRreqRetries;    // number of re-discovery attempts per address
 
-    unsigned int minimumResidualLinklifetime;
-    std::map<char,unsigned int>RLLTMap; //Map of neighbor to Residual Linklifetime of a node
 
+    std::map<L3Address,AODVLDRREQ*>CurrentBestRREQ; // the current best rreq to transmit again from a certain originator
+    std::map<L3Address,AODVLDRREQ*>LastTransmittedRREQ; //last transmitted rreq to be able to compare it a later one is better
     // self messages
     cMessage *helloMsgTimer = nullptr;    // timer to send hello messages (only if the feature is enabled)
     cMessage *expungeTimer = nullptr;    // timer to clean the routing table out

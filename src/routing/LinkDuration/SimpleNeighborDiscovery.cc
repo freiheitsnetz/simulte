@@ -18,6 +18,7 @@
 #include <LinkDuration/SimpleNeighborDiscovery.h>
 #include <NeighborLinkTimeTable.h>
 
+
 namespace inet{
 
 Define_Module(SimpleNeighborDiscovery);
@@ -29,6 +30,7 @@ void SimpleNeighborDiscovery::initialize()
     setAllUEsAddresses();
     updateNodeDistanceEntries();
     updateConnectionVector();
+    setAddresstoIPMap();
     scheduleAt(simTime()+updateTimer,update);
     update= new cMessage("Update");
     sec= new cMessage("Second");
@@ -120,6 +122,26 @@ void SimpleNeighborDiscovery::incrementLinklifetime(){
 
     }
 }
+void SimpleNeighborDiscovery::setAddresstoIPMap(){
 
+
+    for(std::map<cModule*,bool>::iterator it= neighborConnection.begin();it!=neighborConnection.end();++it){
+        IRoutingTable *tempTable = check_and_cast<IRoutingTable *>(it->first->getSubmodule("routingTable"));
+        L3Address tempAddress = tempTable->getRouterIdAsGeneric();
+        addressToIP[it->first]=tempAddress;
+        }
+
+
+    }
+cModule* SimpleNeighborDiscovery::getAddressFromIP(L3Address IPaddress){
+
+    for(std::map<cModule*,L3Address>::iterator it= addressToIP.begin();it!=addressToIP.end();++it){
+        if(it->second==IPaddress)
+            return it->first;
+
+    }
+    throw cRuntimeError("Couldn't find module address for given IP address");
+    return nullptr;
+   }
 
 }

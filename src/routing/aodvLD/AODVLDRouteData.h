@@ -23,7 +23,7 @@
 #include "inet/networklayer/common/L3Address.h"
 #include "inet/common/INETDefs.h"
 
-namespace lte {
+namespace inet {
 
 class INET_API AODVLDRouteData : public cObject
 {

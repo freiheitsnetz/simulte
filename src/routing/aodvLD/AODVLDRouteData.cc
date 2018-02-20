@@ -16,7 +16,7 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 //
 
-#include "lte/routing/aodvLD/AODVLDRouteData.h"
+#include <AODVLDRouteData.h>
 
 namespace inet {
 

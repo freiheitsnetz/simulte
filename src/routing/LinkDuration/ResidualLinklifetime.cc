@@ -22,8 +22,9 @@ Define_Module(ResidualLinklifetime);
 void ResidualLinklifetime::initialize()
 {
 
-
+    neighborModule = inet::getModuleFromPar<inet::SimpleNeighborDiscovery>(par("neighborDiscoveryModul"), this);
     LinkTimeTable = inet::getModuleFromPar<NeighborLinkTimeTable>(par("neighborLinkTimeTable"), this);
+
 
     if((par("selfMode").boolValue()== true && par("givenMode").boolValue()== true)||(par("selfMode").boolValue()== false && par("givenMode").boolValue()== false)){
 
@@ -88,5 +89,17 @@ void ResidualLinklifetime::setDistbyInput(){
         InputLinkDist[atoi(bin)]=strtod(value,0);
 
         }
+}
+
+simtime_t ResidualLinklifetime::getResidualLinklifetime (inet::L3Address IPaddress){
+
+    return calcResidualLinklifetime(neighborModule->getAddressFromIP(IPaddress));
+
+}
+
+simtime_t ResidualLinklifetime::getMetrik (inet::L3Address IPaddress){
+
+    return getResidualLinklifetime(IPaddress);
+
 }
 

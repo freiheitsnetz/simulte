@@ -17,7 +17,10 @@
 #define __SIMULTE_RESIDUALLINKLIFETIME_H_
 
 #include <omnetpp.h>
-#include <LinkDuration/NeighborLinkTimeTable.h>
+
+#include "SimpleNeighborDiscovery.h"
+#include "NeighborLinkTimeTable.h"
+#include "L3Address.h"
 
 using namespace omnetpp;
 
@@ -26,6 +29,7 @@ using namespace omnetpp;
  * calcResidualLinklifetime(address of neighbor module) can be called from external
  * to get the residual link lifetime
  * It needs a  NeighborLinkTimeTable modul to access the link lifetimes.
+ * It needs a neighbordiscovery module for IP to ram address conversion.
  */
 class ResidualLinklifetime : public cSimpleModule
 {
@@ -38,11 +42,15 @@ class ResidualLinklifetime : public cSimpleModule
     cXMLElement* tempInputvalue;
     std::map<int,double> InputLinkDist;//safe the read in LinkDistribution
     NeighborLinkTimeTable* LinkTimeTable=nullptr;
+    inet::SimpleNeighborDiscovery* neighborModule=nullptr;
     int calcRLLviaInput(cModule* neighbor);
     int calcRLLviaTable(cModule* neighbor);
     void setDistbyInput();
-  public:
     simtime_t calcResidualLinklifetime(cModule* neighbor);
+    simtime_t getResidualLinklifetime (inet::L3Address IPaddress);
+  public:
+    //Just for modularity. It simply calls getResidualLinklifetime (IPaddress);
+    simtime_t getMetrik(inet::L3Address IPaddress);
 
 
 };

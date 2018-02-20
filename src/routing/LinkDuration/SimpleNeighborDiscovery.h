@@ -20,6 +20,7 @@
 #include <map>
 #include "inet/common/INETDefs.h"
 #include <LinkDuration/NeighborLinkTimeTable.h>
+#include "inet/networklayer/contract/IRoutingTable.h"
 /*
  * This module was originally made for link lifetime calculations.
  * It gets the positions (from simulation) of all other network hosts/UEs and compares it with own transmission range
@@ -39,6 +40,7 @@ class INET_API SimpleNeighborDiscovery:  public cSimpleModule
 //    std::map<int,cModule*>IDsAddressMap;// Of network module
     std::map<cModule*,bool> neighborConnection;
     std::map<cModule*,int> nodeDistance;
+    std::map<cModule*,L3Address>addressToIP;
     int numHosts;
     NeighborLinkTimeTable *LinkTimeTable;
     cMessage *update;
@@ -53,6 +55,9 @@ class INET_API SimpleNeighborDiscovery:  public cSimpleModule
     void updateConnectionVector();
     void setAllUEsAddresses(); //From External
     void incrementLinklifetime();
+    void setAddresstoIPMap();
+    cModule* getAddressFromIP(L3Address);
+
 };
 
 #endif
