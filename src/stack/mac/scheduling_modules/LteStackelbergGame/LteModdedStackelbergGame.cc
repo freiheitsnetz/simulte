@@ -67,6 +67,8 @@ void LteModdedStackelbergGame::schedule(std::set<MacCid>& connections) {
                 followers.push_back(stackeluser);
             } else { // Did get resources -> leader.
                 leaders.push_back(stackeluser);
+                for (const Band& resource : resources)
+                	scheduleUeReuse(stackeluser->getConnectionId(), resource);
             }
         }
     }
