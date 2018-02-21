@@ -38,6 +38,8 @@ LteModdedStackelbergGame::LteModdedStackelbergGame() {
 LteModdedStackelbergGame::~LteModdedStackelbergGame() {
     delete scheduler_tu;
     scheduler_tu = nullptr; // This is important because LteStackelberg's destructor will delete this again.
+
+//    cout << "numTraditionalGames=" << numCellD2DGames << " numReverseGames=" << numD2DCellGames << " numD2DGames=" << numD2DD2DGames << endl;
 }
 
 void LteModdedStackelbergGame::schedule(std::set<MacCid>& connections) {
