@@ -95,6 +95,7 @@ void AODVLDRouting::initialize(int stage)
         netTraversalTime = par("netTraversalTime");
         nextHopWait = par("nextHopWait");
         pathDiscoveryTime = par("pathDiscoveryTime");
+        RREQCollectionTime = par("RREQCollectionTime");
     }
     else if (stage == INITSTAGE_ROUTING_PROTOCOLS) {
         NodeStatus *nodeStatus = dynamic_cast<NodeStatus *>(host->getSubmodule("status"));
@@ -121,7 +122,7 @@ void AODVLDRouting::initialize(int stage)
         counterTimer = new cMessage("CounterTimer");
         rrepAckTimer = new cMessage("RREPACKTimer");
         blacklistTimer = new cMessage("BlackListTimer");
-        rreqcollectionTimer = new cMessage("RREQCollectionTimer");
+        ;
 
         if (isOperational)
             scheduleAt(simTime() + 1, counterTimer);
@@ -154,6 +155,9 @@ void AODVLDRouting::handleMessage(cMessage *msg)
             handleRREPACKTimer();
         else if (msg == blacklistTimer)
             handleBlackListTimer();
+        else if (dynamic_cast<WaitForRREQ *>(msg))
+            handleRREQ((WaitForRREQ *)msg);
+
         else
             throw cRuntimeError("Unknown self message");
     }
@@ -170,7 +174,7 @@ void AODVLDRouting::handleMessage(cMessage *msg)
 
         switch (ctrlPacket->getPacketType()) {
             case RREQ:
-                handleRREQ(check_and_cast<AODVLDRREQ *>(ctrlPacket), sourceAddr, arrivalPacketTTL);
+                prehandleRREQ(check_and_cast<AODVLDRREQ *>(ctrlPacket), sourceAddr, arrivalPacketTTL);
                 break;
 
             case RREP:
@@ -434,8 +438,8 @@ AODVLDRREQ *AODVLDRouting::createRREQ(const L3Address& destAddr)
     // In this way, when the node receives the packet again from its neighbors,
     // it will not reprocess and re-forward the packet.
 
-    RREQIdentifier rreqIdentifier(getSelfIPAddress(), rreqId);
-    rreqsArrivalTime[rreqIdentifier] = simTime();
+    /*RREQIdentifier rreqIdentifier(getSelfIPAddress(), rreqId);
+    rreqsArrivalTime[rreqIdentifier] = simTime();*/
     rreqPacket->setByteLength(24);
     return rreqPacket;
 }
@@ -768,7 +772,7 @@ void AODVLDRouting::sendAODVLDPacket(AODVLDControlPacket *packet, const L3Addres
         sendDelayed(udpPacket, delay, "ipOut");
 }
 
-void AODVLDRouting::handleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr, unsigned int timeToLive)
+void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr, unsigned int timeToLive)
 {
     EV_INFO << "AODVLD Route Request arrived with source addr: " << sourceAddr << " originator addr: " << rreq->getOriginatorAddr()
             << " destination addr: " << rreq->getDestAddr() << endl;
@@ -795,51 +799,84 @@ void AODVLDRouting::handleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr, un
     else
         updateRoutingTable(previousHopRoute, sourceAddr, 1, false, rreq->getOriginatorSeqNum(), true, simTime() + activeRouteTimeout);
 
-    // then checks to determine whether it has received a RREQ with the same
-    // Originator IP Address and RREQ ID within at least the last PATH_DISCOVERY_TIME.
-    // If such a RREQ has been received, the node silently discards the newly received RREQ.
-    // NOT ANYMORE
 
     RREQIdentifier rreqIdentifier(rreq->getOriginatorAddr(), rreq->getRreqId());
-    auto checkRREQArrivalTime = rreqsArrivalTime.find(rreqIdentifier);
+    //auto checkRREQArrivalTime = rreqsArrivalTime.find(rreqIdentifier);
+
+
     //Check if the minRLL of the RREQ is higher than the last hop.
     simtime_t tempMetrik=metrikmodule->getMetrik(sourceAddr);
     if(rreq->getResidualLinklifetime()>tempMetrik)
         //The lower one has to be used. If true update the min RLL to to the last hop.
         rreq->setResidualLinklifetime (tempMetrik);
 
-    //Check if there was a RREQ with the same ID from same source with lower mRLLT
-    if (checkRREQArrivalTime != rreqsArrivalTime.end()){
+    /*//Check if there was a RREQ with the same ID from same source in the last "path discorvery time"
+    //TODO Check if really needed
+    if (checkRREQArrivalTime != rreqsArrivalTime.end() && simTime() - checkRREQArrivalTime->second <= pathDiscoveryTime){*/
+            bool previouslyTransmitted = 0;
+            /* Check if the same RREQ was received and transmitted before*/
+            for(std::map<RREQIdentifier,AODVLDRREQ*>::iterator it = LastTransmittedRREQ.begin();it!=LastTransmittedRREQ.end();++it)
+            {
+                if(rreqIdentifier==it->first){
+                    /*Check if the previous RREQ had a higher minRLL*/
+                    if(it->second->getResidualLinklifetime() < rreq->getResidualLinklifetime()){
+                        /*Check if a better RREQ was received after last transmission (Is there a currently better RREQ?) */
+                        for(std::map<RREQIdentifier,AODVLDRREQ*>::iterator iter = CurrentBestRREQ.begin();iter!=CurrentBestRREQ.end();++iter){
+                            if(rreqIdentifier==iter->first){
+                                if(iter->second->getResidualLinklifetime()<rreq->getResidualLinklifetime()){
+                                    /*Save RREQ data in RREQIdentifier Object for later transmission*/
+                                    rreqIdentifier.setSourceAddr(sourceAddr);
+                                    rreqIdentifier.setPacketTTL(timeToLive);
+                                    /*Put RREQIdentifier and RREQ into currentBestRREQ map*/
+                                    /*
+                                     * Map size can be higher than one entry, because different RREQ from same and even different originator can occur
+                                     */
+                                    CurrentBestRREQ[rreqIdentifier]=rreq;
+                                    previouslyTransmitted=1;
 
-
-            std::map<L3Address,AODVLDRREQ*>::iterator it = LastTransmittedRREQ.find(rreq->getOriginatorAddr());
-            if(it!=LastTransmittedRREQ.end()){
-                if(it->second->getResidualLinklifetime() < rreq->getResidualLinklifetime()){
-                    std::map<L3Address,AODVLDRREQ*>::iterator iter = CurrentBestRREQ.find(rreq->getOriginatorAddr());
-                    if(iter->second->getResidualLinklifetime()<rreq->getResidualLinklifetime()){
-                        CurrentBestRREQ[rreq->getOriginatorAddr()]=rreq;
+                                }
+                                /*Better same RREQ in currentBestRREQ buffer*/
+                                else delete rreq;
+                            }
+                        }
                     }
-
-                     else delete rreq;
+                    /*Previous transmitted same RREQ was higher than new received RREQ*/
+                    else delete rreq;
 
                 }
-                else delete rreq;
-            }
-            else {
-                 std::map<L3Address,AODVLDRREQ*>::iterator iter = CurrentBestRREQ.find(rreq->getOriginatorAddr());
-                 if(iter->second->getResidualLinklifetime()<rreq->getResidualLinklifetime()){
-                    CurrentBestRREQ[rreq->getOriginatorAddr()]=rreq;
-                   }
-            }
+                /**/
+                if(!previouslyTransmitted) {
+                    for(std::map<RREQIdentifier,AODVLDRREQ*>::iterator iter = CurrentBestRREQ.begin();iter!=CurrentBestRREQ.end();++iter){
+                        if(rreqIdentifier==iter->first){
+                            if(iter->second->getResidualLinklifetime()<rreq->getResidualLinklifetime()){
+                                rreqIdentifier.setSourceAddr(sourceAddr);
+                                rreqIdentifier.setPacketTTL(timeToLive);
+                                CurrentBestRREQ[rreqIdentifier]=rreq;
+                                rreqcollectionTimer = new WaitForRREQ("RREQCollectionTimer");
+                                rreqcollectionTimer->setOriginatorAddr(rreq->getOriginatorAddr());
+                                rreqcollectionTimer->setRreqID(rreq->getRreqId());
+                                //TODO Overthink this....Sollte falsch sein, weil das ja die infos des ersten RREQ sind
+                                scheduleAt(simTime()+RREQCollectionTime,rreqcollectionTimer);
 
-            rreqsArrivalTime.erase(checkRREQArrivalTime);
+                            }
+                        }
+                    }
+                }
+            }
+}
+           /* rreqsArrivalTime.erase(checkRREQArrivalTime);*/
 
-        }
+        /*}*/
 
 //-----------------------------------------------
 
 
-    rreqsArrivalTime[rreqIdentifier] = simTime();
+   /* rreqsArrivalTime[rreqIdentifier] = simTime(); */
+
+  void AODVLDRouting::handleRREQ(WaitForRREQ *rreqTimer){
+
+      rreqTimer->getOriginatorAddr();
+      rreqTimer->getRreqID();
 
     // First, it first increments the hop count value in the RREQ by one, to
     // account for the new hop through the intermediate node.

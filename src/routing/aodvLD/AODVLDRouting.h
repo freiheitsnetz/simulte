@@ -52,14 +52,20 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
       public:
         L3Address originatorAddr;
         unsigned int rreqID;
-        unsigned int minimumResidualLinklifetime;
+        L3Address sourceAddr;
+        unsigned int packetTTL;
+
 
         RREQIdentifier(const L3Address& originatorAddr, unsigned int rreqID) : originatorAddr(originatorAddr), rreqID(rreqID) {};
         //Operator overloading. "==" compares address and rreqIDs now
         bool operator==(const RREQIdentifier& other) const
         {
-            return this->originatorAddr == other.originatorAddr && this->rreqID == other.rreqID && this->minimumResidualLinklifetime == other.minimumResidualLinklifetime;
+            return this->originatorAddr == other.originatorAddr && this->rreqID == other.rreqID;
         }
+        L3Address getSourceAddr(){return sourceAddr;}
+        unsigned int getpacketTTL(){return packetTTL;}
+        void setSourceAddr(L3Address sourceAddr){this->sourceAddr=sourceAddr;}
+        void setPacketTTL(unsigned int packetTTL){this->packetTTL=packetTTL;}
     };
 
     class RREQIdentifierCompare
@@ -110,6 +116,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     simtime_t netTraversalTime;
     simtime_t nextHopWait;
     simtime_t pathDiscoveryTime;
+    simtime_t RREQCollectionTime;
 
     // state
     unsigned int rreqId = 0;    // when sending a new RREQ packet, rreqID incremented by one from the last id used by this node
@@ -124,18 +131,16 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     std::map<L3Address, unsigned int> addressToRreqRetries;    // number of re-discovery attempts per address
 
 
-    std::map<L3Address,AODVLDRREQ*>CurrentBestRREQ; // the current best rreq to transmit again from a certain originator
-    std::map<L3Address,AODVLDRREQ*>LastTransmittedRREQ; //last transmitted rreq to be able to compare it a later one is better
+    std::map<RREQIdentifier,AODVLDRREQ*>CurrentBestRREQ; // the current best rreq to transmit again from a certain originator
+    std::map<RREQIdentifier,AODVLDRREQ*>LastTransmittedRREQ; //last transmitted rreq to be able to compare it a later one is better
     // self messages
     cMessage *helloMsgTimer = nullptr;    // timer to send hello messages (only if the feature is enabled)
     cMessage *expungeTimer = nullptr;    // timer to clean the routing table out
     cMessage *counterTimer = nullptr;    // timer to set rrerCount = rreqCount = 0 in each second
     cMessage *rrepAckTimer = nullptr;    // timer to wait for RREP-ACKs (RREP-ACK timeout)
     cMessage *blacklistTimer = nullptr;    // timer to clean the blacklist out
-
-    cMessage *rreqcollectionTimer = nullptr;// timer for waiting for additional route request before broadcasting again
-
-    // lifecycle
+    WaitForRREQ *rreqcollectionTimer= nullptr;
+       // lifecycle
     simtime_t rebootTime;    // the last time when the node rebooted
     bool isOperational = false;
 
@@ -159,7 +164,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     bool updateValidRouteLifeTime(const L3Address& destAddr, simtime_t lifetime);
     void scheduleExpungeRoutes();
     unsigned int calculateResidualLinklifetime();
-    void updateMinimumResidualLinklifetime(unsigned int minmalResidualLinklifetime);
+
     void expungeRoutes();
 
     /* Control packet creators */
@@ -172,7 +177,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
 
     /* Control Packet handlers */
     void handleRREP(AODVLDRREP *rrep, const L3Address& sourceAddr);
-    void handleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr, unsigned int timeToLive);
+    void prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr, unsigned int timeToLive);
     void handleRERR(AODVLDRERR *rerr, const L3Address& sourceAddr);
     void handleHelloMessage(AODVLDRREP *helloMessage);
     void handleRREPACK(AODVLDRREPACK *rrepACK, const L3Address& neighborAddr);
@@ -192,6 +197,8 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     void handleBlackListTimer();
     void sendHelloMessagesIfNeeded();
     void handleWaitForRREP(WaitForRREP *rrepTimer);
+    /*Handle best RREQ after timer has expired*/
+    void handleRREQ(WaitForRREQ *rreqTimer);
 
     /* General functions to handle route errors */
     void sendRERRWhenNoRouteToForward(const L3Address& unreachableAddr);

@@ -114,3 +114,9 @@ message WaitForRREP
     unsigned int lastTTL;
     bool fromInvalidEntry;
 }
+
+message WaitForRREQ
+{
+        L3Address originatorAddr;
+        unsigned int rreqID;
+}
