@@ -62,8 +62,8 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
         {
             return this->originatorAddr == other.originatorAddr && this->rreqID == other.rreqID;
         }
-        L3Address getSourceAddr(){return sourceAddr;}
-        unsigned int getpacketTTL(){return packetTTL;}
+        L3Address getSourceAddr() const {return sourceAddr;}
+        unsigned int getPacketTTL() const {return packetTTL;}
         void setSourceAddr(L3Address sourceAddr){this->sourceAddr=sourceAddr;}
         void setPacketTTL(unsigned int packetTTL){this->packetTTL=packetTTL;}
     };
