@@ -25,7 +25,8 @@ std::ostream& operator<<(std::ostream& out, const AODVLDRouteData *data)
     out << " isActive = " << data->isActive()
         << ", hasValidDestNum = " << data->hasValidDestNum()
         << ", destNum = " << data->getDestSeqNum()
-        << ", lifetime = " << data->getLifeTime();
+        << ", lifetime = " << data->getLifeTime()
+        << ",residualRouteLifetime = " << data->getResidualRouteLifetime();
 
     const std::set<L3Address>& preList = data->getPrecursorList();
 

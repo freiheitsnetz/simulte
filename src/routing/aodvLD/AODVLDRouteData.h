@@ -34,7 +34,7 @@ class INET_API AODVLDRouteData : public cObject
     bool beingRepaired;
     bool validDestNum;
     unsigned int destSeqNum;
-    unsigned int minimumResidualLinklifetime;
+    simtime_t residualRouteLifetime; //Expected expiration of route
     simtime_t lifeTime;    // expiration or deletion time of the route
 
   public:
@@ -47,7 +47,7 @@ class INET_API AODVLDRouteData : public cObject
         validDestNum = true;
         lifeTime = SIMTIME_ZERO;
         destSeqNum = 0;
-        minimumResidualLinklifetime = 0;//Todo wirklich NULL?
+        //minimumResidualLinklifetime = 0;//Todo wirklich NULL?
     }
 
     virtual ~AODVLDRouteData() {}
@@ -66,8 +66,8 @@ class INET_API AODVLDRouteData : public cObject
     void setIsActive(bool active) { this->active = active; }
     void addPrecursor(const L3Address& precursorAddr) { precursorList.insert(precursorAddr); }
     const std::set<L3Address>& getPrecursorList() const { return precursorList; }
-    unsigned int getMinimumResidualLinklifetime() const { return minimumResidualLinklifetime; }
-    void setMinimumResidualLinklifetime (unsigned int minimumResidualLinklifetime) { this->minimumResidualLinklifetime = minimumResidualLinklifetime; }
+    simtime_t getResidualRouteLifetime() const { return residualRouteLifetime; }
+    void setResidualRouteLifetime (simtime_t residualRouteLifetime) { this->residualRouteLifetime = residualRouteLifetime; }
 };
 
 std::ostream& operator<<(std::ostream& out, const AODVLDRouteData *data);

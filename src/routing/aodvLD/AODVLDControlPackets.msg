@@ -66,7 +66,7 @@ class AODVLDRREQ extends AODVLDControlPacket
     unsigned int destSeqNum;
     L3Address originatorAddr;
     unsigned int originatorSeqNum;
-    unsigned int residualLinklifetime; //Todo: wirklich int?
+    simtime_t residualLinklifetime;
 }
 
 //
@@ -84,6 +84,9 @@ class AODVLDRREP extends AODVLDControlPacket
     L3Address originatorAddr;
     unsigned int originatorSeqNum;
     simtime_t lifeTime;
+    //Calculated on the way of the RREQ to dest.
+    simtime_t residualRouteLifetime;
+
 }
 
 //

@@ -41,6 +41,7 @@ simple AODVLDRouting
         string routingTableModule = default("^.routingTable");
         string interfaceTableModule = default("^.interfaceTable");
         string networkProtocolModule = default("^.networkLayer.ip");
+        string residualLinklifetime = default("^.residualLinklifetime");
 
         bool askGratuitousRREP = default(false); // see RFC 3561: 6.6.3
         bool useHelloMessages = default(false); // see RFC 3561: 6.9
