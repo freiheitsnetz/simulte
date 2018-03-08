@@ -49,7 +49,7 @@ class ResidualLinklifetime : public cSimpleModule
     simtime_t calcResidualLinklifetime(cModule* neighbor);
     simtime_t getResidualLinklifetime (inet::L3Address IPaddress);
   public:
-    //Just for modularity. It simply calls getResidualLinklifetime (IPaddress);
+    //Just for modularity. It simply calls getResidualLinklifetime(IPaddress);
     simtime_t getMetrik(inet::L3Address IPaddress);
 
 

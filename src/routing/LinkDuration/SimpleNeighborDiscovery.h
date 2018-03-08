@@ -45,7 +45,7 @@ class INET_API SimpleNeighborDiscovery:  public cSimpleModule
     NeighborLinkTimeTable *LinkTimeTable;
     cMessage *update;
     cMessage *sec;
-    simtime_t updateTimer;
+    simtime_t updateInterval;
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
   public:
@@ -57,6 +57,7 @@ class INET_API SimpleNeighborDiscovery:  public cSimpleModule
     void incrementLinklifetime();
     void setAddresstoIPMap();
     cModule* getAddressFromIP(L3Address);
+    virtual ~SimpleNeighborDiscovery();
 
 };
 

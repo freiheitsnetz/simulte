@@ -20,6 +20,7 @@ package lte.routing.aodvLD;
 import inet.node.inet.WirelessHost;
 import lte.routing.aodvLD.AODVLDRouting;
 import lte.routing.LinkDuration.LinkDuration;
+import lte.corenetwork.nodes.Ue;
 
 
 //
@@ -39,18 +40,17 @@ import lte.routing.LinkDuration.LinkDuration;
 // The AODV v.2 (known as DYMO) is also implemented: ~DYMO,
 // ~DYMORouter.
 //
-module AODVLDRouter extends WirelessHost
+module AODVLDUe extends Ue
 {
     parameters:
         @display("i=device/cellphone");
-        forwarding = true;
-        wlan[*].mgmtType = default("Ieee80211MgmtAdhoc");
+
     submodules:
         aodvld: AODVLDRouting {
-            @display("p=558,307");
+            @display("p=50,225");
         }
         LD: LinkDuration{
-            @display("p=658,307");
+            @display("p=50,285");
         }
     connections:
         aodvld.ipOut --> networkLayer.transportIn++;

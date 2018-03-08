@@ -13,15 +13,8 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-package lte.routing.LinkDuration;
+package lte.simulations.networks;
 
-//
-// TODO auto-generated module
-//
-simple SimpleNeighborDiscovery
-{	
-    parameters:
-    @display("bgb=920,262;i=block/segm_l");
-    double updateInterval @unit("s")=default(1s);
-    string neighborLinkTimeTable = default("^.NeighborLinkTimeTable");
+network SingleCellD2DAODVLDned
+{
 }

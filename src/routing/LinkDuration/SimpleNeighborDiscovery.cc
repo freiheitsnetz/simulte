@@ -25,13 +25,13 @@ Define_Module(SimpleNeighborDiscovery);
 
 void SimpleNeighborDiscovery::initialize()
 {
-    updateTimer = par("updateTimer");
+    updateInterval = par("updateInterval");
     ownAddress= getContainingNode(this);
     setAllUEsAddresses();
     updateNodeDistanceEntries();
     updateConnectionVector();
     setAddresstoIPMap();
-    scheduleAt(simTime()+updateTimer,update);
+    scheduleAt(simTime()+updateInterval,update);
     update= new cMessage("Update");
     sec= new cMessage("Second");
     LinkTimeTable = inet::getModuleFromPar<NeighborLinkTimeTable>(par("neighborLinkTimeTable"), this);
@@ -44,7 +44,7 @@ void SimpleNeighborDiscovery::handleMessage(cMessage *msg)
     if(msg==update){
         updateNodeDistanceEntries();
         updateConnectionVector();
-    scheduleAt(simTime()+updateTimer,update);
+    scheduleAt(simTime()+updateInterval,update);
     }
     if(msg==sec){
         incrementLinklifetime();
@@ -80,7 +80,7 @@ void SimpleNeighborDiscovery::setAllUEsAddresses()
     for (int i=0; i<numHosts; i++ )
     {
         char buf[20];
-        sprintf(buf, "UE%d", i);
+        sprintf(buf, "Ue%d", i);
         cModule* temp = getContainingNode(getModuleByPath(buf));
         if (temp!=ownAddress)
             otherAddressVector[i]=temp;
@@ -144,4 +144,12 @@ cModule* SimpleNeighborDiscovery::getAddressFromIP(L3Address IPaddress){
     return nullptr;
    }
 
+
+    SimpleNeighborDiscovery::~SimpleNeighborDiscovery(){
+        delete sec;
+        delete update;
+
+
+    }
 }
+

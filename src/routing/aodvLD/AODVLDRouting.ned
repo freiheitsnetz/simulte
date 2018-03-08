@@ -41,7 +41,7 @@ simple AODVLDRouting
         string routingTableModule = default("^.routingTable");
         string interfaceTableModule = default("^.interfaceTable");
         string networkProtocolModule = default("^.networkLayer.ip");
-        string residualLinklifetime = default("^.residualLinklifetime");
+        string residualLinkLifetimeModule = default("^.residualLinklifetime");
 
         bool askGratuitousRREP = default(false); // see RFC 3561: 6.6.3
         bool useHelloMessages = default(false); // see RFC 3561: 6.9
@@ -81,6 +81,7 @@ simple AODVLDRouting
         double netTraversalTime @unit("s") = default(2 * nodeTraversalTime * netDiameter); // an estimation of the traversal time for the complete network
         double nextHopWait @unit("s") = default(nodeTraversalTime + 0.01s); // timeout for a RREP-ACK
         double pathDiscoveryTime @unit("s") = default(2 * netTraversalTime); // buffer timeout for each broadcasted RREQ message
+        double RREQCollectionTime @unit("s") = default(0.05s); //Time same RREQ is saved and exchanged to better RREQ until rebroadcst
     gates:
         input ipIn;
         output ipOut;

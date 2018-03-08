@@ -47,7 +47,7 @@
 //TODO includes
 //#ifdef WITH_LTE
 //#endif
-
+#include <LteAirFrame.h>
 #include "inet/networklayer/common/IPSocket.h"
 #include "inet/transportlayer/contract/udp/UDPControlInfo.h"
 #include "inet/common/ModuleAccess.h"
@@ -68,7 +68,7 @@ void AODVLDRouting::initialize(int stage)
         routingTable = getModuleFromPar<IRoutingTable>(par("routingTableModule"), this);
         interfaceTable = getModuleFromPar<IInterfaceTable>(par("interfaceTableModule"), this);
         networkProtocol = getModuleFromPar<INetfilter>(par("networkProtocolModule"), this);
-        metrikmodule = getModuleFromPar<ResidualLinklifetime>(par("residualLinklifetime"),this);
+        metrikmodule = getModuleFromPar<ResidualLinklifetime>(par("residualLinkLifetimeModule"),this);
 
         aodvLDUDPPort = par("udpPort");
         askGratuitousRREP = par("askGratuitousRREP");
@@ -122,7 +122,7 @@ void AODVLDRouting::initialize(int stage)
         counterTimer = new cMessage("CounterTimer");
         rrepAckTimer = new cMessage("RREPACKTimer");
         blacklistTimer = new cMessage("BlackListTimer");
-        ;
+
 
         if (isOperational)
             scheduleAt(simTime() + 1, counterTimer);
@@ -1551,15 +1551,16 @@ void AODVLDRouting::handleHelloMessage(AODVLDRREP *helloMessage)
     // will have empty precursor lists and would not trigger a RERR message
     // if the neighbor moves away and a neighbor timeout occurs.
 
+    /*Route data contains residual route lifetime, which is in this case just the residual link lifetime, because it is just received from neighbor*/
     unsigned int latestDestSeqNum = helloMessage->getDestSeqNum();
     simtime_t newLifeTime = simTime() + allowedHelloLoss * helloInterval;
 
     if (!routeHelloOriginator || routeHelloOriginator->getSource() != this)
-        createRoute(helloOriginatorAddr, helloOriginatorAddr, 1, true, latestDestSeqNum, true, newLifeTime);
+        createRoute(helloOriginatorAddr, helloOriginatorAddr, 1, true, latestDestSeqNum, true, newLifeTime,simTime() + metrikmodule->getMetrik(helloOriginatorAddr));
     else {
         AODVLDRouteData *routeData = check_and_cast<AODVLDRouteData *>(routeHelloOriginator->getProtocolData());
         simtime_t lifeTime = routeData->getLifeTime();
-        updateRoutingTable(routeHelloOriginator, helloOriginatorAddr, 1, true, latestDestSeqNum, true, std::max(lifeTime, newLifeTime));
+        updateRoutingTable(routeHelloOriginator, helloOriginatorAddr, 1, true, latestDestSeqNum, true, std::max(lifeTime, newLifeTime),simTime() + metrikmodule->getMetrik(helloOriginatorAddr));
     }
 
     // TODO: This feature has not implemented yet.
@@ -1572,6 +1573,8 @@ void AODVLDRouting::handleHelloMessage(AODVLDRREP *helloMessage)
     // happens, the node SHOULD proceed as in Section 6.11.
 }
 
+/*Change LifeTime to residualRouteLifetime*/
+//TODO Is LifeTime still really needed?
 void AODVLDRouting::expungeRoutes()
 {
     for (int i = 0; i < routingTable->getNumRoutes(); i++) {
@@ -1579,7 +1582,7 @@ void AODVLDRouting::expungeRoutes()
         if (route->getSource() == this) {
             AODVLDRouteData *routeData = check_and_cast<AODVLDRouteData *>(route->getProtocolData());
             ASSERT(routeData != nullptr);
-            if (routeData->getLifeTime() <= simTime()) {
+            if (routeData->getResidualRouteLifetime() <= simTime()) {
                 if (routeData->isActive()) {
                     EV_DETAIL << "Route to " << route->getDestinationAsGeneric() << " expired and set to inactive. It will be deleted after DELETE_PERIOD time" << endl;
                     // An expired routing table entry SHOULD NOT be expunged before
@@ -1587,14 +1590,14 @@ void AODVLDRouting::expungeRoutes()
                     // soft state corresponding to the route (e.g., last known hop count)
                     // will be lost.
                     routeData->setIsActive(false);
-                    routeData->setLifeTime(simTime() + deletePeriod);
+                    routeData->setResidualRouteLifetime(simTime() + deletePeriod);
                 }
                 else {
                     // Any routing table entry waiting for a RREP SHOULD NOT be expunged
                     // before (current_time + 2 * NET_TRAVERSAL_TIME).
                     if (hasOngoingRouteDiscovery(route->getDestinationAsGeneric())) {
                         EV_DETAIL << "Route to " << route->getDestinationAsGeneric() << " expired and is inactive, but we are waiting for a RREP to this destination, so we extend its lifetime with 2 * NET_TRAVERSAL_TIME" << endl;
-                        routeData->setLifeTime(simTime() + 2 * netTraversalTime);
+                        routeData->setResidualRouteLifetime(simTime() + 2 * netTraversalTime);
                     }
                     else {
                         EV_DETAIL << "Route to " << route->getDestinationAsGeneric() << " expired and is inactive and we are not expecting any RREP to this destination, so we delete this route" << endl;
@@ -1606,7 +1609,7 @@ void AODVLDRouting::expungeRoutes()
     }
     scheduleExpungeRoutes();
 }
-
+/*Change LifeTime to residualRouteLifetime*/
 void AODVLDRouting::scheduleExpungeRoutes()
 {
     simtime_t nextExpungeTime = SimTime::getMaxTime();
@@ -1617,8 +1620,8 @@ void AODVLDRouting::scheduleExpungeRoutes()
             AODVLDRouteData *routeData = check_and_cast<AODVLDRouteData *>(route->getProtocolData());
             ASSERT(routeData != nullptr);
 
-            if (routeData->getLifeTime() < nextExpungeTime)
-                nextExpungeTime = routeData->getLifeTime();
+            if (routeData->getResidualRouteLifetime() < nextExpungeTime)
+                nextExpungeTime = routeData->getResidualRouteLifetime();
         }
     }
     if (nextExpungeTime == SimTime::getMaxTime()) {
