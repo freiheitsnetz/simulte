@@ -25,14 +25,22 @@ void ResidualLinklifetime::initialize()
     neighborModule = inet::getModuleFromPar<inet::SimpleNeighborDiscovery>(par("neighborDiscoveryModul"), this);
     LinkTimeTable = inet::getModuleFromPar<NeighborLinkTimeTable>(par("neighborLinkTimeTable"), this);
 
-
-    if((par("selfMode").boolValue()== true && par("givenMode").boolValue()== true)||(par("selfMode").boolValue()== false && par("givenMode").boolValue()== false)){
-
+        /*Calculate distribution themselves: NOT IMPLEMENTED*/
         if(par("selfMode").boolValue()== true)
             mode=SELF;
-        if(par("givenMode").boolValue()==true)
+        /*xml input file for mapping*/
+        else if(par("givenMode").boolValue()==true){
             mode=GIVEN;
             setDistbyInput();
+        }
+        /*Use mapping function*/
+        else if(par("functionMode").boolValue()==true){
+            mode=FUNCTION;
+            constantSpeed= par("nodeSpeed");
+            transmissionRange= neighborModule->getTransmssionRange();
+            tau=transmissionRange/constantSpeed;
+
+
     }
         else
             throw cRuntimeError("Mode must be 'selfMode' OR(!) 'givenMode'");
@@ -49,6 +57,7 @@ simtime_t ResidualLinklifetime::calcResidualLinklifetime(cModule* neighbor)
     switch(mode){
         case SELF: return calcRLLviaTable(neighbor); //Not implemented yet
         case GIVEN: return calcRLLviaInput(neighbor);
+        case FUNCTION: return calcRLLviaFunction(neighbor);
         default: throw cRuntimeError("Mode must be 'selfMode' OR(!) 'given'");
     }
 }
@@ -71,9 +80,16 @@ int ResidualLinklifetime::calcRLLviaInput(cModule* neighbor){
 //TODO ->
 int ResidualLinklifetime::calcRLLviaTable(cModule* neighbor){
 
-    NeighborLinkTimeTable* LinkTimeTable= check_and_cast<NeighborLinkTimeTable*>(getParentModule()->getSubmodule("NeighborLinkTimeTable"));
     LinkTimeTable->getNeighborLinkTime(neighbor);
     return 0; //avoiding error
+
+}
+/*From "Topology Characterization of High Density Airspace
+Aeronautical Ad Hoc Networks" by Daniel Medina, Felix Hoffmann, Serkan Ayaz, Munich,Germany*/
+int ResidualLinklifetime::calcRLLviaFunction(cModule* neighbor){
+    int t=LinkTimeTable->getNeighborLinkTime(neighbor); //get link lifetime from NeighborLinkTimeTable
+
+    return 2/pow(M_PI,2)*t*atanh((2*(t/tau))/(1+pow((t/tau),2)));
 
 }
 

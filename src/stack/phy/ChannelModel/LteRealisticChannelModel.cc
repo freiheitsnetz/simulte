@@ -36,6 +36,16 @@ LteRealisticChannelModel::LteRealisticChannelModel(ParameterMap& params,
     else
         //DEFAULT
         scenario_ = URBAN_MACROCELL;
+    //ADDED: txRange
+    it = params.find("txRange");
+    if (it != params.end())
+    {
+        txRange = it->second.intValue();
+    }
+    else
+        //DEFAULT
+        txRange =0;
+
     // get nodeb-height-coefficient from config
     it = params.find("nodeb-height");
     if (it != params.end()) // parameter alpha has been specified in config.xml
@@ -379,6 +389,9 @@ double LteRealisticChannelModel::getAttenuation(MacNodeId nodeId, Direction dir,
     case SUBURBAN_MACROCELL:
         attenuation = computeSubUrbanMacro(sqrDistance, dbp, nodeId);
         break;
+    case ZERO_UNTIL_TX_RANGE:
+        attenuation = computeZeroUntilTxRange(sqrDistance, nodeId);
+        break;
     default:
         throw cRuntimeError("Wrong value %d for path-loss scenario", scenario_);
     }
@@ -501,6 +514,9 @@ double LteRealisticChannelModel::getAttenuation_D2D(MacNodeId nodeId, Direction 
             break;
         case SUBURBAN_MACROCELL:
             attenuation = computeSubUrbanMacro(sqrDistance, dbp, nodeId);
+            break;
+        case ZERO_UNTIL_TX_RANGE:
+            attenuation = computeZeroUntilTxRange(sqrDistance, nodeId);
             break;
         default:
             throw cRuntimeError("Wrong value %d for path-loss scenario", scenario_);
@@ -2051,6 +2067,15 @@ double LteRealisticChannelModel::computeSubUrbanMacro(double d, double& dbp,
     + 20 * log10(carrierFrequency_)
     - (3.2 * (pow(log10(11.75 * hUe_), 2)) - 4.97);
     return att;
+}
+
+double LteRealisticChannelModel::computeZeroUntilTxRange(double d, MacNodeId nodeId){
+
+    if(d<txRange)
+        return 0;
+    else
+        return HUGE_VAL;
+
 }
 
 double LteRealisticChannelModel::computeRuralMacro(double d, double& dbp,

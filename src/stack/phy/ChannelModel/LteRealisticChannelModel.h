@@ -45,6 +45,9 @@ class LteRealisticChannelModel : public LteChannelModel
     // enable/disable the shadowing
     bool shadowing_;
 
+    //ADDED:transmissionRange (Just for ZERO_UNTIL_TX_RANGE scenario)
+    int txRange;
+
     // enable/disable intercell interference computation
     bool enableExtCellInterference_;
     bool enableMultiCellInterference_;
@@ -249,6 +252,13 @@ class LteRealisticChannelModel : public LteChannelModel
      * @param nodeid mac node id of UE
      */
     double computeRuralMacro(double distance, double& dbp, MacNodeId nodeId);
+    /*
+     * ADDED: Returns 0 when transmissionRange(set by parameters) is higher than distance between UEs
+     * inf otherwise
+     * @param distance between UE and eNodeB
+     * @param nodeid mac node id of UE
+     */
+    double computeZeroUntilTxRange(double d, MacNodeId nodeId);
     /*
      * compute std deviation of shadowing according to scenario and visibility
      *

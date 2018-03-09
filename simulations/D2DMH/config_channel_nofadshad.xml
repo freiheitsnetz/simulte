@@ -2,6 +2,8 @@
 <root>
 		<!-- Channel Model Type (REAL, DUMMY) -->
         <ChannelModel type="REAL">
+        	<!-- ADDED: Defined TxRange for ZERO_UNTIL_TX_RANGE scenario-->
+        	<parameter name "txRange" type="int" value= "80000"/>
         	<!-- Enable/disable shadowing -->       
             <parameter name="shadowing" type="bool" value="false"/>
             <!-- Pathloss scenario from ITU -->   

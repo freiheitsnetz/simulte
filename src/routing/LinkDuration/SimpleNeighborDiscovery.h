@@ -53,6 +53,7 @@ class INET_API SimpleNeighborDiscovery:  public cSimpleModule
     bool isInConnectionRange (int txRange, int nodedistance);
     void updateNodeDistanceEntries();
     void updateConnectionVector();
+    int  getTransmssionRange(){return transmissionRange;}
     void setAllUEsAddresses(); //From External
     void incrementLinklifetime();
     void setAddresstoIPMap();

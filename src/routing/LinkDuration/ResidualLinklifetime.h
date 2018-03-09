@@ -35,7 +35,10 @@ class ResidualLinklifetime : public cSimpleModule
 {
   protected:
 
-    enum Mode {SELF, GIVEN} mode;
+    enum Mode {SELF, GIVEN, FUNCTION} mode;
+    int transmissionRange;
+    int constantSpeed;
+    int tau;
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
     cXMLElement* tempInputbin;
@@ -45,6 +48,7 @@ class ResidualLinklifetime : public cSimpleModule
     inet::SimpleNeighborDiscovery* neighborModule=nullptr;
     int calcRLLviaInput(cModule* neighbor);
     int calcRLLviaTable(cModule* neighbor);
+    int calcRLLviaFunction(cModule* neighbor);
     void setDistbyInput();
     simtime_t calcResidualLinklifetime(cModule* neighbor);
     simtime_t getResidualLinklifetime (inet::L3Address IPaddress);
