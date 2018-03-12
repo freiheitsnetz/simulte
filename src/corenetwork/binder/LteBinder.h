@@ -52,6 +52,7 @@ class LteBinder : public cSimpleModule
     DeployerList deployersMap_;
     std::vector<MacNodeId> nextHop_; // MacNodeIdMaster --> MacNodeIdSlave
     std::map<int, OmnetId> nodeIds_;
+    bool utilizeAODV;
 
     // list of static external cells. Used for intercell interference evaluation
     ExtCellList extCellList_;

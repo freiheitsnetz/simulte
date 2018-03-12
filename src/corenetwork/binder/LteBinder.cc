@@ -708,7 +708,7 @@ void LteBinder::initialize(int stage)
         std::vector<int> apppriority;
         std::vector<double> appdelay;
         std::vector<double> applossrate;
-
+        utilizeAODV= par("utilizeAODV");
         stringa = par("priority");
         apppriority = cStringTokenizer(stringa).asIntVector();
         stringa = par("packetDelayBudget");
@@ -732,6 +732,7 @@ void LteBinder::initialize(int stage)
         // all UEs completed registration, so build the table of D2D capabilities
 
         // build and initialize the matrix of D2D peering capabilities
+        //ADDED: If AODV is used, every Ue has to be able to transmit to any other
         MacNodeId maxUe = macNodeIdCounter_[2];
         d2dPeeringCapability_ = new bool*[maxUe];
         for (int i=0; i<maxUe; i++)
@@ -739,7 +740,11 @@ void LteBinder::initialize(int stage)
             d2dPeeringCapability_[i] = new bool[maxUe];
             for (int j=0; j<maxUe; j++)
             {
+                if(!utilizeAODV)
                 d2dPeeringCapability_[i][j] = false;
+                else
+                d2dPeeringCapability_[i][j] = true;
+                d2dPeeringMode_[i][j] = DM;
             }
         }
     }

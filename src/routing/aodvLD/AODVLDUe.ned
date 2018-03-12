@@ -17,10 +17,10 @@
 
 package lte.routing.aodvLD;
 
-import inet.node.inet.WirelessHost;
+//import inet.node.inet.WirelessHost;
 import lte.routing.aodvLD.AODVLDRouting;
 import lte.routing.LinkDuration.LinkDuration;
-import lte.corenetwork.nodes.Ue;
+import lte.routing.aodvLD.ForwardingUe;
 
 
 //
@@ -40,10 +40,12 @@ import lte.corenetwork.nodes.Ue;
 // The AODV v.2 (known as DYMO) is also implemented: ~DYMO,
 // ~DYMORouter.
 //
-module AODVLDUe extends Ue
+module AODVLDUe extends ForwardingUe
 {
     parameters:
         @display("i=device/cellphone");
+        forwarding = true;
+        multicastForwarding=true;
 
     submodules:
         aodvld: AODVLDRouting {
