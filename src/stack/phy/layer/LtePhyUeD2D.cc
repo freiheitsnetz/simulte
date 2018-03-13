@@ -103,7 +103,8 @@ void LtePhyUeD2D::handleAirFrame(cMessage* msg)
     if (binder_->isInMulticastGroup(nodeId_,lteInfo->getMulticastGroupId()))
     {
         // HACK: if this is a multicast connection, change the destId of the airframe so that upper layers can handle it
-        lteInfo->setDestId(nodeId_);
+        //TODO check if this disabling causes errors
+        //lteInfo->setDestId(nodeId_);
     }
 
     // send H-ARQ feedback up

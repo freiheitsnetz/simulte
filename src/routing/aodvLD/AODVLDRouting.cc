@@ -96,6 +96,7 @@ void AODVLDRouting::initialize(int stage)
         nextHopWait = par("nextHopWait");
         pathDiscoveryTime = par("pathDiscoveryTime");
         RREQCollectionTime = par("RREQCollectionTime");
+        multicastAddress.tryParse(par("multicastAddress").stringValue());
     }
     else if (stage == INITSTAGE_ROUTING_PROTOCOLS) {
         NodeStatus *nodeStatus = dynamic_cast<NodeStatus *>(host->getSubmodule("status"));

@@ -40,7 +40,7 @@ LteRealisticChannelModel::LteRealisticChannelModel(ParameterMap& params,
     it = params.find("txRange");
     if (it != params.end())
     {
-        txRange = it->second.intValue();
+        txRange = it->second.longValue();
     }
     else
         //DEFAULT

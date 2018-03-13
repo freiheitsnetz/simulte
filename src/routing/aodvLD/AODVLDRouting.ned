@@ -82,6 +82,7 @@ simple AODVLDRouting
         double nextHopWait @unit("s") = default(nodeTraversalTime + 0.01s); // timeout for a RREP-ACK
         double pathDiscoveryTime @unit("s") = default(2 * netTraversalTime); // buffer timeout for each broadcasted RREQ message
         double RREQCollectionTime @unit("s") = default(0.05s); //Time same RREQ is saved and exchanged to better RREQ until rebroadcst
+        string multicastAddress = default("224.0.0.10"); //Since LTE-A uses multicast instead of broadcast, all UEs are in this group to have a broadcast
     gates:
         input ipIn;
         output ipOut;
