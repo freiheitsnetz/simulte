@@ -17,10 +17,7 @@
 
 package lte.routing.aodvLD;
 
-//import inet.node.inet.WirelessHost;
-import lte.routing.aodvLD.AODVLDRouting;
 import lte.routing.LinkDuration.LinkDuration;
-import lte.routing.aodvLD.ForwardingUe;
 
 
 //
@@ -45,13 +42,13 @@ module AODVLDUe extends ForwardingUe
     parameters:
         @display("i=device/cellphone");
         forwarding = true;
-        multicastForwarding=true;
+        multicastForwarding = true;
 
     submodules:
         aodvld: AODVLDRouting {
             @display("p=50,225");
         }
-        LD: LinkDuration{
+        LD: LinkDuration {
             @display("p=50,285");
         }
     connections:

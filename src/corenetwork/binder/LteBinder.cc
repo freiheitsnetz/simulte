@@ -740,11 +740,20 @@ void LteBinder::initialize(int stage)
             d2dPeeringCapability_[i] = new bool[maxUe];
             for (int j=0; j<maxUe; j++)
             {
-                if(!utilizeAODV)
+
                 d2dPeeringCapability_[i][j] = false;
-                else
-                d2dPeeringCapability_[i][j] = true;
-                d2dPeeringMode_[i][j] = DM;
+                if(utilizeAODV){
+
+                    if (i >= UE_MIN_ID || i < macNodeIdCounter_[2] || j >= UE_MIN_ID || j < macNodeIdCounter_[2]){
+
+
+                    d2dPeeringCapability_[i][j] = true;
+
+                    // insert initial communication mode
+                    // TODO make it configurable from NED
+                    d2dPeeringMode_[i][j] = DM;
+                    }
+                }
             }
         }
     }

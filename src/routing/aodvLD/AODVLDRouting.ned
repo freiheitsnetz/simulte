@@ -36,6 +36,7 @@ package lte.routing.aodvLD;
 //
 simple AODVLDRouting
 {
+
     parameters:
         @display("i=block/network2");
         string routingTableModule = default("^.routingTable");

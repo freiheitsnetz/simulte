@@ -52,9 +52,6 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
       public:
         L3Address originatorAddr;
         unsigned int rreqID;
-        L3Address sourceAddr;
-        unsigned int packetTTL;
-
 
         RREQIdentifier(const L3Address& originatorAddr, unsigned int rreqID) : originatorAddr(originatorAddr), rreqID(rreqID) {};
         //Operator overloading. "==" compares address and rreqIDs now
@@ -62,10 +59,20 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
         {
             return this->originatorAddr == other.originatorAddr && this->rreqID == other.rreqID;
         }
-        L3Address getSourceAddr() const {return sourceAddr;}
-        unsigned int getPacketTTL() const {return packetTTL;}
+    };
+
+    class RREQAdditionalInfo
+    {
+    private:
+        L3Address sourceAddr;
+        unsigned int packetTTL;
+    public:
+        //RREQAdditionalInfo(L3Address sourceAddr,unsigned int packetTTL) : sourceAddr (sourceAddr),packetTTL (packetTTL) {};
+        L3Address getSourceAddr()  {return sourceAddr;}
+        unsigned int getPacketTTL()  {return packetTTL;}
         void setSourceAddr(L3Address sourceAddr){this->sourceAddr=sourceAddr;}
         void setPacketTTL(unsigned int packetTTL){this->packetTTL=packetTTL;}
+
     };
 
     class RREQIdentifierCompare
@@ -132,8 +139,8 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     std::map<L3Address, unsigned int> addressToRreqRetries;    // number of re-discovery attempts per address
 
 
-    std::map<RREQIdentifier,AODVLDRREQ*>CurrentBestRREQ; // the current best rreq to transmit again from a certain originator
-    std::map<RREQIdentifier,AODVLDRREQ*>LastTransmittedRREQ; //last transmitted rreq to be able to compare it a later one is better
+    std::map<const RREQIdentifier,std::pair<RREQAdditionalInfo,AODVLDRREQ*>,RREQIdentifierCompare>CurrentBestRREQ; // the current best rreq to transmit again from a certain originator
+    std::map<const RREQIdentifier,std::pair<RREQAdditionalInfo,AODVLDRREQ*>,RREQIdentifierCompare>LastTransmittedRREQ; //last transmitted rreq to be able to compare it a later one is better
     // self messages
     cMessage *helloMsgTimer = nullptr;    // timer to send hello messages (only if the feature is enabled)
     cMessage *expungeTimer = nullptr;    // timer to clean the routing table out
