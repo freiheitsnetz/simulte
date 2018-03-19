@@ -21,7 +21,7 @@ import lte.epc.PgwStandardSimplified;
 import lte.world.radio.LteChannelControl;
 
 
-network SingleCell_D2DMultihop
+network SingleCell_D2DMulticast
 {
     parameters:
         int numUeCell = default(1);

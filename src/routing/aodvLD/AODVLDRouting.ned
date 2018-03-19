@@ -34,6 +34,7 @@ package lte.routing.aodvLD;
 // This implementation is based on RFC 3561. For more information, you may
 // refer to the following link: https://tools.ietf.org/html/rfc3561.html.
 //
+@namespace(inet);
 simple AODVLDRouting
 {
 
@@ -42,7 +43,7 @@ simple AODVLDRouting
         string routingTableModule = default("^.routingTable");
         string interfaceTableModule = default("^.interfaceTable");
         string networkProtocolModule = default("^.networkLayer.ip");
-        string residualLinkLifetimeModule = default("^.residualLinklifetime");
+        string residualLinkLifetimeModule = default("^.LD.ResidualLinklifetime");
 
         bool askGratuitousRREP = default(false); // see RFC 3561: 6.6.3
         bool useHelloMessages = default(false); // see RFC 3561: 6.9

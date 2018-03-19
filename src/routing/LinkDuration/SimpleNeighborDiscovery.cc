@@ -31,9 +31,9 @@ void SimpleNeighborDiscovery::initialize()
     updateNodeDistanceEntries();
     updateConnectionVector();
     setAddresstoIPMap();
-    scheduleAt(simTime()+updateInterval,update);
     update= new cMessage("Update");
     sec= new cMessage("Second");
+    scheduleAt(simTime()+updateInterval,update);
     LinkTimeTable = inet::getModuleFromPar<NeighborLinkTimeTable>(par("neighborLinkTimeTable"), this);
 
 

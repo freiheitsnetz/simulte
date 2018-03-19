@@ -25,7 +25,7 @@ simple ResidualLinklifetime
         bool selfMode = default (true);
         bool givenMode =default (false);
         string neighborLinkTimeTable = default("^.NeighborLinkTimeTable");
-        string neighborDiscoveryModule = default("^SimpleNeighborDiscovery");
-        xml inputDist = default(xmldoc("inputDist.xml"));
+        string neighborDiscoveryModule = default("^.SimpleNeighborDiscovery");
+ //       xml inputDist = default(xmldoc("inputDist.xml"));
         
 }

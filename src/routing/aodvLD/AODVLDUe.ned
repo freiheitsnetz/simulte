@@ -37,6 +37,7 @@ import lte.routing.LinkDuration.LinkDuration;
 // The AODV v.2 (known as DYMO) is also implemented: ~DYMO,
 // ~DYMORouter.
 //
+
 module AODVLDUe extends ForwardingUe
 {
     parameters:
@@ -44,12 +45,14 @@ module AODVLDUe extends ForwardingUe
         forwarding = true;
         multicastForwarding = true;
 
-    submodules:
-        aodvld: AODVLDRouting {
-            @display("p=50,225");
-        }
+		
+        submodules:
         LD: LinkDuration {
             @display("p=50,285");
+        }
+        	
+        aodvld: AODVLDRouting {
+            @display("p=50,225");
         }
     connections:
         aodvld.ipOut --> networkLayer.transportIn++;

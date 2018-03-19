@@ -18,6 +18,7 @@ package lte.routing.LinkDuration;
 //
 // TODO auto-generated module
 //
+@namespace(inet);
 simple SimpleNeighborDiscovery
 {	
     parameters:

@@ -23,11 +23,11 @@ module LinkDuration
         NeighborLinkTimeTable: NeighborLinkTimeTable {
             @display("p=100,307");
         }
-        ResidualLinklifetime: ResidualLinklifetime{
-            @display("p=100,207");
-        }
         SimpleNeighborDiscovery:SimpleNeighborDiscovery{
             @display("p=100,107");
+        }
+        ResidualLinklifetime: ResidualLinklifetime{
+            @display("p=100,207");
         }
             
 }

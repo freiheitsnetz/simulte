@@ -22,7 +22,7 @@ Define_Module(ResidualLinklifetime);
 void ResidualLinklifetime::initialize()
 {
 
-    neighborModule = inet::getModuleFromPar<inet::SimpleNeighborDiscovery>(par("neighborDiscoveryModul"), this);
+    neighborModule = inet::getModuleFromPar<inet::SimpleNeighborDiscovery>(par("neighborDiscoveryModule"), this);
     LinkTimeTable = inet::getModuleFromPar<NeighborLinkTimeTable>(par("neighborLinkTimeTable"), this);
 
         /*Calculate distribution themselves: NOT IMPLEMENTED*/

@@ -52,11 +52,9 @@
 #include "inet/transportlayer/contract/udp/UDPControlInfo.h"
 #include "inet/common/ModuleAccess.h"
 #include "inet/common/lifecycle/NodeOperations.h"
-
+Define_Module(AODVLDRouting);
 namespace inet {
 
-
-Define_Module(AODVLDRouting);
 
 void AODVLDRouting::initialize(int stage)
 {
@@ -779,7 +777,7 @@ void AODVLDRouting::sendAODVLDPacket(AODVLDControlPacket *packet, const L3Addres
     networkProtocolControlInfo->setSourceAddress(getSelfIPAddress());
 
     // TODO: Implement: support for multiple interfaces
-    InterfaceEntry *ifEntry = interfaceTable->getInterfaceByName("wlan0");
+    InterfaceEntry *ifEntry = interfaceTable->getInterfaceByName("wlan");
     networkProtocolControlInfo->setInterfaceId(ifEntry->getInterfaceId());
 
     UDPPacket *udpPacket = new UDPPacket(packet->getName());
