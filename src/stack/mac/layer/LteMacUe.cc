@@ -20,6 +20,8 @@
 #include "IPv4InterfaceData.h"
 #include "LteBinder.h"
 #include "LtePhyBase.h"
+//Add for D2DMH
+#include <MACAddress.h>
 
 Define_Module(LteMacUe);
 
@@ -85,6 +87,11 @@ void LteMacUe::initialize(int stage)
         IInterfaceTable *interfaceTable = getModuleFromPar<IInterfaceTable>(par("interfaceTableModule"), this);
         // TODO: how do we find the LTE interface?
         InterfaceEntry * interfaceEntry = interfaceTable->getInterfaceByName("wlan");
+
+        //Added for D2DMH
+        MACAddress address = MACAddress::generateAutoAddress();
+        interfaceEntry->setMACAddress(address);
+        //
 
         IPv4InterfaceData* ipv4if = interfaceEntry->ipv4Data();
         if(ipv4if == NULL)

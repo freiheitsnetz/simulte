@@ -14,6 +14,8 @@
 #include "UDPPacket.h"
 #include "UDP.h"
 #include <iostream>
+//Added for D2DMH
+#include "inet/linklayer/common/Ieee802Ctrl.h"
 
 #include "ModuleAccess.h"
 #include "IPv4InterfaceData.h"
@@ -118,7 +120,11 @@ void IP2lte::setNodeType(std::string s)
 void IP2lte::fromIpUe(IPv4Datagram * datagram)
 {
     // Remove control info from IP datagram
-    delete(datagram->removeControlInfo());
+    //delete(datagram->removeControlInfo());
+    //Changed for D2DMH, since the next hop information are in the control infos
+    Ieee802Ctrl* tmp= check_and_cast<Ieee802Ctrl*>(datagram->removeControlInfo());
+
+
 
     // obtain the encapsulated transport packet
     cPacket * transportPacket = datagram->getEncapsulatedPacket();
