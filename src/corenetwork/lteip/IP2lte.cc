@@ -136,9 +136,10 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
     // TODO Add support to IPv6
     //Change for D2DMH, use control info instead of datagram info
 //    IPv4Address srcAddr  = datagram->getSrcAddress() ,
-//                destAddr = datagram->getDestAddress();
+//       IPv4Address  testdestAddr = datagram->getDestAddress();
         IPv4Address srcAddr  = binder_->getIPfromMAC(tmpControl->getSourceAddress()) ,
                     destAddr = binder_->getIPfromMAC(tmpControl->getDestinationAddress());
+
 
     AddressPair pair(srcAddr, destAddr);
     if (seqNums_.find(pair) == seqNums_.end())
