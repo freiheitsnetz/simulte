@@ -122,7 +122,7 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
     // Remove control info from IP datagram
     //delete(datagram->removeControlInfo());
     //Changed for D2DMH, since the next hop information are in the control infos
-    Ieee802Ctrl* tmp= check_and_cast<Ieee802Ctrl*>(datagram->removeControlInfo());
+    Ieee802Ctrl* tmpControl= check_and_cast<Ieee802Ctrl*>(datagram->removeControlInfo());
 
 
 
@@ -134,10 +134,12 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
     unsigned short dstPort = 0;
     int transportProtocol = datagram->getTransportProtocol();
     // TODO Add support to IPv6
-    IPv4Address srcAddr  = datagram->getSrcAddress() ,
-                destAddr = datagram->getDestAddress();
+    //Change for D2DMH, use control info instead of datagram info
+//    IPv4Address srcAddr  = datagram->getSrcAddress() ,
+//                destAddr = datagram->getDestAddress();
+        IPv4Address srcAddr  = binder_->getIPfromMAC(tmpControl->getSourceAddress()) ,
+                    destAddr = binder_->getIPfromMAC(tmpControl->getDestinationAddress());
 
-    // if needed, create a new structure for the flow
     AddressPair pair(srcAddr, destAddr);
     if (seqNums_.find(pair) == seqNums_.end())
     {
