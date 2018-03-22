@@ -50,6 +50,7 @@ class LteBinder : public cSimpleModule
     std::map<IPv4Address, MacNodeId> macNodeIdToIPAddress_;
     //Added for D2DMH
     std::map<MACAddress,IPv4Address> MACToIPAddress_; //Needed for MultiHop, because LTE2IP module changes the control info
+    std::map<IPv4Address,MACAddress>IPToMACAddress_; //Other way around
 
     std::map<MacNodeId, char*> macNodeIdToModuleName_;
     DeployerList deployersMap_;
@@ -252,8 +253,14 @@ class LteBinder : public cSimpleModule
     IPv4Address getIPfromMAC(MACAddress mac)
     {
         if (MACToIPAddress_.find(mac) == MACToIPAddress_.end())
-            throw cRuntimeError("Address could not be resolved");
+            throw cRuntimeError("IPAddress could not be resolved");
         return MACToIPAddress_[mac];
+    }
+    MACAddress getMACfromIP(IPv4Address ip)
+    {
+        if (IPToMACAddress_.find(ip) == IPToMACAddress_.end())
+            throw cRuntimeError("MACAddress could not be resolved");
+        return IPToMACAddress_[ip];
     }
 
     /**
@@ -281,6 +288,7 @@ class LteBinder : public cSimpleModule
     void setMacNodeAddress(IPv4Address address, MACAddress mac)
     {
         MACToIPAddress_[mac] = address;
+        IPToMACAddress_[address]=mac;
     }
     /**
      * Associates the given IP address with the given X2NodeId.

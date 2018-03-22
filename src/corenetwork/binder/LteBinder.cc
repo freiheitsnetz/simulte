@@ -573,7 +573,6 @@ void LteBinder::attachAppModule(cModule *parentModule, std::string IPAddr,
     }
     else if (appType == "TCPSinkApp")
     {
-        mt = cModuleType::get("inet.applications.tcpapp.TCPSinkApp");
         module = mt->create("tcpApp", parentModule);
         transportAppAttach(parentModule, module, string("tcp"));
     }

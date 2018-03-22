@@ -21,6 +21,7 @@ simple IP2lte
     parameters:
         string nodeType;    
         string interfaceTableModule;
+        bool utilizeAODV=default(false);
         @display("i=block/layer");
     gates:
         // connection to network layer.

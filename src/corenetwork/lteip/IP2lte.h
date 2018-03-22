@@ -16,6 +16,8 @@
 #include "IPv4Datagram.h"
 #include "LteHandoverManager.h"
 #include "LteBinder.h"
+//Added for D2DMH
+#include "inet/networklayer/arp/ipv4/ARPPacket_m.h"
 
 class LteHandoverManager;
 
@@ -66,6 +68,8 @@ class IP2lte : public cSimpleModule
      * and forward them to transport layer.
      */
     void toIpUe(IPv4Datagram *datagram);
+    //Added for D2DMH
+    void fromIpUeArp(ARPPacket* arppacket);
 
     void fromIpEnb(IPv4Datagram * datagram);
     void toIpEnb(cMessage * msg);

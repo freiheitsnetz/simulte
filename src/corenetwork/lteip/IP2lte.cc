@@ -17,6 +17,7 @@
 //Added for D2DMH
 #include "inet/linklayer/common/Ieee802Ctrl.h"
 
+
 #include "ModuleAccess.h"
 #include "IPv4InterfaceData.h"
 #include "InterfaceEntry.h"
@@ -89,9 +90,20 @@ void IP2lte::handleMessage(cMessage *msg)
         // message from transport: send to stack
         if (msg->getArrivalGate()->isName("upperLayerIn"))
         {
+            //Adding ARP
+            if(dynamic_cast<ARPPacket *>(msg)){
+            ARPPacket *arppacket = check_and_cast<ARPPacket*>(msg);
+            EV << "LteIp: ARP from transport: send to stack" << endl;
+            fromIpUeArp(arppacket);
+            }
+            else if(dynamic_cast<IPv4Datagram *>(msg)){
+                EV << "LteIp: message from transport: send to stack" << endl;
+
             IPv4Datagram *ipDatagram = check_and_cast<IPv4Datagram *>(msg);
-            EV << "LteIp: message from transport: send to stack" << endl;
             fromIpUe(ipDatagram);
+            }
+
+
         }
         else if(msg->getArrivalGate()->isName("stackLte$i"))
         {
@@ -115,6 +127,87 @@ void IP2lte::setNodeType(std::string s)
     nodeType_ = aToNodeType(s);
     EV << "Node type: " << s << " -> " << nodeType_ << endl;
 }
+void IP2lte::fromIpUeArp(ARPPacket* arppacket){
+
+    Ieee802Ctrl* tmpControl= check_and_cast<Ieee802Ctrl*>(arppacket->removeControlInfo());
+
+
+       // obtain the encapsulated transport packet
+       cPacket * transportPacket = arppacket->getEncapsulatedPacket();
+
+       // 5-Tuple infos
+       unsigned short srcPort = 0;
+       unsigned short dstPort = 0;
+       int transportProtocol = 0;
+       // TODO Add support to IPv6
+       //Change for D2DMH, use control info instead of datagram info
+       IPv4Address srcAddr  = arppacket->getSrcIPAddress();
+       IPv4Address destAddr;
+       if (par("utilizeAODV").boolValue()){
+
+   //       IPv4Address  testdestAddr = datagram->getDestAddress();
+       EV << "IP2lte Requested" << tmpControl->getSourceAddress().str() << endl;
+       EV << "IP2lte Requested" << tmpControl->getDestinationAddress().str() << endl;
+       //IPv4Address srcAddr  = binder_->getIPfromMAC(tmpControl->getSourceAddress());
+
+       //Set all to multicast addresses
+
+       EV << "IP2lte Broadcast?" << tmpControl->getDestinationAddress().isBroadcast() << endl;
+       EV << "IP2lte Multicast?" << tmpControl->getDestinationAddress().isMulticast() << endl;
+       if(tmpControl->getDestinationAddress().isBroadcast())
+           destAddr.set("224.0.0.10");
+       else if(tmpControl->getDestinationAddress().isMulticast())
+           destAddr.set("224.0.0.10");
+       else
+          destAddr = binder_->getIPfromMAC(tmpControl->getDestinationAddress());
+       }
+       //Change until here
+
+
+       AddressPair pair(srcAddr, destAddr);
+       if (seqNums_.find(pair) == seqNums_.end())
+       {
+           std::pair<AddressPair, unsigned int> p(pair, 0);
+           seqNums_.insert(p);
+       }
+
+       int headerSize = arppacket->getHeaderLength();
+
+       // inspect packet depending on the transport protocol type
+       switch (transportProtocol)
+       {
+           case IP_PROT_TCP:
+               inet::tcp::TCPSegment* tcpseg;
+               tcpseg = check_and_cast<inet::tcp::TCPSegment*>(transportPacket);
+               srcPort = tcpseg->getSrcPort();
+               dstPort = tcpseg->getDestPort();
+               headerSize += tcpseg->getHeaderLength();
+               break;
+           case IP_PROT_UDP:
+               UDPPacket* udppacket;
+               udppacket = check_and_cast<UDPPacket*>(transportPacket);
+               srcPort = udppacket->getSourcePort();
+               dstPort = udppacket->getDestinationPort();
+               headerSize += UDP_HEADER_BYTES;
+               break;
+       }
+
+       FlowControlInfo *controlInfo = new FlowControlInfo();
+       controlInfo->setSrcAddr(srcAddr.getInt());
+       controlInfo->setDstAddr(destAddr.getInt());
+       controlInfo->setSrcPort(srcPort);
+       controlInfo->setDstPort(dstPort);
+   //    controlInfo->setSequenceNumber(seqNum_++);
+       controlInfo->setSequenceNumber(seqNums_[pair]++);
+       controlInfo->setHeaderSize(headerSize);
+       printControlInfo(controlInfo);
+
+       arppacket->setControlInfo(controlInfo);
+
+       //** Send datagram to lte stack or LteIp peer **
+       send(arppacket,stackGateOut_);
+   }
+
 
 
 void IP2lte::fromIpUe(IPv4Datagram * datagram)
@@ -135,11 +228,29 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
     int transportProtocol = datagram->getTransportProtocol();
     // TODO Add support to IPv6
     //Change for D2DMH, use control info instead of datagram info
-//    IPv4Address srcAddr  = datagram->getSrcAddress() ,
-//       IPv4Address  testdestAddr = datagram->getDestAddress();
-        IPv4Address srcAddr  = binder_->getIPfromMAC(tmpControl->getSourceAddress()) ,
-                    destAddr = binder_->getIPfromMAC(tmpControl->getDestinationAddress());
+    IPv4Address srcAddr  = datagram->getSrcAddress();
+    IPv4Address destAddr;
+    if (par("utilizeAODV").boolValue()){
 
+//       IPv4Address  testdestAddr = datagram->getDestAddress();
+    EV << "IP2lte Requested" << tmpControl->getSourceAddress().str() << endl;
+    EV << "IP2lte Requested" << tmpControl->getDestinationAddress().str() << endl;
+    //IPv4Address srcAddr  = binder_->getIPfromMAC(tmpControl->getSourceAddress());
+
+    //Set all to multicast addresses
+
+    EV << "IP2lte Broadcast?" << tmpControl->getDestinationAddress().isBroadcast() << endl;
+    EV << "IP2lte Multicast?" << tmpControl->getDestinationAddress().isMulticast() << endl;
+    if(tmpControl->getDestinationAddress().isBroadcast())
+        destAddr.set("224.0.0.10");
+    else if(tmpControl->getDestinationAddress().isMulticast())
+        destAddr.set("224.0.0.10");
+    else
+       destAddr = binder_->getIPfromMAC(tmpControl->getDestinationAddress());
+    }
+    //Change until here
+    else
+        destAddr  = datagram->getDestAddress();
 
     AddressPair pair(srcAddr, destAddr);
     if (seqNums_.find(pair) == seqNums_.end())
