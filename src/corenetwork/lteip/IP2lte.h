@@ -68,8 +68,6 @@ class IP2lte : public cSimpleModule
      * and forward them to transport layer.
      */
     void toIpUe(IPv4Datagram *datagram);
-    //Added for D2DMH
-    void fromIpUeArp(ARPPacket* arppacket);
 
     void fromIpEnb(IPv4Datagram * datagram);
     void toIpEnb(cMessage * msg);
