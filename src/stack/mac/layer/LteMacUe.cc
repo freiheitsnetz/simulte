@@ -88,17 +88,21 @@ void LteMacUe::initialize(int stage)
         // TODO: how do we find the LTE interface?
         InterfaceEntry * interfaceEntry = interfaceTable->getInterfaceByName("wlan");
 
-        //Added for D2DMH
-        MACAddress address = MACAddress::generateAutoAddress();
-        interfaceEntry->setMACAddress(address);
-        //
 
+        //
+        bool utilizeAODV=par("utilizeAODV");
         IPv4InterfaceData* ipv4if = interfaceEntry->ipv4Data();
         if(ipv4if == NULL)
             throw new cRuntimeError("no IPv4 interface data - cannot bind node %i", nodeId_);
         binder_->setMacNodeId(ipv4if->getIPAddress(), nodeId_);
-        binder_->setMacNodeAddress(ipv4if->getIPAddress(),address);
 
+        //Added for D2DMH
+        if(utilizeAODV){
+
+            MACAddress address = MACAddress::generateAutoAddress();
+            interfaceEntry->setMACAddress(address);
+            binder_->setMacNodeAddress(ipv4if->getIPAddress(),address);
+        }
     }
 }
 

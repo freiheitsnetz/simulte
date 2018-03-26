@@ -31,6 +31,8 @@ void IP2lte::initialize(int stage)
 {
     if (stage == inet::INITSTAGE_LOCAL)
     {
+        //Added for AODV
+        utilizeAODV = par("utilizeAODV").boolValue();
         stackGateOut_ = gate("stackLte$o");
         ipGateOut_ = gate("upperLayerOut");
 
@@ -90,20 +92,9 @@ void IP2lte::handleMessage(cMessage *msg)
         // message from transport: send to stack
         if (msg->getArrivalGate()->isName("upperLayerIn"))
         {
-            //Adding ARP
-            if(dynamic_cast<ARPPacket *>(msg)){
-            ARPPacket *arppacket = check_and_cast<ARPPacket*>(msg);
-            EV << "LteIp: ARP from transport: send to stack" << endl;
-            fromIpUeArp(arppacket);
-            }
-            else if(dynamic_cast<IPv4Datagram *>(msg)){
-                EV << "LteIp: message from transport: send to stack" << endl;
-
             IPv4Datagram *ipDatagram = check_and_cast<IPv4Datagram *>(msg);
+            EV << "LteIp: message from transport: send to stack" << endl;
             fromIpUe(ipDatagram);
-            }
-
-
         }
         else if(msg->getArrivalGate()->isName("stackLte$i"))
         {
@@ -122,6 +113,7 @@ void IP2lte::handleMessage(cMessage *msg)
 }
 
 
+
 void IP2lte::setNodeType(std::string s)
 {
     nodeType_ = aToNodeType(s);
@@ -134,7 +126,8 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
     // Remove control info from IP datagram
     //delete(datagram->removeControlInfo());
     //Changed for D2DMH, since the next hop information are in the control infos
-    Ieee802Ctrl* tmpControl= check_and_cast<Ieee802Ctrl*>(datagram->removeControlInfo());
+    if(!utilizeAODV)
+    delete(datagram->removeControlInfo());
 
 
 
@@ -149,8 +142,8 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
     //Change for D2DMH, use control info instead of datagram info
     IPv4Address srcAddr  = datagram->getSrcAddress();
     IPv4Address destAddr;
-    if (par("utilizeAODV").boolValue()){
-
+    if (utilizeAODV){
+        Ieee802Ctrl* tmpControl= check_and_cast<Ieee802Ctrl*>(datagram->removeControlInfo());
 //       IPv4Address  testdestAddr = datagram->getDestAddress();
     EV << "IP2lte Requested" << tmpControl->getSourceAddress().str() << endl;
     EV << "IP2lte Requested" << tmpControl->getDestinationAddress().str() << endl;

@@ -29,6 +29,7 @@ typedef std::pair<IPv4Address, IPv4Address> AddressPair;
  */
 class IP2lte : public cSimpleModule
 {
+    bool utilizeAODV;           // switch from parameters if AODV is used or not
     cGate *stackGateOut_;       // gate connecting IP2lte module to LTE stack
     cGate *ipGateOut_;          // gate connecting IP2lte module to network layer
     LteNodeType nodeType_;      // node type: can be ENODEB, UE

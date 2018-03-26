@@ -32,6 +32,9 @@ simple LteMacBase like LteMac {
     parameters:
         @display("i=block/mac");
         string interfaceTableModule;
+        
+        //For AODV
+        bool utilizeAODV = default(false);
 
         //# Mac Queues
         int queueSize @unit(B) = default(2MiB);              // MAC Buffers queue size
