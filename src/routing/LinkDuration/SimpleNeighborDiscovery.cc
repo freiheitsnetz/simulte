@@ -16,17 +16,23 @@
 #include <ModuleAccess.h>
 #include <IMobility.h>
 #include <LinkDuration/SimpleNeighborDiscovery.h>
-#include <NeighborLinkTimeTable.h>
+
 
 
 namespace inet{
 
 Define_Module(SimpleNeighborDiscovery);
 
-void SimpleNeighborDiscovery::initialize()
+void SimpleNeighborDiscovery::initialize(int stage)
 {
+
+    if(stage == INITSTAGE_NETWORK_LAYER_3){
+    LinkTimeTable = getModuleFromPar<NeighborLinkTimeTable>(par("neighborLinkTimeTable"), this,1);
+
+    transmissionRange=par("txRange");
     updateInterval = par("updateInterval");
     ownAddress= getContainingNode(this);
+    numHosts= par("numHosts");
     setAllUEsAddresses();
     updateNodeDistanceEntries();
     updateConnectionVector();
@@ -34,7 +40,9 @@ void SimpleNeighborDiscovery::initialize()
     update= new cMessage("Update");
     sec= new cMessage("Second");
     scheduleAt(simTime()+updateInterval,update);
-    LinkTimeTable = inet::getModuleFromPar<NeighborLinkTimeTable>(par("neighborLinkTimeTable"), this);
+
+    }
+
 
 
 }
@@ -80,10 +88,10 @@ void SimpleNeighborDiscovery::setAllUEsAddresses()
     for (int i=0; i<numHosts; i++ )
     {
         char buf[20];
-        sprintf(buf, "Ue%d", i);
+        sprintf(buf, "ueD2D[%d]", i);
         cModule* temp = getContainingNode(getModuleByPath(buf));
         if (temp!=ownAddress)
-            otherAddressVector[i]=temp;
+            otherAddressVector.push_back(temp);
 
     }
 }
@@ -99,7 +107,7 @@ void SimpleNeighborDiscovery::updateConnectionVector(){
          */
         if(tempConnection==0){
         std::map<cModule*,bool>::iterator iter= previousConnection.find(it->first);
-            if(iter->second==1);
+            if(iter->second==1)
             LinkTimeTable->updateLinkDurationHist(LinkTimeTable->getNeighborLinkTime(iter->first));
 
         }
@@ -126,8 +134,8 @@ void SimpleNeighborDiscovery::setAddresstoIPMap(){
 
 
     for(std::map<cModule*,bool>::iterator it= neighborConnection.begin();it!=neighborConnection.end();++it){
-        IRoutingTable *tempTable = check_and_cast<IRoutingTable *>(it->first->getSubmodule("routingTable"));
-        L3Address tempAddress = tempTable->getRouterIdAsGeneric();
+        IPv4RoutingTable* tempTable = check_and_cast<IPv4RoutingTable*>(it->first->getSubmodule("routingTable"));
+        IPv4Address tempAddress = tempTable->getRouterId();
         addressToIP[it->first]=tempAddress;
         }
 
@@ -140,6 +148,7 @@ cModule* SimpleNeighborDiscovery::getAddressFromIP(L3Address IPaddress){
             return it->first;
 
     }
+
     throw cRuntimeError("Couldn't find module address for given IP address");
     return nullptr;
    }

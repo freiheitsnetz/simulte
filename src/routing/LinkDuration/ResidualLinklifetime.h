@@ -22,7 +22,7 @@
 #include "NeighborLinkTimeTable.h"
 #include "L3Address.h"
 
-using namespace omnetpp;
+using namespace inet;
 
 /**
  * This module calculates (predicts) the residual link lifetime when needed.
@@ -39,7 +39,8 @@ class ResidualLinklifetime : public cSimpleModule
     int transmissionRange;
     int constantSpeed;
     int tau;
-    virtual void initialize();
+    virtual int numInitStages() const override { return NUM_INIT_STAGES; }
+    virtual void initialize(int stage) override;
     virtual void handleMessage(cMessage *msg);
     cXMLElement* tempInputbin;
     cXMLElement* tempInputvalue;

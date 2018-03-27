@@ -20,7 +20,7 @@
 #include <map>
 #include "inet/common/INETDefs.h"
 #include <LinkDuration/NeighborLinkTimeTable.h>
-#include "inet/networklayer/contract/IRoutingTable.h"
+#include "inet/networklayer/ipv4/IPv4RoutingTable.h"
 /*
  * This module was originally made for link lifetime calculations.
  * It gets the positions (from simulation) of all other network hosts/UEs and compares it with own transmission range
@@ -46,7 +46,9 @@ class INET_API SimpleNeighborDiscovery:  public cSimpleModule
     cMessage *update;
     cMessage *sec;
     simtime_t updateInterval;
-    virtual void initialize();
+  protected:
+    virtual int numInitStages() const override { return NUM_INIT_STAGES; }
+    virtual void initialize(int stage) override;
     virtual void handleMessage(cMessage *msg);
   public:
     bool getConnectivityEntry(cModule* Address);

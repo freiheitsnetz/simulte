@@ -17,6 +17,7 @@
 #define __SIMULTE_NEIGHBORLINKTIMETABLE_H_
 
 #include <omnetpp.h>
+#include "inet/common/INETDefs.h"
 
 
 using namespace omnetpp;
@@ -28,7 +29,7 @@ using namespace omnetpp;
  * Since this modul does not know if a neighbor is still a neighbor,
  * the link lifetimes are incremented by neighbordiscovery modul.
  */
-class NeighborLinkTimeTable : public cSimpleModule
+class INET_API NeighborLinkTimeTable : public cSimpleModule
 {
   protected:
     void initialize();

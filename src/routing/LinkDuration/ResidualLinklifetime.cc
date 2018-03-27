@@ -19,8 +19,9 @@
 
 Define_Module(ResidualLinklifetime);
 
-void ResidualLinklifetime::initialize()
+void ResidualLinklifetime::initialize(int stage)
 {
+    if(stage == INITSTAGE_NETWORK_LAYER_3){
 
     neighborModule = inet::getModuleFromPar<inet::SimpleNeighborDiscovery>(par("neighborDiscoveryModule"), this);
     LinkTimeTable = inet::getModuleFromPar<NeighborLinkTimeTable>(par("neighborLinkTimeTable"), this);
@@ -45,6 +46,7 @@ void ResidualLinklifetime::initialize()
         else
             throw cRuntimeError("Mode must be 'selfMode' OR(!) 'givenMode'");
     }
+}
 
 
 void ResidualLinklifetime::handleMessage(cMessage *msg)

@@ -67,7 +67,7 @@ void AODVLDRouting::initialize(int stage)
         routingTable = getModuleFromPar<IRoutingTable>(par("routingTableModule"), this);
         interfaceTable = getModuleFromPar<IInterfaceTable>(par("interfaceTableModule"), this);
         networkProtocol = getModuleFromPar<INetfilter>(par("networkProtocolModule"), this);
-        metrikmodule = getModuleFromPar<ResidualLinklifetime>(par("residualLinkLifetimeModule"),this);
+
 
         aodvLDUDPPort = par("udpPort");
         askGratuitousRREP = par("askGratuitousRREP");
@@ -98,6 +98,7 @@ void AODVLDRouting::initialize(int stage)
         multicastAddress.tryParse(par("multicastAddress").stringValue());
     }
     else if (stage == INITSTAGE_ROUTING_PROTOCOLS) {
+        metrikmodule = getModuleFromPar<ResidualLinklifetime>(par("residualLinkLifetimeModule"),this);
         NodeStatus *nodeStatus = dynamic_cast<NodeStatus *>(host->getSubmodule("status"));
         isOperational = !nodeStatus || nodeStatus->getState() == NodeStatus::UP;
 

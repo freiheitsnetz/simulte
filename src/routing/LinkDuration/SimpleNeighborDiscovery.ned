@@ -25,4 +25,6 @@ simple SimpleNeighborDiscovery
     @display("bgb=920,262;i=block/segm_l");
     double updateInterval @unit("s")=default(1s);
     string neighborLinkTimeTable = default("^.NeighborLinkTimeTable");
+    int numHosts=default(10);
+    int txRange=default(100); //For checking if node is neighbor or not
 }
