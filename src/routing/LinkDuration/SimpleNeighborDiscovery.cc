@@ -36,11 +36,14 @@ void SimpleNeighborDiscovery::initialize(int stage)
     setAllUEsAddresses();
     updateNodeDistanceEntries();
     updateConnectionVector();
-    setAddresstoIPMap();
-    update= new cMessage("Update");
-    sec= new cMessage("Second");
-    scheduleAt(simTime()+updateInterval,update);
 
+
+    }
+    if(stage == INITSTAGE_NETWORK_LAYER_3+1){
+        setAddresstoIPMap();
+        update= new cMessage("Update");
+        sec= new cMessage("Second");
+        scheduleAt(simTime()+updateInterval,update);
     }
 
 
@@ -133,12 +136,13 @@ void SimpleNeighborDiscovery::incrementLinklifetime(){
 void SimpleNeighborDiscovery::setAddresstoIPMap(){
 
 
-    for(std::map<cModule*,bool>::iterator it= neighborConnection.begin();it!=neighborConnection.end();++it){
-        IPv4RoutingTable* tempTable = check_and_cast<IPv4RoutingTable*>(it->first->getSubmodule("routingTable"));
+    for(std::vector<cModule*>::iterator it= otherAddressVector.begin();it!=otherAddressVector.end();++it){
+        IPv4RoutingTable* tempTable = check_and_cast<IPv4RoutingTable*>((*it)->getSubmodule("routingTable"));
         IPv4Address tempAddress = tempTable->getRouterId();
-        addressToIP[it->first]=tempAddress;
+        addressToIP[(*it)]=tempAddress;
         }
-
+    IPv4RoutingTable* tempTable = check_and_cast<IPv4RoutingTable*>(ownAddress->getSubmodule("routingTable"));
+    ownIP=tempTable->getRouterId();
 
     }
 cModule* SimpleNeighborDiscovery::getAddressFromIP(L3Address IPaddress){
@@ -147,7 +151,15 @@ cModule* SimpleNeighborDiscovery::getAddressFromIP(L3Address IPaddress){
         if(it->second==IPaddress)
             return it->first;
 
+
+
     }
+/*    IPv4Address test1=IPaddress.toIPv4();
+            IPv4Address test2=ownIP.toIPv4();
+    bool test=(IPaddress.toIPv4()==ownIP.toIPv4());
+     if(IPaddress==ownIP)
+        return ownAddress;
+        */
 
     throw cRuntimeError("Couldn't find module address for given IP address");
     return nullptr;

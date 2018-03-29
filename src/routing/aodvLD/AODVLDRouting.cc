@@ -96,6 +96,7 @@ void AODVLDRouting::initialize(int stage)
         pathDiscoveryTime = par("pathDiscoveryTime");
         RREQCollectionTime = par("RREQCollectionTime");
         multicastAddress.tryParse(par("multicastAddress").stringValue());
+
     }
     else if (stage == INITSTAGE_ROUTING_PROTOCOLS) {
         metrikmodule = getModuleFromPar<ResidualLinklifetime>(par("residualLinkLifetimeModule"),this);
@@ -814,9 +815,10 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
 
     //Check if the minRLL of the RREQ is higher than the last hop.
     simtime_t tempMetrik=metrikmodule->getMetrik(sourceAddr);
-    if(rreq->getResidualLinklifetime()>tempMetrik)
+    if(rreq->getResidualLinklifetime()>tempMetrik){
         //The lower one has to be used. If true update the min RLL to to the last hop.
         rreq->setResidualLinklifetime (tempMetrik);
+    }
 
 
     // When a node receives a RREQ, it first creates or updates a route to
@@ -833,6 +835,8 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
 
     RREQIdentifier  rreqIdentifier(rreq->getOriginatorAddr(), rreq->getRreqId());
     RREQAdditionalInfo rreqAddInfo;
+    std::pair<RREQAdditionalInfo,AODVLDRREQ*> tmpPair;
+
     //auto checkRREQArrivalTime = rreqsArrivalTime.find(rreqIdentifier);
 
 
@@ -859,7 +863,8 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
                                     /*
                                      * Map size can be higher than one entry, because different RREQ from same and even different originator can occur
                                      */
-                                    std::pair<RREQAdditionalInfo,AODVLDRREQ*> tmpPair(rreqAddInfo,rreq);
+                                    tmpPair.first= rreqAddInfo;
+                                    tmpPair.second= rreq;
                                     CurrentBestRREQ[rreqIdentifier]=tmpPair;
                                     previouslyTransmitted=1;
 
@@ -873,14 +878,20 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
                     else delete rreq;
 
                 }
+            }
                 /**/
+            bool CurrentBestExistend=0;
                 if(!previouslyTransmitted) {
                     for(auto iter = CurrentBestRREQ.begin();iter!=CurrentBestRREQ.end();++iter){
                         if(rreqIdentifier==iter->first){
-                            if(iter->second.second->getResidualLinklifetime()<rreq->getResidualLinklifetime()){
+                            CurrentBestExistend=1;
+
+                            if(iter->second.second->getResidualLinklifetime()<rreq->getResidualLinklifetime()||CurrentBestExistend==0){
                                 rreqAddInfo.setSourceAddr(sourceAddr);
                                 rreqAddInfo.setPacketTTL(timeToLive);
-                                std::pair<RREQAdditionalInfo,AODVLDRREQ*> tmpPair(rreqAddInfo,rreq);
+
+                                tmpPair.first= rreqAddInfo;
+                                tmpPair.second= rreq;
                                 CurrentBestRREQ[rreqIdentifier]=tmpPair;
                                 rreqcollectionTimer = new WaitForRREQ("RREQCollectionTimer");
                                 rreqcollectionTimer->setOriginatorAddr(rreq->getOriginatorAddr());
@@ -891,7 +902,21 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
                         }
                     }
                 }
-            }
+
+                if(CurrentBestExistend==0){
+                    rreqAddInfo.setSourceAddr(sourceAddr);
+                    rreqAddInfo.setPacketTTL(timeToLive);
+
+
+                    tmpPair.first= rreqAddInfo;
+                    tmpPair.second= rreq;
+                    CurrentBestRREQ[rreqIdentifier]=tmpPair;
+                    rreqcollectionTimer = new WaitForRREQ("RREQCollectionTimer");
+                    rreqcollectionTimer->setOriginatorAddr(rreq->getOriginatorAddr());
+                    rreqcollectionTimer->setRreqID(rreq->getRreqId());
+                    scheduleAt(simTime()+RREQCollectionTime,rreqcollectionTimer);
+                }
+
 }
 
 
@@ -1080,14 +1105,17 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
         std::pair<RREQAdditionalInfo,AODVLDRREQ*> tmpPair(rreqAddInfo,rreq);
         LastTransmittedRREQ[tmpRREQidentifier]=tmpPair;
 
-        CurrentBestRREQ.erase(it);
+
 
     }
     else
         EV_WARN << "Can't forward the RREQ because of its small (<= 1) TTL: " << it->second.first.getPacketTTL() << " or the AODVLD reboot has not completed yet" << endl;
+    //delete rreq;
 
-    delete rreq;
     CurrentBestRREQ.erase(it);
+
+
+
 
 }
 
@@ -1111,7 +1139,7 @@ IRoute *AODVLDRouting::createRoute(const L3Address& destAddr, const L3Address& n
     newProtocolData->setResidualRouteLifetime(residualRouteLifetime);
     newProtocolData->setDestSeqNum(destSeqNum);
 
-    InterfaceEntry *ifEntry = interfaceTable->getInterfaceByName("wlan0");    // TODO: IMPLEMENT: multiple interfaces
+    InterfaceEntry *ifEntry = interfaceTable->getInterfaceByName("wlan");    // TODO: IMPLEMENT: multiple interfaces
     if (ifEntry)
         newRoute->setInterface(ifEntry);
 
@@ -1623,7 +1651,7 @@ void AODVLDRouting::scheduleExpungeRoutes()
             ASSERT(routeData != nullptr);
 
             if (routeData->getResidualRouteLifetime() < nextExpungeTime)
-                nextExpungeTime = routeData->getResidualRouteLifetime();
+                nextExpungeTime = routeData->getResidualRouteLifetime()+simTime();
         }
     }
     if (nextExpungeTime == SimTime::getMaxTime()) {

@@ -46,6 +46,7 @@ class INET_API SimpleNeighborDiscovery:  public cSimpleModule
     cMessage *update;
     cMessage *sec;
     simtime_t updateInterval;
+    L3Address ownIP;
   protected:
     virtual int numInitStages() const override { return NUM_INIT_STAGES; }
     virtual void initialize(int stage) override;
