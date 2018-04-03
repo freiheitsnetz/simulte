@@ -443,6 +443,7 @@ AODVLDRREQ *AODVLDRouting::createRREQ(const L3Address& destAddr)
     /*RREQIdentifier rreqIdentifier(getSelfIPAddress(), rreqId);
     rreqsArrivalTime[rreqIdentifier] = simTime();*/
     rreqPacket->setByteLength(24);
+    rreqPacket->setResidualLinklifetime(0);
     return rreqPacket;
 }
 
@@ -844,78 +845,108 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
     //TODO Check if really needed
     if (checkRREQArrivalTime != rreqsArrivalTime.end() && simTime() - checkRREQArrivalTime->second <= pathDiscoveryTime){*/
 
-            bool previouslyTransmitted = 0;
-            /* Check if the same RREQ was received and transmitted before*/
-            for(auto it = LastTransmittedRREQ.begin();it!=LastTransmittedRREQ.end();++it)
-            {
-                if(rreqIdentifier==it->first){
+    //Retry
+    bool previouslyTransmitted=0; //Did we send the same RREQ already?
+    bool currentBestExistend=0; //Is there a RREQ about to be sent already?
+    std::map<const RREQIdentifier,std::pair<RREQAdditionalInfo,AODVLDRREQ*>,RREQIdentifierCompare>::iterator it;
+    std::map<const RREQIdentifier,std::pair<RREQAdditionalInfo,AODVLDRREQ*>,RREQIdentifierCompare>::iterator it2;
 
-                    /*Check if the new RREQ has a higher minRLL than previous*/
-                    if(it->second.second->getResidualLinklifetime() < rreq->getResidualLinklifetime()){
-                        /*Check if a better RREQ was received after last transmission (Is there a currently better RREQ?) */
-                        for(auto iter = CurrentBestRREQ.begin();iter!=CurrentBestRREQ.end();++iter){
-                            if(rreqIdentifier==iter->first){
-                                if(iter->second.second->getResidualLinklifetime()<rreq->getResidualLinklifetime()){
-                                    /*Save RREQ data in RREQIdentifier Object for later transmission*/
-                                    rreqAddInfo.setSourceAddr(sourceAddr);
-                                    rreqAddInfo.setPacketTTL(timeToLive);
-                                    /*Put RREQIdentifier and RREQ into currentBestRREQ map*/
-                                    /*
-                                     * Map size can be higher than one entry, because different RREQ from same and even different originator can occur
-                                     */
-                                    tmpPair.first= rreqAddInfo;
-                                    tmpPair.second= rreq;
-                                    CurrentBestRREQ[rreqIdentifier]=tmpPair;
-                                    previouslyTransmitted=1;
+    //New incoming RREQ has to have a lower RLL than same RREQ in both buffer. Only one entry can be found in each buffer
+    for (auto i=LastTransmittedRREQ.begin(); i!=LastTransmittedRREQ.end();++i){
+            if(i->first==rreqIdentifier){
 
-                                }
-                                /*Better same RREQ in currentBestRREQ buffer*/
-                                else delete rreq;
-                            }
-                        }
-                    }
-                    /*Previous transmitted same RREQ was higher than new received RREQ*/
-                    else delete rreq;
 
-                }
+                previouslyTransmitted = 1;
+                it=i;
+                break;
             }
-                /**/
-            bool CurrentBestExistend=0;
-                if(!previouslyTransmitted) {
-                    for(auto iter = CurrentBestRREQ.begin();iter!=CurrentBestRREQ.end();++iter){
-                        if(rreqIdentifier==iter->first){
-                            CurrentBestExistend=1;
+    }
+    for (auto i=CurrentBestRREQ.begin(); i!=CurrentBestRREQ.end();++i){
+            if(i->first==rreqIdentifier)
+                currentBestExistend=1;
+            it2=i;
+            break;
+    }
 
-                            if(iter->second.second->getResidualLinklifetime()<rreq->getResidualLinklifetime()||CurrentBestExistend==0){
-                                rreqAddInfo.setSourceAddr(sourceAddr);
-                                rreqAddInfo.setPacketTTL(timeToLive);
+     simtime_t tmpRLL=rreq->getResidualLinklifetime();
+    //Compare
 
-                                tmpPair.first= rreqAddInfo;
-                                tmpPair.second= rreq;
-                                CurrentBestRREQ[rreqIdentifier]=tmpPair;
-                                rreqcollectionTimer = new WaitForRREQ("RREQCollectionTimer");
-                                rreqcollectionTimer->setOriginatorAddr(rreq->getOriginatorAddr());
-                                rreqcollectionTimer->setRreqID(rreq->getRreqId());
-                                scheduleAt(simTime()+RREQCollectionTime,rreqcollectionTimer);
+        if(previouslyTransmitted && currentBestExistend){
+            if(it->second.second->getResidualLinklifetime() < tmpRLL){
+                if(it2->second.second->getResidualLinklifetime()< tmpRLL){
 
-                            }
-                        }
-                    }
-                }
-
-                if(CurrentBestExistend==0){
                     rreqAddInfo.setSourceAddr(sourceAddr);
                     rreqAddInfo.setPacketTTL(timeToLive);
-
-
+                    /* Put RREQIdentifier and RREQ into currentBestRREQ map*/
+                    /* No Timer schedule needed because there is a previously transmitted RREQ
+                     * Map size can be higher than one entry, because different RREQ from same and even different originator can occur
+                     */
                     tmpPair.first= rreqAddInfo;
                     tmpPair.second= rreq;
                     CurrentBestRREQ[rreqIdentifier]=tmpPair;
-                    rreqcollectionTimer = new WaitForRREQ("RREQCollectionTimer");
-                    rreqcollectionTimer->setOriginatorAddr(rreq->getOriginatorAddr());
-                    rreqcollectionTimer->setRreqID(rreq->getRreqId());
-                    scheduleAt(simTime()+RREQCollectionTime,rreqcollectionTimer);
                 }
+            }
+        }
+        else if(!previouslyTransmitted && currentBestExistend){
+                if(it2->second.second->getResidualLinklifetime()< tmpRLL){
+                    rreqAddInfo.setSourceAddr(sourceAddr);
+                    rreqAddInfo.setPacketTTL(timeToLive);
+                    /* Put RREQIdentifier and RREQ into currentBestRREQ map*/
+                    /* No Timer schedule needed because there is a previously transmitted RREQ
+                     * Map size can be higher than one entry, because different RREQ from same and even different originator can occur
+                     *
+                     */
+                    tmpPair.first= rreqAddInfo;
+                    tmpPair.second= rreq;
+                    CurrentBestRREQ[rreqIdentifier]=tmpPair;
+
+            }
+        }
+
+        else if(previouslyTransmitted && !currentBestExistend){
+                if(it->second.second->getResidualLinklifetime()< tmpRLL){
+                    rreqAddInfo.setSourceAddr(sourceAddr);
+                    rreqAddInfo.setPacketTTL(timeToLive);
+                    /* Put RREQIdentifier and RREQ into currentBestRREQ map*/
+                    /*
+                     * Map size can be higher than one entry, because different RREQ from same and even different originator can occur
+                     * CAN POSSIBLE NOT HANDLE DIFFERENT RREQ AT THE SAME TIME
+                     */
+                     tmpPair.first= rreqAddInfo;
+                     tmpPair.second= rreq;
+                     CurrentBestRREQ[rreqIdentifier]=tmpPair;
+                     rreqcollectionTimer = new WaitForRREQ("RREQCollectionTimer");
+                     rreqcollectionTimer->setOriginatorAddr(rreq->getOriginatorAddr());
+                     rreqcollectionTimer->setRreqID(rreq->getRreqId());
+                     scheduleAt(simTime()+RREQCollectionTime,rreqcollectionTimer);
+                    }
+                }
+        else if(!previouslyTransmitted && !currentBestExistend){
+
+                    rreqAddInfo.setSourceAddr(sourceAddr);
+                    rreqAddInfo.setPacketTTL(timeToLive);
+                    /* Put RREQIdentifier and RREQ into currentBestRREQ map*/
+                    /*
+                     * Map size can be higher than one entry, because different RREQ from same and even different originator can occur
+                     * CAN POSSIBLE NOT HANDLE DIFFERENT RREQ AT THE SAME TIME
+                     */
+                     tmpPair.first= rreqAddInfo;
+                     tmpPair.second= rreq;
+                     CurrentBestRREQ[rreqIdentifier]=tmpPair;
+                     rreqcollectionTimer = new WaitForRREQ("RREQCollectionTimer");
+                     rreqcollectionTimer->setOriginatorAddr(rreq->getOriginatorAddr());
+                     rreqcollectionTimer->setRreqID(rreq->getRreqId());
+                     scheduleAt(simTime()+RREQCollectionTime,rreqcollectionTimer);
+
+                }
+
+
+    //-------
+
+
+
+
+
 
 }
 
@@ -924,8 +955,11 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
 
 
       //Find the RREQ whichs timer expired
-      const RREQIdentifier tmpRREQidentifier(rreqTimer->getOriginatorAddr(),rreqTimer->getRreqID());
-      auto it= CurrentBestRREQ.find(tmpRREQidentifier);
+     const RREQIdentifier tmpRREQidentifier(rreqTimer->getOriginatorAddr(),rreqTimer->getRreqID());
+      for (auto it=CurrentBestRREQ.begin(); it!=CurrentBestRREQ.end();++it){
+            if(it->first==tmpRREQidentifier){
+                if(it==CurrentBestRREQ.end())
+                    cRuntimeError("No rreq matching to timer");
       AODVLDRREQ *rreq=it->second.second;
       RREQAdditionalInfo rreqAddInfo=it->second.first;
       delete rreqTimer;
@@ -1040,7 +1074,7 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
         // send to the originator
         sendRREP(rrep, rreq->getOriginatorAddr(), 255);
         CurrentBestRREQ.erase(it);
-        delete rreq;
+
         return;    // discard RREQ, in this case, we do not forward it.
     }
 
@@ -1053,7 +1087,7 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
         if (destRoute->getNextHopAsGeneric() == it->second.first.getSourceAddr()) {
             EV_WARN << "This RREP would make a loop. Dropping it" << endl;
             CurrentBestRREQ.erase(it);
-            delete rreq;
+
             return;
         }
 
@@ -1075,7 +1109,7 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
         }
 
         CurrentBestRREQ.erase(it);
-        delete rreq;
+
         return;    // discard RREQ, in this case, we also do not forward it.
     }
     // If a node does not generate a RREP (following the processing rules in
@@ -1116,7 +1150,8 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
 
 
 
-
+      }
+      }
 }
 
 IRoute *AODVLDRouting::createRoute(const L3Address& destAddr, const L3Address& nextHop,

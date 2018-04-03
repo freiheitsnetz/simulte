@@ -44,6 +44,7 @@ void SimpleNeighborDiscovery::initialize(int stage)
         update= new cMessage("Update");
         sec= new cMessage("Second");
         scheduleAt(simTime()+updateInterval,update);
+        scheduleAt(simTime()+1,sec);
     }
 
 
