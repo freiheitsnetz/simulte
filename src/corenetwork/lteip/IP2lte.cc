@@ -157,8 +157,11 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
         destAddr.set("224.0.0.10");
     else if(tmpControl->getDestinationAddress().isMulticast())
         destAddr.set("224.0.0.10");
-    else
+    else{
        destAddr = binder_->getIPfromMAC(tmpControl->getDestinationAddress());
+    EV << "IP2lte Requested" << tmpControl->getSourceAddress().str() << endl;
+    EV << "IP2lte Requested" << tmpControl->getDestinationAddress().str() << endl;
+    }
     }
     //Change until here
     else

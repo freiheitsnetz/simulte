@@ -147,7 +147,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     cMessage *counterTimer = nullptr;    // timer to set rrerCount = rreqCount = 0 in each second
     cMessage *rrepAckTimer = nullptr;    // timer to wait for RREP-ACKs (RREP-ACK timeout)
     cMessage *blacklistTimer = nullptr;    // timer to clean the blacklist out
-    WaitForRREQ *rreqcollectionTimer= nullptr;
+    std::vector<WaitForRREQ *>rreqcollectionTimer;
        // lifecycle
     simtime_t rebootTime;    // the last time when the node rebooted
     bool isOperational = false;

@@ -443,7 +443,7 @@ AODVLDRREQ *AODVLDRouting::createRREQ(const L3Address& destAddr)
     /*RREQIdentifier rreqIdentifier(getSelfIPAddress(), rreqId);
     rreqsArrivalTime[rreqIdentifier] = simTime();*/
     rreqPacket->setByteLength(24);
-    rreqPacket->setResidualLinklifetime(0);
+    rreqPacket->setResidualLinklifetime(1000);
     return rreqPacket;
 }
 
@@ -489,7 +489,7 @@ AODVLDRREP *AODVLDRouting::createRREP(AODVLDRREQ *rreq, IRoute *destRoute, IRout
         // into the Lifetime field of the RREP.
 
         rrep->setLifeTime(myRouteTimeout);
-        rrep->setResidualRouteLifetime(rreq->getResidualLinklifetime());
+        rrep->setResidualRouteLifetime(rreq->getResidualLinklifetime()+simTime());
     }
     //TODO For now: Don't allow an intermediate node to return a rrep
     /*else {    // intermediate node
@@ -915,10 +915,10 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
                      tmpPair.first= rreqAddInfo;
                      tmpPair.second= rreq;
                      CurrentBestRREQ[rreqIdentifier]=tmpPair;
-                     rreqcollectionTimer = new WaitForRREQ("RREQCollectionTimer");
-                     rreqcollectionTimer->setOriginatorAddr(rreq->getOriginatorAddr());
-                     rreqcollectionTimer->setRreqID(rreq->getRreqId());
-                     scheduleAt(simTime()+RREQCollectionTime,rreqcollectionTimer);
+                     rreqcollectionTimer.push_back(new WaitForRREQ("RREQCollectionTimer"));
+                     rreqcollectionTimer.back()->setOriginatorAddr(rreq->getOriginatorAddr());
+                     rreqcollectionTimer.back()->setRreqID(rreq->getRreqId());
+                     scheduleAt(simTime()+RREQCollectionTime,rreqcollectionTimer.back());
                     }
                 }
         else if(!previouslyTransmitted && !currentBestExistend){
@@ -933,10 +933,10 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
                      tmpPair.first= rreqAddInfo;
                      tmpPair.second= rreq;
                      CurrentBestRREQ[rreqIdentifier]=tmpPair;
-                     rreqcollectionTimer = new WaitForRREQ("RREQCollectionTimer");
-                     rreqcollectionTimer->setOriginatorAddr(rreq->getOriginatorAddr());
-                     rreqcollectionTimer->setRreqID(rreq->getRreqId());
-                     scheduleAt(simTime()+RREQCollectionTime,rreqcollectionTimer);
+                     rreqcollectionTimer.push_back(new WaitForRREQ("RREQCollectionTimer"));
+                     rreqcollectionTimer.back()->setOriginatorAddr(rreq->getOriginatorAddr());
+                     rreqcollectionTimer.back()->setRreqID(rreq->getRreqId());
+                     scheduleAt(simTime()+RREQCollectionTime,rreqcollectionTimer.back());
 
                 }
 
@@ -1685,7 +1685,7 @@ void AODVLDRouting::scheduleExpungeRoutes()
             AODVLDRouteData *routeData = check_and_cast<AODVLDRouteData *>(route->getProtocolData());
             ASSERT(routeData != nullptr);
 
-            if (routeData->getResidualRouteLifetime() < nextExpungeTime)
+            if (routeData->getResidualRouteLifetime()+simTime() < nextExpungeTime)
                 nextExpungeTime = routeData->getResidualRouteLifetime()+simTime();
         }
     }

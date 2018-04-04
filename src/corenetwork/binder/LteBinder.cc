@@ -747,6 +747,7 @@ void LteBinder::initialize(int stage)
 
 
                     d2dPeeringCapability_[i][j] = true;
+                    EV<< "Source "<< i << " Dest " << j <<" Value " << d2dPeeringCapability_[i][j] <<endl;
 
                     // insert initial communication mode
                     // TODO make it configurable from NED
