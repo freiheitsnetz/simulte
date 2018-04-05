@@ -828,10 +828,10 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
 
     if (!previousHopRoute || previousHopRoute->getSource() != this) {
         // create without valid sequence number
-        previousHopRoute = createRoute(sourceAddr, sourceAddr, 1, false, rreq->getOriginatorSeqNum(), true, simTime() + activeRouteTimeout,tempMetrik);
+        previousHopRoute = createRoute(sourceAddr, sourceAddr, 1, false, rreq->getOriginatorSeqNum(), true, simTime() + activeRouteTimeout,tempMetrik+simTime());
     }
     else
-        updateRoutingTable(previousHopRoute, sourceAddr, 1, false, rreq->getOriginatorSeqNum(), true, simTime() + activeRouteTimeout,tempMetrik);
+        updateRoutingTable(previousHopRoute, sourceAddr, 1, false, rreq->getOriginatorSeqNum(), true, simTime() + activeRouteTimeout,tempMetrik+simTime());
 
 
     RREQIdentifier  rreqIdentifier(rreq->getOriginatorAddr(), rreq->getRreqId());
@@ -1007,7 +1007,7 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
     if (!reverseRoute || reverseRoute->getSource() != this) {    // create
         // This reverse route will be needed if the node receives a RREP back to the
         // node that originated the RREQ (identified by the Originator IP Address).
-        reverseRoute = createRoute(rreq->getOriginatorAddr(), it->second.first.getSourceAddr(), hopCount, true, rreqSeqNum, true, newLifeTime,simTime() + rreq->getResidualLinklifetime());
+        reverseRoute = createRoute(rreq->getOriginatorAddr(), it->second.first.getSourceAddr(), hopCount, true, rreqSeqNum, true, newLifeTime,simTime() + rreq->getResidualLinklifetime()+simTime());
     }
     else {
         AODVLDRouteData *routeData = check_and_cast<AODVLDRouteData *>(reverseRoute->getProtocolData());
@@ -1042,7 +1042,7 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
     */
 
     /*Since the function (handleRREQ(...)) is only called when a better route has been determined, the routing table must be updated every time */
-    updateRoutingTable(reverseRoute, it->second.first.getSourceAddr(), hopCount, true, newSeqNum, true, newLifeTime,simTime() +rreq->getResidualLinklifetime());
+    updateRoutingTable(reverseRoute, it->second.first.getSourceAddr(), hopCount, true, newSeqNum, true, newLifeTime,simTime() +rreq->getResidualLinklifetime()+simTime());
 
   }
     // A node generates a RREP if either:
@@ -1903,6 +1903,13 @@ AODVLDRouting::~AODVLDRouting()
     delete counterTimer;
     delete rrepAckTimer;
     delete blacklistTimer;
+
+    for(std::vector<WaitForRREQ *>::iterator it = rreqcollectionTimer.begin();it !=rreqcollectionTimer.end();++it){
+
+        delete (*it);
+
+    }
+
 }
 
 } // namespace inet

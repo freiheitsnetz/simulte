@@ -3,9 +3,12 @@
 		<!-- Channel Model Type (REAL, DUMMY) -->
         <ChannelModel type="REAL">
         	<!-- Enable/disable shadowing -->       
-            <parameter name="shadowing" type="bool" value="true"/>
+            <parameter name="shadowing" type="bool" value="false"/>
+             <!-- ADDED: Defined TxRange for ZERO_UNTIL_TX_RANGE scenario-->
+        	<parameter name="txRange" type="long" value= "80000"/>
             <!-- Pathloss scenario from ITU -->   
-            <parameter name="scenario" type="string" value="URBAN_MACROCELL"/>
+            <!--parameter name="scenario" type="string" value="RURAL_MACROCELL"/-->
+            <parameter name="scenario" type="string" value="ZERO_UNTIL_TX_RANGE"/>
             <!-- eNodeB height -->
             <parameter name="nodeb-height" type="double" value="25"/>
             <!-- Building height -->
@@ -37,9 +40,9 @@
             <!-- If true enable the possibility to switch dinamically the LOS/NLOS pathloss computation -->
             <parameter name="dynamic-los" type="bool" value="false"/> 
             <!-- If dynamic-los is false this parameter, if true, compute LOS pathloss otherwise compute NLOS pathloss -->
-            <parameter name="fixed-los" type="bool" value="false"/>
+            <parameter name="fixed-los" type="bool" value="true"/>
             <!-- Enable/disable fading -->  
-            <parameter name="fading" type="bool" value="true"/> 
+            <parameter name="fading" type="bool" value="false"/> 
             <!-- Fading type (JAKES or RAYGHLEY) -->  
             <parameter name="fading-type" type="string" value="JAKES"/> 
             <!-- If jakes fading this parameter specify the number of path (tap channel) -->  

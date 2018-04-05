@@ -40,7 +40,7 @@ LteRealisticChannelModel::LteRealisticChannelModel(ParameterMap& params,
     it = params.find("txRange");
     if (it != params.end())
     {
-        txRange = it->second.longValue();
+        txRange = it->second;
     }
     else
         //DEFAULT
@@ -390,7 +390,7 @@ double LteRealisticChannelModel::getAttenuation(MacNodeId nodeId, Direction dir,
         attenuation = computeSubUrbanMacro(sqrDistance, dbp, nodeId);
         break;
     case ZERO_UNTIL_TX_RANGE:
-        attenuation = computeZeroUntilTxRange(sqrDistance, nodeId);
+        //attenuation = computeZeroUntilTxRange(sqrDistance, nodeId);
         break;
     default:
         throw cRuntimeError("Wrong value %d for path-loss scenario", scenario_);
@@ -2072,7 +2072,7 @@ double LteRealisticChannelModel::computeSubUrbanMacro(double d, double& dbp,
 double LteRealisticChannelModel::computeZeroUntilTxRange(double d, MacNodeId nodeId){
 
     if(d<txRange)
-        return 0;
+        return 1;
     else
         return HUGE_VAL;
 
@@ -2153,6 +2153,8 @@ double LteRealisticChannelModel::getStdDev(bool dist, MacNodeId nodeId)
         else
             return 8.;
         break;
+    case ZERO_UNTIL_TX_RANGE:
+        return 0.0;
     default:
         throw cRuntimeError("Wrong path-loss scenario value %d", scenario_);
     }
