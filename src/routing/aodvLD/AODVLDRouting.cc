@@ -97,6 +97,10 @@ void AODVLDRouting::initialize(int stage)
         RREQCollectionTime = par("RREQCollectionTime");
         multicastAddress.tryParse(par("multicastAddress").stringValue());
 
+        //statistics
+        WATCH(firstRREPArrives);
+        WATCH(numHops);
+
     }
     else if (stage == INITSTAGE_ROUTING_PROTOCOLS) {
         metrikmodule = getModuleFromPar<ResidualLinklifetime>(par("residualLinkLifetimeModule"),this);
@@ -269,6 +273,7 @@ void AODVLDRouting::startRouteDiscovery(const L3Address& target, unsigned timeTo
     ASSERT(!hasOngoingRouteDiscovery(target));
     AODVLDRREQ *rreq = createRREQ(target);
     addressToRreqRetries[target] = 0;
+    RREQsent= simTime();
     sendRREQ(rreq, addressType->getBroadcastAddress(), timeToLive);
 }
 
@@ -738,6 +743,9 @@ void AODVLDRouting::handleRREP(AODVLDRREP *rrep, const L3Address& sourceAddr)
             EV_INFO << "The Route Reply has arrived for our Route Request to node " << rrep->getDestAddr() << endl;
             updateRoutingTable(destRoute, sourceAddr, newHopCount, true, destSeqNum, true, simTime() + lifeTime, simTime() + newResidualRouteLifetime);
             completeRouteDiscovery(rrep->getDestAddr());
+            firstRREPArrives= simTime().dbl()-RREQsent.dbl();
+            numHops= newHopCount;
+
         }
     }
 

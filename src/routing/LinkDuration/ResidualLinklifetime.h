@@ -45,17 +45,23 @@ class ResidualLinklifetime : public cSimpleModule
     cXMLElement* tempInputbin;
     cXMLElement* tempInputvalue;
     std::map<int,double> InputLinkDist;//safe the read in LinkDistribution
+    std::vector<double>initialPDF;
+    std::vector<double>initialCDF;
+    std::vector<float>t_value;
     NeighborLinkTimeTable* LinkTimeTable=nullptr;
     inet::SimpleNeighborDiscovery* neighborModule=nullptr;
     int calcRLLviaInput(cModule* neighbor);
     int calcRLLviaTable(cModule* neighbor);
     int calcRLLviaFunction(cModule* neighbor);
     void setDistbyInput();
+    void calcCDF(); //The function which calculates the CDF from PDF to draw a number from
     simtime_t calcResidualLinklifetime(cModule* neighbor);
     simtime_t getResidualLinklifetime (inet::L3Address IPaddress);
   public:
-    //Just for modularity. It simply calls getResidualLinklifetime(IPaddress);
-    simtime_t getMetrik(inet::L3Address IPaddress);
+
+    void estimateInitialLL(inet::L3Address IPaddress); //Once called for each neighbor in range when starting simulation
+
+    simtime_t getMetrik(inet::L3Address IPaddress);//Just for modularity. It simply calls getResidualLinklifetime(IPaddress);
 
 
 };

@@ -16,6 +16,7 @@
 #include "ResidualLinklifetime.h"
 #include <ModuleAccess.h>
 #include <string.h>
+#include <math.h>
 
 Define_Module(ResidualLinklifetime);
 
@@ -58,7 +59,7 @@ simtime_t ResidualLinklifetime::calcResidualLinklifetime(cModule* neighbor)
 {
     switch(mode){
         case SELF: return calcRLLviaTable(neighbor); //Not implemented yet
-        case GIVEN: return calcRLLviaInput(neighbor);
+        case GIVEN: return calcRLLviaInput(neighbor);//Not implemented yet
         case FUNCTION: return calcRLLviaFunction(neighbor);
         default: throw cRuntimeError("Mode must be 'selfMode' OR(!) 'given'");
     }
@@ -90,11 +91,16 @@ int ResidualLinklifetime::calcRLLviaTable(cModule* neighbor){
 Aeronautical Ad Hoc Networks" by Daniel Medina, Felix Hoffmann, Serkan Ayaz, Munich,Germany*/
 int ResidualLinklifetime::calcRLLviaFunction(cModule* neighbor){
     int t=LinkTimeTable->getNeighborLinkTime(neighbor); //get link lifetime from NeighborLinkTimeTable
+    int RLL=0;
+    std::pair<float,float>fraction;
 
-    return 2/pow(M_PI,2)*t*atanh((2*(t/tau))/(1+pow((t/tau),2)));
+
+
+
+    return RLL;
 
 }
-
+/*Untested*/
 void ResidualLinklifetime::setDistbyInput(){
 
     cXMLElementList parameters =par("inputDist").xmlValue()->getElementsByTagName("param");
@@ -120,4 +126,57 @@ simtime_t ResidualLinklifetime::getMetrik (inet::L3Address IPaddress){
     return getResidualLinklifetime(IPaddress);
 
 }
+
+void ResidualLinklifetime::estimateInitialLL(inet::L3Address IPaddress){
+/* An alternative to really invert the function to draw a number from*/
+    /* It sets the inital Link lifetime at the beginning of the simulation from the PDF of Medina*/
+    double randValue=uniform(0,1);
+    for(u_int i=0;i<t_value.size();i++)
+    {
+        if(randValue<=initialCDF[i])
+            LinkTimeTable->setNeighborLinkTime(neighborModule->getAddressFromIP(IPaddress),initialCDF[i]);
+        break;
+    }
+
+
+
+}
+
+void ResidualLinklifetime::calcCDF(){
+
+
+    for(float i=0.01;i<=5;i++){
+        t_value.push_back(i);
+    }
+    /*The function is calculating the CDF out of a PDF
+    From "Topology Characterization of High Density Airspace
+    Aeronautical Ad Hoc Networks" by Daniel Medina, Felix Hoffmann, Serkan Ayaz, Munich,Germany*/
+
+    /*First Normalize PDF by calculating the total amount of values. This should be one. If not devide every PDF value by this counter*/
+    long initialPDFTotalCount=0;
+
+    for(u_int it=0;it<=t_value.size();++it){
+
+            int tempCount=abs(2/pow(M_PI,2)*t_value[it]*atanh((2*(t_value[it]/tau))/(1+pow((t_value[it]/tau),2))));
+            if(!std::isinf(tempCount))
+                initialPDFTotalCount=tempCount+initialPDFTotalCount;
+    }
+    for(u_int it=0;it<=t_value.size();++it){
+        int tempCount=abs(2/pow(M_PI,2)*t_value[it]*atanh((2*(t_value[it]/tau))/(1+pow((t_value[it]/tau),2))));
+        if(!std::isinf(tempCount))
+        initialPDF[it]=tempCount/initialPDFTotalCount;
+
+    }
+
+
+
+    initialCDF[0]=initialPDF[0];
+
+    for(u_int it=0;it<=t_value.size();++it){
+        initialCDF[it]=initialCDF[it]+initialCDF[it-1];
+
+    }
+
+}
+
 

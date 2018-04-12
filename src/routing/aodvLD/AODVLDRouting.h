@@ -84,6 +84,11 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
         }
     };
 
+    //statistics
+    double firstRREPArrives;
+    simtime_t RREQsent;
+    int numHops=0;
+
     // context
     IL3AddressType *addressType = nullptr;    // to support both IPv4 and v6 addresses.
 
