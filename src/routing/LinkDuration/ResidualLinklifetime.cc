@@ -142,41 +142,16 @@ void ResidualLinklifetime::estimateInitialLL(inet::L3Address IPaddress){
 
 }
 
-void ResidualLinklifetime::calcCDF(){
+void ResidualLinklifetime::calcCDFvalue(){
 
 
-    for(float i=0.01;i<=5;i++){
-        t_value.push_back(i);
-    }
     /*The function is calculating the CDF out of a PDF
     From "Topology Characterization of High Density Airspace
     Aeronautical Ad Hoc Networks" by Daniel Medina, Felix Hoffmann, Serkan Ayaz, Munich,Germany*/
-
-    /*First Normalize PDF by calculating the total amount of values. This should be one. If not devide every PDF value by this counter*/
-    long initialPDFTotalCount=0;
-
-    for(u_int it=0;it<=t_value.size();++it){
-
-            int tempCount=abs(2/pow(M_PI,2)*t_value[it]*atanh((2*(t_value[it]/tau))/(1+pow((t_value[it]/tau),2))));
-            if(!std::isinf(tempCount))
-                initialPDFTotalCount=tempCount+initialPDFTotalCount;
-    }
-    for(u_int it=0;it<=t_value.size();++it){
-        int tempCount=abs(2/pow(M_PI,2)*t_value[it]*atanh((2*(t_value[it]/tau))/(1+pow((t_value[it]/tau),2))));
-        if(!std::isinf(tempCount))
-        initialPDF[it]=tempCount/initialPDFTotalCount;
-
-    }
-
-
-
-    initialCDF[0]=initialPDF[0];
-
-    for(u_int it=0;it<=t_value.size();++it){
-        initialCDF[it]=initialCDF[it]+initialCDF[it-1];
-
-    }
+    //abs((2 *(-polylog(2,(-t/tau)) + polylog(2,(t/tau)) + log(t)*(atanh((2*t*tau)/(t^2 + tau^2)) + log(1 - t/tau) - log((t + tau)/tau))))/pi^2)
 
 }
+
+
 
 

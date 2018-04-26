@@ -54,9 +54,10 @@ class ResidualLinklifetime : public cSimpleModule
     int calcRLLviaTable(cModule* neighbor);
     int calcRLLviaFunction(cModule* neighbor);
     void setDistbyInput();
-    void calcCDF(); //The function which calculates the CDF from PDF to draw a number from
+    void calcCDFvalue(); //The function which calculates the CDF from PDF to draw a number from
     simtime_t calcResidualLinklifetime(cModule* neighbor);
     simtime_t getResidualLinklifetime (inet::L3Address IPaddress);
+
   public:
 
     void estimateInitialLL(inet::L3Address IPaddress); //Once called for each neighbor in range when starting simulation
