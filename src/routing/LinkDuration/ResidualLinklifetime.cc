@@ -18,14 +18,21 @@
 #include <string.h>
 #include <math.h>
 
+//Delete after debuggin
+#include <iostream>
+#include <fstream>
+
 Define_Module(ResidualLinklifetime);
 
 void ResidualLinklifetime::initialize(int stage)
 {
     if(stage == INITSTAGE_NETWORK_LAYER_3){
 
+
+
     neighborModule = inet::getModuleFromPar<inet::SimpleNeighborDiscovery>(par("neighborDiscoveryModule"), this);
     LinkTimeTable = inet::getModuleFromPar<NeighborLinkTimeTable>(par("neighborLinkTimeTable"), this);
+    cdfModule = check_and_cast<CDF*>(getSimulation()->getModuleByPath("CDF"));
 
         /*Calculate distribution themselves: NOT IMPLEMENTED*/
         if(par("selfMode").boolValue()== true)
@@ -38,9 +45,11 @@ void ResidualLinklifetime::initialize(int stage)
         /*Use mapping function*/
         else if(par("functionMode").boolValue()==true){
             mode=FUNCTION;
-            constantSpeed= par("nodeSpeed");
-            transmissionRange= neighborModule->getTransmssionRange();
-            tau=transmissionRange/constantSpeed;
+            setInitialLLVector();
+            tau=cdfModule->getTau();
+            WATCH(oor_counter_simttime);
+            WATCH(oor_counter_RLL);
+            WATCH(oor_counter_Dist);
 
 
     }
@@ -64,40 +73,41 @@ simtime_t ResidualLinklifetime::calcResidualLinklifetime(cModule* neighbor)
         default: throw cRuntimeError("Mode must be 'selfMode' OR(!) 'given'");
     }
 }
-
+//TODO->
 int ResidualLinklifetime::calcRLLviaInput(cModule* neighbor){
 
 
-    int tempLinkDuration=LinkTimeTable->getNeighborLinkTime(neighbor); //get link lifetime from NeighborLinkTimeTable
-    auto it = InputLinkDist.find(tempLinkDuration);//find same value in distribution
-    // Calculating mean value of shifted and normalized distribution function in discrete time domain. (Integration in nominator and denominator, just like in the formula)
-    std::pair<float,float> fraction;
-    for (std::map<int,double>::iterator i = it; i!= InputLinkDist.end();++i)
-    {
-       fraction.first+= i->first*i->second;
-       fraction.second+= i->second;
-
-    }
-    return fraction.first/fraction.second-it->second;
+    return 0;
 }
 //TODO ->
 int ResidualLinklifetime::calcRLLviaTable(cModule* neighbor){
 
-    LinkTimeTable->getNeighborLinkTime(neighbor);
+
     return 0; //avoiding error
 
 }
 /*From "Topology Characterization of High Density Airspace
 Aeronautical Ad Hoc Networks" by Daniel Medina, Felix Hoffmann, Serkan Ayaz, Munich,Germany*/
 int ResidualLinklifetime::calcRLLviaFunction(cModule* neighbor){
+
+    //TODO simplifications okay?
     int t=LinkTimeTable->getNeighborLinkTime(neighbor); //get link lifetime from NeighborLinkTimeTable
-    int RLL=0;
-    std::pair<float,float>fraction;
+    if(t==1)
+        t=1.0000000001; //Slight shift due to log undefined at 0
+    double DistofLL=cdfModule->returnCDFvalue(t);
+    int tmpLL=(tau-DistofLL)/(1-DistofLL)-t;
+    if(DistofLL<0)
+        oor_counter_Dist++;
 
+    if(t<0){//t cannot be smaller than 0. if it happens: wrap around of int
+        oor_counter_RLL++;
+    }
+    if(tmpLL>9223372||tmpLL<0){ //MAX value simtime_t
+        oor_counter_simttime++;
+        return 9223372-1000;
 
-
-
-    return RLL;
+    }
+    return tmpLL;
 
 }
 /*Untested*/
@@ -127,31 +137,24 @@ simtime_t ResidualLinklifetime::getMetrik (inet::L3Address IPaddress){
 
 }
 
-void ResidualLinklifetime::estimateInitialLL(inet::L3Address IPaddress){
-/* An alternative to really invert the function to draw a number from*/
-    /* It sets the inital Link lifetime at the beginning of the simulation from the PDF of Medina*/
-    double randValue=uniform(0,1);
-    for(u_int i=0;i<t_value.size();i++)
-    {
-        if(randValue<=initialCDF[i])
-            LinkTimeTable->setNeighborLinkTime(neighborModule->getAddressFromIP(IPaddress),initialCDF[i]);
-        break;
-    }
+void ResidualLinklifetime::setInitialLLVector(){
 
-
-
-}
-
-void ResidualLinklifetime::calcCDFvalue(){
-
-
-    /*The function is calculating the CDF out of a PDF
-    From "Topology Characterization of High Density Airspace
-    Aeronautical Ad Hoc Networks" by Daniel Medina, Felix Hoffmann, Serkan Ayaz, Munich,Germany*/
-    //abs((2 *(-polylog(2,(-t/tau)) + polylog(2,(t/tau)) + log(t)*(atanh((2*t*tau)/(t^2 + tau^2)) + log(1 - t/tau) - log((t + tau)/tau))))/pi^2)
+    std::ofstream myfile;
+    myfile.open ("intialLL.txt");
+    volatile double randValue=0;
+    std::map<cModule*,bool> tmpConnection =neighborModule->getConnectionVector();
+    int rng=0;
+    for(std::map<cModule*,bool>::iterator it=tmpConnection.begin();it!=tmpConnection.end();++it){
+        if(it->second==1){
+            randValue=uniform(0,1,rng);
+            LinkTimeTable->setNeighborLinkTime(it->first,cdfModule->getClosestT_value(randValue));
+        }
+        myfile <<cdfModule->getClosestT_value(randValue) <<" " << it->first << " "<< randValue<<" " << it->second << " " << LinkTimeTable->getNeighborLinkTime(it->first)<< "\n";
+        randValue=0;
+        }
+    myfile.close();
 
 }
-
 
 
 

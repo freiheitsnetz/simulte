@@ -36,6 +36,8 @@ void SimpleNeighborDiscovery::initialize(int stage)
     setAllUEsAddresses();
     updateNodeDistanceEntries();
     updateConnectionVector();
+    WATCH_MAP(neighborConnection);
+    WATCH_MAP(nodeDistance);
 
 
     }
@@ -173,5 +175,9 @@ cModule* SimpleNeighborDiscovery::getAddressFromIP(L3Address IPaddress){
 
 
     }
+
+std::map<cModule*,bool> SimpleNeighborDiscovery::getConnectionVector(){
+return neighborConnection;
 }
 
+}

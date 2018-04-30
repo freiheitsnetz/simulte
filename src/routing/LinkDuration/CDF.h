@@ -20,6 +20,7 @@
 #include <math.h>
 #include <complex>
 
+
 using namespace omnetpp;
 
 /**
@@ -43,8 +44,10 @@ class CDF : public cSimpleModule
     void calcCDF();
     std::complex<double> compLog(double);
   public:
-    double getClosestCDFvalue(double);
+    double getClosestT_value(double); //map from y to x
     std::complex<double> dilog(double LL, double tau, int precision);
+    double returnCDFvalue(double input); //calculation from x to y
+    double getTau();
 };
 
 #endif

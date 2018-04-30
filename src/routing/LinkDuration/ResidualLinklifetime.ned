@@ -22,8 +22,9 @@ simple ResidualLinklifetime
 {
     parameters:
         @display("bgb=920,362;i=block/segm_l");
-        bool selfMode = default (true);
+        bool selfMode = default (false);
         bool givenMode =default (false);
+        bool functionMode =default (true);
         string neighborLinkTimeTable = default("^.NeighborLinkTimeTable");
         string neighborDiscoveryModule = default("^.SimpleNeighborDiscovery");
         int nodeSpeed=default(100);

@@ -15,9 +15,9 @@
 
 #include "CDF.h"
 //For debugging
-#include <iostream>
+/*#include <iostream>
 #include <fstream>
-
+*/
 Define_Module(CDF);
 
 void CDF::initialize()
@@ -33,7 +33,8 @@ void CDF::initialize()
     EV_INFO << "Before CDF";
     calcCDF();
     EV_INFO << "CDF Init Done ";
-
+    WATCH_VECTOR(initialCDF);
+    WATCH_VECTOR(t_values);
 }
 
 void CDF::handleMessage(cMessage *msg)
@@ -73,11 +74,11 @@ for (double t=start*tau;t<=limit*tau;t=t+step*tau){
 //myfile.close();
 }
 /*Returns  t_value(Link Lifetime) to given uniform(0,1).Role a number out of the distribution*/
-double CDF::getClosestCDFvalue(double input){
+double CDF::getClosestT_value(double input){
 
-    for (u_int i=0;i>initialCDF.size();i++){
+    for (u_int i=0;i<initialCDF.size();i++){
         if(!std::isnan(initialCDF[i])){
-            if(initialCDF[i]<=input){
+            if(initialCDF[i]>=input){
                 if(i==0)
                     return t_values[i];
                 else if(fabs(initialCDF[i]-input) < fabs(initialCDF[i-1]-input))
@@ -123,8 +124,36 @@ std::complex<double> CDF::dilog(double LL, double tau, int precision){
             return NAN;
 }
 /*Complex logarithm to make log(-x) possible*/
+/*input is negative*/
 std::complex<double> CDF::compLog(double input) {
 
     std::complex<double> tempValue=log(-input)+imagNum*M_PI;
     return  tempValue;
+}
+
+
+double CDF::returnCDFvalue(double input){
+
+    input=input*tau;
+    std::complex<double> CDFtemp;
+    std::complex<double> templog1;
+    std::complex<double> templog2;
+    if((1-input/tau)<0)
+        templog1=compLog(1-input/tau);
+    else
+        templog1=log(1-input/tau);
+
+    if((input/tau-1)<0)
+        templog2=compLog(input/tau-1);
+    else
+        templog2=log (input/tau-1);
+
+    CDFtemp= 2/pow(M_PI,2)*(-dilog(-input,tau,precision)+dilog(input,tau,precision)+log(input)*(templog1-templog2));
+    return CDFtemp.real();
+
+}
+
+double CDF::getTau(){
+    return tau;
+
 }

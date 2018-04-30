@@ -23,8 +23,8 @@ simple SimpleNeighborDiscovery
 {	
     parameters:
     @display("bgb=920,262;i=block/segm_l");
-    double updateInterval @unit("s")=default(1s);
+    double updateInterval @unit("s")=default(1s); //Update interval of link lifetime
     string neighborLinkTimeTable = default("^.NeighborLinkTimeTable");
     int numHosts=default(10);
-    int txRange=default(100); //For checking if node is neighbor or not
+    int txRange=default(100); //For checking if node is neighbor or not (meter)
 }

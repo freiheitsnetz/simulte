@@ -19,7 +19,7 @@ Define_Module(NeighborLinkTimeTable);
 
 void NeighborLinkTimeTable::initialize()
 {
-    //NeighborLinkTimeMap[getId()]=0;
+    WATCH_MAP(NeighborLinkTimeMap);
 }
 
 void NeighborLinkTimeTable::handleMessage(cMessage *msg)

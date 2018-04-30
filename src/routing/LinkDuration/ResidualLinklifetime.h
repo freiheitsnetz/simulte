@@ -20,7 +20,9 @@
 
 #include "SimpleNeighborDiscovery.h"
 #include "NeighborLinkTimeTable.h"
+#include "SimpleNeighborDiscovery.h"
 #include "L3Address.h"
+#include "CDF.h"
 
 using namespace inet;
 
@@ -36,31 +38,34 @@ class ResidualLinklifetime : public cSimpleModule
   protected:
 
     enum Mode {SELF, GIVEN, FUNCTION} mode;
-    int transmissionRange;
-    int constantSpeed;
     int tau;
     virtual int numInitStages() const override { return NUM_INIT_STAGES; }
     virtual void initialize(int stage) override;
     virtual void handleMessage(cMessage *msg);
     cXMLElement* tempInputbin;
     cXMLElement* tempInputvalue;
+    int oor_counter_simttime=0;
+    int oor_counter_RLL=0;
+    int oor_counter_Dist=0;
+
     std::map<int,double> InputLinkDist;//safe the read in LinkDistribution
     std::vector<double>initialPDF;
     std::vector<double>initialCDF;
     std::vector<float>t_value;
     NeighborLinkTimeTable* LinkTimeTable=nullptr;
-    inet::SimpleNeighborDiscovery* neighborModule=nullptr;
+    SimpleNeighborDiscovery* neighborModule=nullptr;
+    CDF* cdfModule=nullptr;
     int calcRLLviaInput(cModule* neighbor);
     int calcRLLviaTable(cModule* neighbor);
     int calcRLLviaFunction(cModule* neighbor);
     void setDistbyInput();
-    void calcCDFvalue(); //The function which calculates the CDF from PDF to draw a number from
     simtime_t calcResidualLinklifetime(cModule* neighbor);
     simtime_t getResidualLinklifetime (inet::L3Address IPaddress);
+    void setInitialLLVector();
+
 
   public:
 
-    void estimateInitialLL(inet::L3Address IPaddress); //Once called for each neighbor in range when starting simulation
 
     simtime_t getMetrik(inet::L3Address IPaddress);//Just for modularity. It simply calls getResidualLinklifetime(IPaddress);
 

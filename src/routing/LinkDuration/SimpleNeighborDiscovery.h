@@ -21,6 +21,7 @@
 #include "inet/common/INETDefs.h"
 #include <LinkDuration/NeighborLinkTimeTable.h>
 #include "inet/networklayer/ipv4/IPv4RoutingTable.h"
+
 /*
  * This module was originally made for link lifetime calculations.
  * It gets the positions (from simulation) of all other network hosts/UEs and compares it with own transmission range
@@ -60,10 +61,12 @@ class INET_API SimpleNeighborDiscovery:  public cSimpleModule
     void setAllUEsAddresses(); //From External
     void incrementLinklifetime();
     void setAddresstoIPMap();
+    std::map<cModule*,bool> getConnectionVector();
     cModule* getAddressFromIP(L3Address);
     virtual ~SimpleNeighborDiscovery();
 
 };
 
-#endif
+
 }
+#endif
