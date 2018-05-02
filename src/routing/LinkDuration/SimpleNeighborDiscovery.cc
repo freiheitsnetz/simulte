@@ -15,6 +15,7 @@
 
 #include <ModuleAccess.h>
 #include <IMobility.h>
+#include "LinearMobilityExtended.h"
 #include <LinkDuration/SimpleNeighborDiscovery.h>
 
 
@@ -36,8 +37,10 @@ void SimpleNeighborDiscovery::initialize(int stage)
     setAllUEsAddresses();
     updateNodeDistanceEntries();
     updateConnectionVector();
+    setConnectionTimeoutVec();
     WATCH_MAP(neighborConnection);
     WATCH_MAP(nodeDistance);
+    WATCH_MAP(realConnectionTimeout);
 
 
     }
@@ -180,4 +183,37 @@ std::map<cModule*,bool> SimpleNeighborDiscovery::getConnectionVector(){
 return neighborConnection;
 }
 
+simtime_t SimpleNeighborDiscovery::calcRealConnectionTimeout(cModule* neighbor){
+
+    std::map<cModule*,int>::iterator it=nodeDistance.find(neighbor);
+
+    int relDist=it->second;
+    cModule *self = ownAddress;
+    LinearMobilityExtended *selfMobility = dynamic_cast<LinearMobilityExtended*>(self->getSubmodule("mobility"));
+    /*Both absolute veloctities are the same*/
+    double absVel= selfMobility->getMaxSpeed();
+
+
+    cModule *other= neighbor;
+    LinearMobilityExtended *otherMobility = dynamic_cast<LinearMobilityExtended*>(other->getSubmodule("mobility"));
+
+    double angleVelOther = otherMobility->getAngle();
+    double angleVelOwn=selfMobility->getAngle();
+
+    double relVel=sqrt(pow(absVel*(cos(angleVelOther)-cos(angleVelOwn)),2)-pow(absVel*(sin(angleVelOther)-sin(angleVelOwn)),2));
+    simtime_t conTimeout=(transmissionRange-relDist)/relVel;
+
+    return conTimeout;
+
+}
+
+void SimpleNeighborDiscovery::setConnectionTimeoutVec(){
+
+    for(std::map<cModule*,bool>::iterator it = neighborConnection.begin(); it!=neighborConnection.end();++it){
+        if(it->second==1){
+            realConnectionTimeout[it->first]=(calcRealConnectionTimeout(it->first));
+        }
+    }
+
+}
 }

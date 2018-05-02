@@ -21,6 +21,7 @@
 #include "inet/common/INETDefs.h"
 #include <LinkDuration/NeighborLinkTimeTable.h>
 #include "inet/networklayer/ipv4/IPv4RoutingTable.h"
+#include "inet/common/geometry/common/EulerAngles.h"
 
 /*
  * This module was originally made for link lifetime calculations.
@@ -41,6 +42,7 @@ class INET_API SimpleNeighborDiscovery:  public cSimpleModule
 //    std::map<int,cModule*>IDsAddressMap;// Of network module
     std::map<cModule*,bool> neighborConnection;
     std::map<cModule*,int> nodeDistance;
+    std::map<cModule*,simtime_t>realConnectionTimeout;
     std::map<cModule*,L3Address>addressToIP;
     int numHosts;
     NeighborLinkTimeTable *LinkTimeTable;
@@ -61,6 +63,8 @@ class INET_API SimpleNeighborDiscovery:  public cSimpleModule
     void setAllUEsAddresses(); //From External
     void incrementLinklifetime();
     void setAddresstoIPMap();
+    void setConnectionTimeoutVec();
+    simtime_t calcRealConnectionTimeout(cModule* neighbor);
     std::map<cModule*,bool> getConnectionVector();
     cModule* getAddressFromIP(L3Address);
     virtual ~SimpleNeighborDiscovery();
