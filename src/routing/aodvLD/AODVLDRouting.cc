@@ -52,6 +52,12 @@
 #include "inet/transportlayer/contract/udp/UDPControlInfo.h"
 #include "inet/common/ModuleAccess.h"
 #include "inet/common/lifecycle/NodeOperations.h"
+
+//Delete after debuggin
+#include <iostream>
+#include <fstream>
+
+
 Define_Module(AODVLDRouting);
 namespace inet {
 
@@ -101,6 +107,8 @@ void AODVLDRouting::initialize(int stage)
         WATCH(firstRREPArrives);
         WATCH(numHops);
 
+
+
     }
     else if (stage == INITSTAGE_ROUTING_PROTOCOLS) {
         metrikmodule = getModuleFromPar<ResidualLinklifetime>(par("residualLinkLifetimeModule"),this);
@@ -112,6 +120,7 @@ void AODVLDRouting::initialize(int stage)
         socket.registerProtocol(IP_PROT_MANET);
         networkProtocol->registerHook(0, this);
         host->subscribe(NF_LINK_BREAK, this);
+
 
         if (useHelloMessages) {
             helloMsgTimer = new cMessage("HelloMsgTimer");
@@ -1204,11 +1213,22 @@ void AODVLDRouting::receiveSignal(cComponent *source, simsignal_t signalID, cObj
 {
     Enter_Method("receiveChangeNotification");
     if (signalID == NF_LINK_BREAK) {
+        //FOR LTE
+        std::string name = source->getName();
+
+        std::ofstream myfile;
+        myfile.open ("Type.txt");
+        myfile << name;
+        myfile.close();
         EV_DETAIL << "Received link break signal" << endl;
         // XXX: This is a hack for supporting both IdealMac and Ieee80211Mac. etc
         cPacket *frame = check_and_cast<cPacket *>(obj);
-        INetworkDatagram *datagram = nullptr;
-        if (false
+        INetworkDatagram *datagram=nullptr;
+        if(name=="SimpleNeighborDiscovery"){
+            datagram = check_and_cast<INetworkDatagram  *>(obj);
+        }
+
+        else if (false
 #ifdef WITH_IEEE80211
             || dynamic_cast<ieee80211::Ieee80211Frame *>(frame)
 #endif // ifdef WITH_IEEE80211
@@ -1249,6 +1269,8 @@ void AODVLDRouting::receiveSignal(cComponent *source, simsignal_t signalID, cObj
             }
         }
     }
+
+
 }
 
 void AODVLDRouting::handleLinkBreakSendRERR(const L3Address& unreachableAddr)
@@ -1304,6 +1326,8 @@ void AODVLDRouting::handleLinkBreakSendRERR(const L3Address& unreachableAddr)
 
             routeData->setIsActive(false);
             routeData->setLifeTime(simTime() + deletePeriod);
+            //AODVLD (LIfetime has no effekt)
+            routeData->setResidualRouteLifetime(simTime() + deletePeriod);
             scheduleExpungeRoutes();
 
             UnreachableNode node;
@@ -1389,6 +1413,8 @@ void AODVLDRouting::handleRERR(AODVLDRERR *rerr, const L3Address& sourceAddr)
                     routeData->setDestSeqNum(rerr->getUnreachableNodes(j).seqNum);
                     routeData->setIsActive(false);    // it means invalid, see 3. AODVLD Terminology p.3. in RFC 3561
                     routeData->setLifeTime(simTime() + deletePeriod);
+
+                    routeData->setResidualRouteLifetime(simTime() + deletePeriod);
 
                     // The RERR should contain those destinations that are part of
                     // the created list of unreachable destinations and have a non-empty

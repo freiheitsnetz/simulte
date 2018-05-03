@@ -20,6 +20,7 @@
 
 
 
+
 namespace inet{
 
 Define_Module(SimpleNeighborDiscovery);
@@ -41,6 +42,8 @@ void SimpleNeighborDiscovery::initialize(int stage)
     WATCH_MAP(neighborConnection);
     WATCH_MAP(nodeDistance);
     WATCH_MAP(realConnectionTimeout);
+
+
 
 
     }
@@ -116,10 +119,18 @@ void SimpleNeighborDiscovery::updateConnectionVector(){
          */
         if(tempConnection==0){
         std::map<cModule*,bool>::iterator iter= previousConnection.find(it->first);
-            if(iter->second==1)
+            if(iter->second==1){
             LinkTimeTable->updateLinkDurationHist(LinkTimeTable->getNeighborLinkTime(iter->first));
 
+            //Emitting a signal for AODVLD because the link is broken.
+            tmpdatagram.setDestinationAddress(addressToIP[iter->first]);
+            IPv4Datagram* tmpdatagramptr=&tmpdatagram;
+
+            emit(NF_LINK_BREAK,tmpdatagramptr);
+            }
         }
+
+
     }
 }
 bool SimpleNeighborDiscovery::isInConnectionRange(int txRange, int nodeDistance){
@@ -160,12 +171,6 @@ cModule* SimpleNeighborDiscovery::getAddressFromIP(L3Address IPaddress){
 
 
     }
-/*    IPv4Address test1=IPaddress.toIPv4();
-            IPv4Address test2=ownIP.toIPv4();
-    bool test=(IPaddress.toIPv4()==ownIP.toIPv4());
-     if(IPaddress==ownIP)
-        return ownAddress;
-        */
 
     throw cRuntimeError("Couldn't find module address for given IP address");
     return nullptr;

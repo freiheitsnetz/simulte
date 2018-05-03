@@ -35,13 +35,15 @@ class INET_API NeighborLinkTimeTable : public cSimpleModule
     void initialize();
     void handleMessage(cMessage *msg);
     std::map <cModule*,int > NeighborLinkTimeMap; //First: ID Second:Linklifetime
-    cLongHistogram measuredLinkDurations;
+    cLongHistogram measuredLinkDurations; //collects linklifetimes when a link expires
+    std::vector<int> measuredLinkDurationsVec; //same value as added to hist.
 
 
   public:
     int getNeighborLinkTime(cModule*);
     void setNeighborLinkTime(cModule*,int);
     void deleteNeighborLinkTimeEntry(cModule*);
+    /*Called when a link expires due to distance*/
     void updateLinkDurationHist(int linkDuration);
 
 

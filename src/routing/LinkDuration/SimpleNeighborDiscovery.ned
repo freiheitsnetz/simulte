@@ -27,4 +27,5 @@ simple SimpleNeighborDiscovery
     string neighborLinkTimeTable = default("^.NeighborLinkTimeTable");
     int numHosts=default(10);
     int txRange=default(100); //For checking if node is neighbor or not (meter)
+    @signal[NF_LINK_BREAK];
 }

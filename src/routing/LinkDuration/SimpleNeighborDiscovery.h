@@ -22,6 +22,7 @@
 #include <LinkDuration/NeighborLinkTimeTable.h>
 #include "inet/networklayer/ipv4/IPv4RoutingTable.h"
 #include "inet/common/geometry/common/EulerAngles.h"
+#include "inet/networklayer/ipv4/IPv4Datagram.h"
 
 /*
  * This module was originally made for link lifetime calculations.
@@ -40,16 +41,17 @@ class INET_API SimpleNeighborDiscovery:  public cSimpleModule
     std::vector<cModule*> otherAddressVector; //Of network module
     cModule* ownAddress; //Of network module
 //    std::map<int,cModule*>IDsAddressMap;// Of network module
-    std::map<cModule*,bool> neighborConnection;
-    std::map<cModule*,int> nodeDistance;
-    std::map<cModule*,simtime_t>realConnectionTimeout;
-    std::map<cModule*,L3Address>addressToIP;
+    std::map<cModule*,bool> neighborConnection; //Is there is connection to neighbor? <neighbor module address, flag>
+    std::map<cModule*,int> nodeDistance; // Distance to any neighbor <neighbor module address, distance>
+    std::map<cModule*,simtime_t>realConnectionTimeout; // Precalculated time when connection gets lost due to distance <neighbor module Address, time out time>
+    std::map<cModule*,L3Address>addressToIP;// Map from memory address to IP address of neighbor <address of neighbor, IP address>
     int numHosts;
     NeighborLinkTimeTable *LinkTimeTable;
     cMessage *update;
-    cMessage *sec;
+    cMessage *sec; //time increment message
     simtime_t updateInterval;
     L3Address ownIP;
+    IPv4Datagram tmpdatagram;
   protected:
     virtual int numInitStages() const override { return NUM_INIT_STAGES; }
     virtual void initialize(int stage) override;
@@ -63,8 +65,11 @@ class INET_API SimpleNeighborDiscovery:  public cSimpleModule
     void setAllUEsAddresses(); //From External
     void incrementLinklifetime();
     void setAddresstoIPMap();
-    void setConnectionTimeoutVec();
-    simtime_t calcRealConnectionTimeout(cModule* neighbor);
+    /*untested*/
+    void setConnectionTimeoutVec();// calls "calcRealConnectionTimeout(cModule* neighbor)" for each neighbor and fills vector
+    /*untested*/
+    simtime_t calcRealConnectionTimeout(cModule* neighbor); //returns real connection time out. Needs "LinearMobilityExtended" module because it requests for initial angle
+
     std::map<cModule*,bool> getConnectionVector();
     cModule* getAddressFromIP(L3Address);
     virtual ~SimpleNeighborDiscovery();

@@ -49,4 +49,5 @@ void NeighborLinkTimeTable::deleteNeighborLinkTimeEntry(cModule* neighborID)
 
 void NeighborLinkTimeTable::updateLinkDurationHist(int linkDuration){
     measuredLinkDurations.collect(linkDuration);
+    measuredLinkDurationsVec.push_back(linkDuration);
 }

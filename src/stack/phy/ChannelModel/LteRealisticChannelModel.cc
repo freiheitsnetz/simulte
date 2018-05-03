@@ -2072,8 +2072,9 @@ double LteRealisticChannelModel::computeSubUrbanMacro(double d, double& dbp,
 double LteRealisticChannelModel::computeZeroUntilTxRange(double d, MacNodeId nodeId){
 
     if(d<txRange)
-        return 1;
+        return 0;
     else
+
         return HUGE_VAL;
 
 }
