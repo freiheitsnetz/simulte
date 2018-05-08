@@ -17,6 +17,7 @@
 #include <ModuleAccess.h>
 #include <string.h>
 #include <math.h>
+#include <limits>
 
 //Delete after debuggin
 #include <iostream>
@@ -47,6 +48,7 @@ void ResidualLinklifetime::initialize(int stage)
             mode=FUNCTION;
             setInitialLLVector();
             tau=cdfModule->getTau();
+            maxERLL=par("maxERLL");
             WATCH(oor_counter_simttime);
             WATCH(oor_counter_RLL);
             WATCH(oor_counter_Dist);
@@ -93,7 +95,7 @@ int ResidualLinklifetime::calcRLLviaFunction(cModule* neighbor){
     //TODO simplifications okay?
     int t=LinkTimeTable->getNeighborLinkTime(neighbor); //get link lifetime from NeighborLinkTimeTable
     if(t==1)
-        t=1.0000000001; //Slight shift due to log undefined at 0
+        t=std::numeric_limits< double >::min();; //Slight shift due to log undefined at 0
     double DistofLL=cdfModule->returnCDFvalue(t);
     int tmpLL=(tau-DistofLL)/(1-DistofLL)-t;
     if(DistofLL<0)
@@ -102,9 +104,9 @@ int ResidualLinklifetime::calcRLLviaFunction(cModule* neighbor){
     if(t<0){//t cannot be smaller than 0. if it happens: wrap around of int
         oor_counter_RLL++;
     }
-    if(tmpLL>9223372||tmpLL<0){ //MAX value simtime_t
+    if(tmpLL>maxERLL||tmpLL<0){ //Avoid simtime_t so reach to limit (By default 24 hours is returned)
         oor_counter_simttime++;
-        return 9223372-1000;
+        return maxERLL;
 
     }
     return tmpLL;

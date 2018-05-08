@@ -763,7 +763,9 @@ void LteMacUeD2D::macHandleD2DModeSwitch(cPacket* pkt)
 void LteMacUeD2D::macHandleGrant(cPacket* pkt)
 {
     // clearing pending RAC requests for multicast connections
-    racD2DMulticastRequested_=false;
+    //EDIT for AODV: DISABLED FOR MULTIHOP. Otherwise multicast queues starve when unicast packets are present)
+
+    //racD2DMulticastRequested_=false;
     LteMacUe::macHandleGrant(pkt);
 }
 

@@ -28,4 +28,6 @@ simple SimpleNeighborDiscovery
     int numHosts=default(10);
     int txRange=default(100); //For checking if node is neighbor or not (meter)
     @signal[NF_LINK_BREAK];
+    @signal[LinkBreakStat];
+    @statistic[LinkBreakStat](title="LinkBreakStat"; record=vector);
 }

@@ -52,6 +52,11 @@ class INET_API SimpleNeighborDiscovery:  public cSimpleModule
     simtime_t updateInterval;
     L3Address ownIP;
     IPv4Datagram tmpdatagram;
+
+    //statistics
+
+    simsignal_t LinkBreakStat;
+
   protected:
     virtual int numInitStages() const override { return NUM_INIT_STAGES; }
     virtual void initialize(int stage) override;
@@ -60,7 +65,7 @@ class INET_API SimpleNeighborDiscovery:  public cSimpleModule
     bool getConnectivityEntry(cModule* Address);
     bool isInConnectionRange (int txRange, int nodedistance);
     void updateNodeDistanceEntries();
-    void updateConnectionVector();
+    void updateConnectionVector(int stage);
     int  getTransmssionRange(){return transmissionRange;}
     void setAllUEsAddresses(); //From External
     void incrementLinklifetime();

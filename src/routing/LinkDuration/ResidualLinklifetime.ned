@@ -28,6 +28,10 @@ simple ResidualLinklifetime
         string neighborLinkTimeTable = default("^.NeighborLinkTimeTable");
         string neighborDiscoveryModule = default("^.SimpleNeighborDiscovery");
         int nodeSpeed=default(100);
+        
+        //24 Hours. Residual Linklifetimes longer than 24 hours will be set to 24 hours (simulation will be shorter anyway)
+        //Reason: simtime_t unit has a limit of 9223372s
+        int maxERLL @unit("s") = default(86400s);
  //       xml inputDist = default(xmldoc("inputDist.xml"));
         
 }

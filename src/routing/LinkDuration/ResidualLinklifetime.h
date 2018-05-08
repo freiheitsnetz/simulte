@@ -47,6 +47,7 @@ class ResidualLinklifetime : public cSimpleModule
     int oor_counter_simttime=0;
     int oor_counter_RLL=0;
     int oor_counter_Dist=0;
+    int maxERLL;
 
     std::map<int,double> InputLinkDist;//safe the read in LinkDistribution
     std::vector<double>initialPDF;

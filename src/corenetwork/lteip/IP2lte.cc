@@ -142,6 +142,7 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
     //Change for D2DMH, use control info instead of datagram info
     IPv4Address srcAddr  = datagram->getSrcAddress();
     IPv4Address destAddr;
+    FlowControlInfo *controlInfo = new FlowControlInfo();
     if (utilizeAODV){
         Ieee802Ctrl* tmpControl= check_and_cast<Ieee802Ctrl*>(datagram->removeControlInfo());
 //       IPv4Address  testdestAddr = datagram->getDestAddress();
@@ -153,14 +154,24 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
 
     EV << "IP2lte Broadcast?" << tmpControl->getDestinationAddress().isBroadcast() << endl;
     EV << "IP2lte Multicast?" << tmpControl->getDestinationAddress().isMulticast() << endl;
-    if(tmpControl->getDestinationAddress().isBroadcast())
+    if(tmpControl->getDestinationAddress().isBroadcast()){
         destAddr.set("224.0.0.10");
+        /*DEBUGGING*/
+        //controlInfo->setApplication(0);
+        //controlInfo->setTraffic(0);
+    }
+
+
+
     else if(tmpControl->getDestinationAddress().isMulticast())
         destAddr.set("224.0.0.10");
     else{
        destAddr = binder_->getIPfromMAC(tmpControl->getDestinationAddress());
     EV << "IP2lte Requested" << tmpControl->getSourceAddress().str() << endl;
     EV << "IP2lte Requested" << tmpControl->getDestinationAddress().str() << endl;
+    //debugging
+     //controlInfo->setApplication(3);
+     //controlInfo->setTraffic(3);
     }
     }
     //Change until here
@@ -195,7 +206,8 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
             break;
     }
 
-    FlowControlInfo *controlInfo = new FlowControlInfo();
+
+
     controlInfo->setSrcAddr(srcAddr.getInt());
     controlInfo->setDstAddr(destAddr.getInt());
     controlInfo->setSrcPort(srcPort);

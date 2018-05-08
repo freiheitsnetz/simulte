@@ -156,6 +156,8 @@ void LteMacBase::fromPhy(cPacket *pkt)
 bool LteMacBase::bufferizePacket(cPacket* pkt)
 {
     pkt->setTimestamp();        // Add timestamp with current time to packet
+    //Debugging
+    //std::string temp= getFullPath();
 
     FlowControlInfo* lteInfo = check_and_cast<FlowControlInfo*>(pkt->getControlInfo());
 

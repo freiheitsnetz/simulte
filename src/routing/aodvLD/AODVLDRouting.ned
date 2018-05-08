@@ -85,6 +85,25 @@ simple AODVLDRouting
         double pathDiscoveryTime @unit("s") = default(2 * netTraversalTime); // buffer timeout for each broadcasted RREQ message
         double RREQCollectionTime @unit("s") = default(0.05s); //Time same RREQ is saved and exchanged to better RREQ until rebroadcst
         string multicastAddress = default("224.0.0.10"); //Since LTE-A uses multicast instead of broadcast, all UEs are in this group to have a broadcast
+        
+        
+        @signal[numRREQsent];
+        @statistic[numRREQsent](title="numRREQsents"; record=vector);
+        @signal[RouteNeededButNotExistent]; //Finds Route fails
+        @statistic[RouteNeededButNotExistent](title="RouteNeededButNotExistent"; record=vector);
+        @signal[RREP_Arrival];
+        @statistic[RREP_Arrival](title="RREP_Arrival"; record=vector);
+        @signal[numFinalHops];//numHop of final routes
+        @statistic[numFinalHops](title="numFinalHops"; record=vector);
+        @signal[numRREQForwarded];//numHop of final routes
+        @statistic[numRREQForwarded](title="numRREQForwarded"; record=vector);
+        @signal[numSentRERR];//numHop of final routes
+        @statistic[numSentRERR](title="numSentRERR"; record=vector);
+        @signal[numReceivedRERR];//numHop of final routes
+        @statistic[numReceivedRERR](title="numReceivedRERR"; record=vector);
+        
+
+  
     gates:
         input ipIn;
         output ipOut;

@@ -54,8 +54,8 @@
 #include "inet/common/lifecycle/NodeOperations.h"
 
 //Delete after debuggin
-#include <iostream>
-#include <fstream>
+//#include <iostream>
+//#include <fstream>
 
 
 Define_Module(AODVLDRouting);
@@ -106,6 +106,17 @@ void AODVLDRouting::initialize(int stage)
         //statistics
         WATCH(firstRREPArrives);
         WATCH(numHops);
+
+        numRREQsent = registerSignal("numRREQsent");
+        RouteNeededButNotExistent = registerSignal("RouteNeededButNotExistent");
+        RREP_Arrival = registerSignal("RREP_Arrival");
+        numFinalHops = registerSignal("numFinalHops");
+        numRREQForwarded=registerSignal("numRREQForwarded");
+        numSentRERR=registerSignal("numSentRERR");
+        numReceivedRERR=registerSignal("numReceivedRERR");
+
+
+
 
 
 
@@ -252,6 +263,12 @@ INetfilter::IHook::Result AODVLDRouting::ensureRouteForDatagram(INetworkDatagram
                 // When a new route to the same destination is required at a later time
                 // (e.g., upon route loss), the TTL in the RREQ IP header is initially
                 // set to the Hop Count plus TTL_INCREMENT.
+
+                /*For statistics: This will be called at the beginning and after route fail*/
+                simtime_t timestamp=simTime();
+                cTimestampedValue tmp(timestamp, 1.0);
+                emit(RouteNeededButNotExistent,&tmp);
+
                 if (isInactive)
                     startRouteDiscovery(destAddr, route->getMetric() + ttlIncrement);
                 else
@@ -300,6 +317,8 @@ void AODVLDRouting::delayDatagram(INetworkDatagram *datagram)
 
 void AODVLDRouting::sendRREQ(AODVLDRREQ *rreq, const L3Address& destAddr, unsigned int timeToLive)
 {
+
+
     // In an expanding ring search, the originating node initially uses a TTL =
     // TTL_START in the RREQ packet IP header and sets the timeout for
     // receiving a RREP to RING_TRAVERSAL_TIME milliseconds.
@@ -365,6 +384,10 @@ void AODVLDRouting::sendRREQ(AODVLDRREQ *rreq, const L3Address& destAddr, unsign
     simtime_t ringTraversalTime = 2.0 * nodeTraversalTime * (timeToLive + timeoutBuffer);
     scheduleAt(simTime() + ringTraversalTime, rrepTimerMsg);
 
+    simtime_t timestamp=simTime();
+    cTimestampedValue tmp(timestamp, 1.0);
+    emit(numRREQsent,&tmp);
+
     EV_INFO << "Sending a Route Request with target " << rreq->getDestAddr() << " and TTL= " << timeToLive << endl;
     sendAODVLDPacket(rreq, destAddr, timeToLive, jitterPar->doubleValue());
     rreqCount++;
@@ -372,6 +395,11 @@ void AODVLDRouting::sendRREQ(AODVLDRREQ *rreq, const L3Address& destAddr, unsign
 
 void AODVLDRouting::sendRREP(AODVLDRREP *rrep, const L3Address& destAddr, unsigned int timeToLive)
 {
+
+    std::string destAddress=destAddr.str();
+    std::string temptime=simTime().str();
+    std::string ownAddress=getSelfIPAddress().str();
+
     EV_INFO << "Sending Route Reply to " << destAddr << endl;
 
     // When any node transmits a RREP, the precursor list for the
@@ -580,6 +608,9 @@ AODVLDRREP *AODVLDRouting::createGratuitousRREP(AODVLDRREQ *rreq, IRoute *origin
 
 void AODVLDRouting::handleRREP(AODVLDRREP *rrep, const L3Address& sourceAddr)
 {
+    std::string sourceAddress=sourceAddr.str();
+    std::string temptime=simTime().str();
+    std::string ownAddress=getSelfIPAddress().str();
     EV_INFO << "AODVLD Route Reply arrived with source addr: " << sourceAddr << " originator addr: " << rrep->getOriginatorAddr()
             << " destination addr: " << rrep->getDestAddr() << endl;
 
@@ -748,12 +779,22 @@ void AODVLDRouting::handleRREP(AODVLDRREP *rrep, const L3Address& sourceAddr)
             EV_ERROR << "Reverse route doesn't exist. Dropping the RREP message" << endl;
     }
     else {
+            updateRoutingTable(destRoute, sourceAddr, newHopCount, true, destSeqNum, true, simTime() + lifeTime, simTime() + newResidualRouteLifetime);
+            firstRREPArrives= simTime().dbl()-RREQsent.dbl();
+            simtime_t RREP_Arrival_timestamp =simTime();
+            numHops= newHopCount;
+
+
+
+            cTimestampedValue tmp1(RREP_Arrival_timestamp, 1.0);
+            emit(RREP_Arrival,&tmp1);
+            cTimestampedValue tmp2(RREP_Arrival_timestamp, (double)numHops);
+            emit(numFinalHops,&tmp2);
+
         if (hasOngoingRouteDiscovery(rrep->getDestAddr())) {
             EV_INFO << "The Route Reply has arrived for our Route Request to node " << rrep->getDestAddr() << endl;
-            updateRoutingTable(destRoute, sourceAddr, newHopCount, true, destSeqNum, true, simTime() + lifeTime, simTime() + newResidualRouteLifetime);
             completeRouteDiscovery(rrep->getDestAddr());
-            firstRREPArrives= simTime().dbl()-RREQsent.dbl();
-            numHops= newHopCount;
+
 
         }
     }
@@ -1081,6 +1122,9 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
     IRoute *destRoute = routingTable->findBestMatchingRoute(rreq->getDestAddr());
     AODVLDRouteData *destRouteData = destRoute ? dynamic_cast<AODVLDRouteData *>(destRoute->getProtocolData()) : nullptr;
 
+    std::string tempDest=rreq->getDestAddr().str();
+    std::string tempOwn=getSelfIPAddress().str();
+
     // check (i)
     if (rreq->getDestAddr() == getSelfIPAddress()) {
         EV_INFO << "I am the destination node for which the route was requested" << endl;
@@ -1096,6 +1140,8 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
     }
 
     // check (ii) //TODO do we really need this?
+    if(getSelfIPAddress()!=rreq->getOriginatorAddr()){
+
     if (destRouteData && destRouteData->isActive() && destRouteData->hasValidDestNum() &&
         destRouteData->getDestSeqNum() >= rreq->getDestSeqNum())
     {
@@ -1129,6 +1175,8 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
 
         return;    // discard RREQ, in this case, we also do not forward it.
     }
+    }
+
     // If a node does not generate a RREP (following the processing rules in
     // section 6.6), and if the incoming IP header has TTL larger than 1,
     // the node updates and broadcasts the RREQ to address 255.255.255.255
@@ -1216,10 +1264,11 @@ void AODVLDRouting::receiveSignal(cComponent *source, simsignal_t signalID, cObj
         //FOR LTE
         std::string name = source->getName();
 
-        std::ofstream myfile;
+        /*std::ofstream myfile;
         myfile.open ("Type.txt");
         myfile << name;
         myfile.close();
+        */
         EV_DETAIL << "Received link break signal" << endl;
         // XXX: This is a hack for supporting both IdealMac and Ieee80211Mac. etc
         cPacket *frame = check_and_cast<cPacket *>(obj);
@@ -1295,7 +1344,8 @@ void AODVLDRouting::handleLinkBreakSendRERR(const L3Address& unreachableAddr)
     //    Before this time, the entry SHOULD NOT be deleted.
 
     IRoute *unreachableRoute = routingTable->findBestMatchingRoute(unreachableAddr);
-
+    std::string tempADDR=unreachableAddr.str();
+std::string temp= getFullPath() ;
     if (!unreachableRoute || unreachableRoute->getSource() != this)
         return;
 
@@ -1360,6 +1410,10 @@ void AODVLDRouting::handleLinkBreakSendRERR(const L3Address& unreachableAddr)
     // broadcast
     EV_INFO << "Broadcasting Route Error message with TTL=1" << endl;
     sendAODVLDPacket(rerr, addressType->getBroadcastAddress(), 1, jitterPar->doubleValue());
+    simtime_t timestamp =simTime();
+
+    cTimestampedValue tmp1(timestamp, 1.0);
+    emit(numSentRERR,&tmp1);
 }
 
 AODVLDRERR *AODVLDRouting::createRERR(const std::vector<UnreachableNode>& unreachableNodes)
@@ -1384,6 +1438,8 @@ AODVLDRERR *AODVLDRouting::createRERR(const std::vector<UnreachableNode>& unreac
 
 void AODVLDRouting::handleRERR(AODVLDRERR *rerr, const L3Address& sourceAddr)
 {
+    std::string tempADDR=sourceAddr.str();
+    std::string temp= getFullPath();
     EV_INFO << "AODVLD Route Error arrived with source addr: " << sourceAddr << endl;
 
     // A node initiates processing for a RERR message in three situations:
@@ -1442,9 +1498,14 @@ void AODVLDRouting::handleRERR(AODVLDRERR *rerr, const L3Address& sourceAddr)
         EV_INFO << "Sending RERR to inform our neighbors about link breaks." << endl;
         AODVLDRERR *newRERR = createRERR(unreachableNeighbors);
         sendAODVLDPacket(newRERR, addressType->getBroadcastAddress(), 1, 0);
+
         rerrCount++;
     }
     delete rerr;
+    simtime_t timestamp =simTime();
+
+    cTimestampedValue tmp1(timestamp, 1.0);
+    emit(numReceivedRERR,&tmp1);
 }
 
 bool AODVLDRouting::handleOperationStage(LifecycleOperation *operation, int stage, IDoneCallback *doneCallback)
@@ -1538,6 +1599,9 @@ void AODVLDRouting::forwardRREP(AODVLDRREP *rrep, const L3Address& destAddr, uns
 
 void AODVLDRouting::forwardRREQ(AODVLDRREQ *rreq, unsigned int timeToLive)
 {
+    simtime_t timestamp=simTime();
+    cTimestampedValue tmp(timestamp, 1.0);
+    emit(numRREQForwarded,&tmp);
     EV_INFO << "Forwarding the Route Request message with TTL= " << timeToLive << endl;
     sendAODVLDPacket(rreq, addressType->getBroadcastAddress(), timeToLive, jitterPar->doubleValue());
 }
@@ -1696,7 +1760,7 @@ void AODVLDRouting::expungeRoutes()
                     // before (current_time + 2 * NET_TRAVERSAL_TIME).
                     if (hasOngoingRouteDiscovery(route->getDestinationAsGeneric())) {
                         EV_DETAIL << "Route to " << route->getDestinationAsGeneric() << " expired and is inactive, but we are waiting for a RREP to this destination, so we extend its lifetime with 2 * NET_TRAVERSAL_TIME" << endl;
-                        routeData->setResidualRouteLifetime(simTime() + 2 * netTraversalTime);
+                        routeData->setResidualRouteLifetime(simTime() + 2 * netTraversalTime+ netDiameter*RREQCollectionTime);
                     }
                     else {
                         EV_DETAIL << "Route to " << route->getDestinationAsGeneric() << " expired and is inactive and we are not expecting any RREP to this destination, so we delete this route" << endl;

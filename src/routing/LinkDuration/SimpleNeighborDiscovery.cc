@@ -37,11 +37,13 @@ void SimpleNeighborDiscovery::initialize(int stage)
     numHosts= par("numHosts");
     setAllUEsAddresses();
     updateNodeDistanceEntries();
-    updateConnectionVector();
+    updateConnectionVector(stage);
     setConnectionTimeoutVec();
     WATCH_MAP(neighborConnection);
     WATCH_MAP(nodeDistance);
     WATCH_MAP(realConnectionTimeout);
+
+    LinkBreakStat=registerSignal("LinkBreakStat");
 
 
 
@@ -63,7 +65,7 @@ void SimpleNeighborDiscovery::handleMessage(cMessage *msg)
 {
     if(msg==update){
         updateNodeDistanceEntries();
-        updateConnectionVector();
+        updateConnectionVector(0);
     scheduleAt(simTime()+updateInterval,update);
     }
     if(msg==sec){
@@ -107,21 +109,25 @@ void SimpleNeighborDiscovery::setAllUEsAddresses()
 
     }
 }
-void SimpleNeighborDiscovery::updateConnectionVector(){
+//TODO ELEMINATE HACK (-500)
+void SimpleNeighborDiscovery::updateConnectionVector(int stage){
     std::map<cModule*,bool> previousConnection=neighborConnection;
     neighborConnection.clear();
     for(std::map<cModule*,int>::iterator it= nodeDistance.begin(); it!=nodeDistance.end();it++){
-        bool tempConnection=isInConnectionRange(transmissionRange, it->second);
+        bool tempConnection=isInConnectionRange(transmissionRange-500, it->second);
         neighborConnection[it->first]=tempConnection;
         /*
          * Lost connection must be documented in histogram
          * previous connection must  have been 1
          */
-        if(tempConnection==0){
+        if(tempConnection==0&&stage!=INITSTAGE_NETWORK_LAYER_3){
         std::map<cModule*,bool>::iterator iter= previousConnection.find(it->first);
             if(iter->second==1){
-            LinkTimeTable->updateLinkDurationHist(LinkTimeTable->getNeighborLinkTime(iter->first));
+                int temp =LinkTimeTable->getNeighborLinkTime(iter->first);
+            LinkTimeTable->updateLinkDurationHist(temp);
 
+            //Emitting signal for statistics
+            emit(LinkBreakStat,temp);
             //Emitting a signal for AODVLD because the link is broken.
             tmpdatagram.setDestinationAddress(addressToIP[iter->first]);
             IPv4Datagram* tmpdatagramptr=&tmpdatagram;
@@ -188,6 +194,7 @@ std::map<cModule*,bool> SimpleNeighborDiscovery::getConnectionVector(){
 return neighborConnection;
 }
 
+//Untested: Should calculate the connection timeout( When UEs are out of range)
 simtime_t SimpleNeighborDiscovery::calcRealConnectionTimeout(cModule* neighbor){
 
     std::map<cModule*,int>::iterator it=nodeDistance.find(neighbor);
