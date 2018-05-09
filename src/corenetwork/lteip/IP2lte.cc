@@ -48,6 +48,8 @@ void IP2lte::initialize(int stage)
             // TODO not so elegant
             cModule *ue = getParentModule()->getParentModule();
             getBinder()->registerNode(ue, nodeType_, ue->par("masterId"));
+            neighborModule=getModuleFromPar<SimpleNeighborDiscovery>(par("NeighborDiscoveryModule"),this,1);
+
         }
         else if (nodeType_ == ENODEB)
         {
@@ -146,6 +148,8 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
     if (utilizeAODV){
         Ieee802Ctrl* tmpControl= check_and_cast<Ieee802Ctrl*>(datagram->removeControlInfo());
 //       IPv4Address  testdestAddr = datagram->getDestAddress();
+
+
     EV << "IP2lte Requested" << tmpControl->getSourceAddress().str() << endl;
     EV << "IP2lte Requested" << tmpControl->getDestinationAddress().str() << endl;
     //IPv4Address srcAddr  = binder_->getIPfromMAC(tmpControl->getSourceAddress());
@@ -158,7 +162,9 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
         destAddr.set("224.0.0.10");
         /*DEBUGGING*/
         //controlInfo->setApplication(0);
-        //controlInfo->setTraffic(0);
+       // controlInfo->setTraffic(1);
+        transportPacket->setName("VoIP");
+
     }
 
 
@@ -166,12 +172,24 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
     else if(tmpControl->getDestinationAddress().isMulticast())
         destAddr.set("224.0.0.10");
     else{
-       destAddr = binder_->getIPfromMAC(tmpControl->getDestinationAddress());
+        destAddr = binder_->getIPfromMAC(tmpControl->getDestinationAddress());
+
+        /*Avoid VoIP packets travel down any further down the stack when there is no connection*/
+        std::map<cModule*,bool> connectionVector=neighborModule->getConnectionVector();
+        std::map<cModule*,bool>::iterator it= connectionVector.find(neighborModule->getAddressFromIP(destAddr));
+        if(it->second==0){
+            delete datagram;
+            return;
+        }
+
+
+
     EV << "IP2lte Requested" << tmpControl->getSourceAddress().str() << endl;
     EV << "IP2lte Requested" << tmpControl->getDestinationAddress().str() << endl;
     //debugging
      //controlInfo->setApplication(3);
-     //controlInfo->setTraffic(3);
+     //controlInfo->setTraffic(4);
+    transportPacket->setName("gaming");
     }
     }
     //Change until here

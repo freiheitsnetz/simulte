@@ -22,6 +22,7 @@ simple IP2lte
         string nodeType;    
         string interfaceTableModule;
         bool utilizeAODV=default(false);
+        string NeighborDiscoveryModule=default("^.^.LD.SimpleNeighborDiscovery");
         @display("i=block/layer");
     gates:
         // connection to network layer.

@@ -17,7 +17,9 @@
 #include "LteHandoverManager.h"
 #include "LteBinder.h"
 //Added for D2DMH
-#include "inet/networklayer/arp/ipv4/ARPPacket_m.h"
+//#include "inet/networklayer/arp/ipv4/ARPPacket_m.h"
+#include "SimpleNeighborDiscovery.h"
+
 
 class LteHandoverManager;
 
@@ -43,6 +45,8 @@ class IP2lte : public cSimpleModule
 
     // reference to the binder
     LteBinder* binder_;
+    //D2DMH
+    SimpleNeighborDiscovery* neighborModule;
 
     /*
      * Handover support

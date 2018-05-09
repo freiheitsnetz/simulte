@@ -31,6 +31,7 @@ void SimpleNeighborDiscovery::initialize(int stage)
     if(stage == INITSTAGE_NETWORK_LAYER_3){
     LinkTimeTable = getModuleFromPar<NeighborLinkTimeTable>(par("neighborLinkTimeTable"), this,1);
 
+
     transmissionRange=par("txRange");
     updateInterval = par("updateInterval");
     ownAddress= getContainingNode(this);
@@ -50,6 +51,7 @@ void SimpleNeighborDiscovery::initialize(int stage)
 
     }
     if(stage == INITSTAGE_NETWORK_LAYER_3+1){
+      //  macModule = getModuleFromPar<LteMacUeD2D>(par("macModule"), this,1);
         setAddresstoIPMap();
         update= new cMessage("Update");
         sec= new cMessage("Second");
@@ -109,12 +111,12 @@ void SimpleNeighborDiscovery::setAllUEsAddresses()
 
     }
 }
-//TODO ELEMINATE HACK (-500)
+
 void SimpleNeighborDiscovery::updateConnectionVector(int stage){
     std::map<cModule*,bool> previousConnection=neighborConnection;
     neighborConnection.clear();
     for(std::map<cModule*,int>::iterator it= nodeDistance.begin(); it!=nodeDistance.end();it++){
-        bool tempConnection=isInConnectionRange(transmissionRange-500, it->second);
+        bool tempConnection=isInConnectionRange(transmissionRange, it->second);
         neighborConnection[it->first]=tempConnection;
         /*
          * Lost connection must be documented in histogram
@@ -133,6 +135,9 @@ void SimpleNeighborDiscovery::updateConnectionVector(int stage){
             IPv4Datagram* tmpdatagramptr=&tmpdatagram;
 
             emit(NF_LINK_BREAK,tmpdatagramptr);
+            /*
+            macModule->deleteQueues(0);
+            */
             }
         }
 

@@ -23,6 +23,7 @@
 #include "inet/networklayer/ipv4/IPv4RoutingTable.h"
 #include "inet/common/geometry/common/EulerAngles.h"
 #include "inet/networklayer/ipv4/IPv4Datagram.h"
+#include "LteMacUeD2D.h"
 
 /*
  * This module was originally made for link lifetime calculations.
@@ -52,6 +53,9 @@ class INET_API SimpleNeighborDiscovery:  public cSimpleModule
     simtime_t updateInterval;
     L3Address ownIP;
     IPv4Datagram tmpdatagram;
+
+    //For queue deletion when connection fails
+    LteMacUeD2D* macModule;
 
     //statistics
 
