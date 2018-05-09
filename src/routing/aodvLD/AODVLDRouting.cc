@@ -1783,8 +1783,8 @@ void AODVLDRouting::scheduleExpungeRoutes()
             AODVLDRouteData *routeData = check_and_cast<AODVLDRouteData *>(route->getProtocolData());
             ASSERT(routeData != nullptr);
 
-            if (routeData->getResidualRouteLifetime()+simTime() < nextExpungeTime)
-                nextExpungeTime = routeData->getResidualRouteLifetime()+simTime();
+            if (routeData->getResidualRouteLifetime() < nextExpungeTime)
+                nextExpungeTime = routeData->getResidualRouteLifetime();
         }
     }
     if (nextExpungeTime == SimTime::getMaxTime()) {
