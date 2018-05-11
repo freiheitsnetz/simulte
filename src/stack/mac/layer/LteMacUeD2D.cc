@@ -33,9 +33,15 @@ LteMacUeD2D::~LteMacUeD2D()
 
 void LteMacUeD2D::initialize(int stage)
 {
+
+
     LteMacUe::initialize(stage);
     if (stage == 1)
     {
+        WATCH(bsrD2DMulticastTriggered_);
+        WATCH(bsrTriggered_);
+        WATCH(racD2DMulticastRequested_ );
+        WATCH(racRequested_);
         usePreconfiguredTxParams_ = par("usePreconfiguredTxParams");
         if (usePreconfiguredTxParams_)
             preconfiguredTxParams_ = getPreconfiguredTxParams();
@@ -271,7 +277,7 @@ void LteMacUeD2D::handleSelfMessage()
         }
     }
 
-    //============================ DEBUG ==========================
+  /*  //============================ DEBUG ==========================
     HarqTxBuffers::iterator it;
 
     EV << "\n htxbuf.size " << harqTxBuffers_.size() << endl;
@@ -292,6 +298,7 @@ void LteMacUeD2D::handleSelfMessage()
         }
     }
     //======================== END DEBUG ==========================
+     */
 
     unsigned int purged =0;
     // purge from corrupted PDUs all Rx H-HARQ buffers
@@ -344,12 +351,17 @@ void LteMacUeD2D::macPduMake(LteMacScheduleList* scheduleList)
             Direction connDir = (Direction)connDesc_[cid].getDirection();
 
             // if the bsr was triggered by D2D (D2D_MULTI), only account for D2D (D2D_MULTI) connections
+            /*CHANGE TO*/
             if (bsrTriggered_ && connDir != D2D)
                 continue;
             if (bsrD2DMulticastTriggered_ && connDir != D2D_MULTI)
                 continue;
             sizeBsr += itbuf->second->getQueueOccupancy();
         }
+
+
+
+
 
         if (sizeBsr != 0)
         {
@@ -764,8 +776,8 @@ void LteMacUeD2D::macHandleGrant(cPacket* pkt)
 {
     // clearing pending RAC requests for multicast connections
 
-//DEACTIVATE FOR ROUTING. Multicastpacket queues starve otherwise
-    //racD2DMulticastRequested_=false;
+    racD2DMulticastRequested_=false;
+    //-----------------------------------
     LteMacUe::macHandleGrant(pkt);
 }
 
@@ -853,9 +865,17 @@ void LteMacUeD2D::macHandleRac(cPacket* pkt)
         if (racD2DMulticastRequested_)
         {
             bsrD2DMulticastTriggered_=true;
+            //ADDED:
+            bsrTriggered_=false;
+
         }
         else
+        {
             bsrTriggered_ = true;
+        //ADDED
+
+        bsrD2DMulticastTriggered_=false;
+        }
 
 
         // reset RAC counter

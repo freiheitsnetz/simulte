@@ -24,6 +24,7 @@ simple IP2lte
         bool utilizeAODV=default(false);
         string NeighborDiscoveryModule=default("^.^.LD.SimpleNeighborDiscovery");
         @display("i=block/layer");
+        @signal[NF_LINK_BREAK];
     gates:
         // connection to network layer.
         // These gate names are recognized by the network layer (same as the ones in the INic interface) 

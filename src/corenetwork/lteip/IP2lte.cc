@@ -163,7 +163,7 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
         /*DEBUGGING*/
         //controlInfo->setApplication(0);
        // controlInfo->setTraffic(1);
-        transportPacket->setName("VoIP");
+        transportPacket->setName("gaming");
 
     }
 
@@ -178,6 +178,7 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
         std::map<cModule*,bool> connectionVector=neighborModule->getConnectionVector();
         std::map<cModule*,bool>::iterator it= connectionVector.find(neighborModule->getAddressFromIP(destAddr));
         if(it->second==0){
+            emit(NF_LINK_BREAK,datagram);
             delete datagram;
             return;
         }
@@ -189,7 +190,8 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
     //debugging
      //controlInfo->setApplication(3);
      //controlInfo->setTraffic(4);
-    transportPacket->setName("gaming");
+
+    transportPacket->setName("VoIP");
     }
     }
     //Change until here

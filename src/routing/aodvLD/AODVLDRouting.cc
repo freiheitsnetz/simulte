@@ -1273,7 +1273,7 @@ void AODVLDRouting::receiveSignal(cComponent *source, simsignal_t signalID, cObj
         // XXX: This is a hack for supporting both IdealMac and Ieee80211Mac. etc
         cPacket *frame = check_and_cast<cPacket *>(obj);
         INetworkDatagram *datagram=nullptr;
-        if(name=="SimpleNeighborDiscovery"){
+        if(name=="SimpleNeighborDiscovery"||name=="ip2lte"){
             datagram = check_and_cast<INetworkDatagram  *>(obj);
         }
 

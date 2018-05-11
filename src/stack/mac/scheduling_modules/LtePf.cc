@@ -9,6 +9,9 @@
 
 #include "LtePf.h"
 #include "LteSchedulerEnb.h"
+//Delete after debuggin
+#include <iostream>
+#include <fstream>
 
 void LtePf::prepareSchedule()
 {
@@ -27,9 +30,15 @@ void LtePf::prepareSchedule()
     ActiveSet::iterator cidIt = activeConnectionTempSet_.begin();
     ActiveSet::iterator cidEt = activeConnectionTempSet_.end();
 
+    std::ofstream myfile;
+
+    myfile.open ("Actual active links.txt");
     for(; cidIt != cidEt; )
     {
+
         MacCid cid = *cidIt;
+        myfile << cid<<"\n";
+
         ++cidIt;
         MacNodeId nodeId = MacCidToNodeId(cid);
 
@@ -93,6 +102,8 @@ void LtePf::prepareSchedule()
 
         EV << NOW << "LtePf::execSchedule CID " << cid << "- Score = " << s << endl;
     }
+
+    myfile.close();
 
     // Schedule the connections in score order.
     while(!score.empty())
