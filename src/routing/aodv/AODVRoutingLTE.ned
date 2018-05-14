@@ -16,7 +16,7 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 //
 
-package lte.routing.aodvLD;
+package lte.routing.aodv;
 
 //
 // Ad hoc On-Demand Distance Vector Routing Protocol module.
@@ -35,15 +35,13 @@ package lte.routing.aodvLD;
 // refer to the following link: https://tools.ietf.org/html/rfc3561.html.
 //
 @namespace(inet);
-simple AODVLDRouting
+simple AODVRoutingLTE
 {
-
     parameters:
         @display("i=block/network2");
         string routingTableModule = default("^.routingTable");
         string interfaceTableModule = default("^.interfaceTable");
         string networkProtocolModule = default("^.networkLayer.ip");
-        string residualLinkLifetimeModule = default("^.LD.ResidualLinklifetime");
 
         bool askGratuitousRREP = default(false); // see RFC 3561: 6.6.3
         bool useHelloMessages = default(false); // see RFC 3561: 6.9
@@ -83,9 +81,6 @@ simple AODVLDRouting
         double netTraversalTime @unit("s") = default(2 * nodeTraversalTime * netDiameter); // an estimation of the traversal time for the complete network
         double nextHopWait @unit("s") = default(nodeTraversalTime + 0.01s); // timeout for a RREP-ACK
         double pathDiscoveryTime @unit("s") = default(2 * netTraversalTime); // buffer timeout for each broadcasted RREQ message
-        double RREQCollectionTime @unit("s") = default(0.05s); //Time same RREQ is saved and exchanged to better RREQ until rebroadcst
-       // string multicastAddress = default("224.0.0.10"); //Since LTE-A uses multicast instead of broadcast, all UEs are in this group to have a broadcast
-        
         
         @signal[numRREQsent];
         @statistic[numRREQsent](title="numRREQsents"; record=vector);
@@ -101,9 +96,6 @@ simple AODVLDRouting
         @statistic[numSentRERR](title="numSentRERR"; record=vector);
         @signal[numReceivedRERR];//numHop of final routes
         @statistic[numReceivedRERR](title="numReceivedRERR"; record=vector);
-        
-
-  
     gates:
         input ipIn;
         output ipOut;
