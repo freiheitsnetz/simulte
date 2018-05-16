@@ -163,7 +163,7 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
         /*DEBUGGING*/
         //controlInfo->setApplication(0);
        // controlInfo->setTraffic(1);
-        transportPacket->setName("gaming");
+        //transportPacket->setName("gaming");
 
     }
 
@@ -191,7 +191,7 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
      //controlInfo->setApplication(3);
      //controlInfo->setTraffic(4);
 
-    transportPacket->setName("VoIP");
+   // transportPacket->setName("VoIP");
     }
     }
     //Change until here
