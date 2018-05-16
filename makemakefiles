@@ -1,0 +1,13 @@
+#
+# Usage:
+#    make -f makemakefiles
+# or, for Microsoft Visual C++:
+#    nmake -f makemakefiles MMOPT=-n
+#
+
+MAKEMAKE=opp_makemake $(MMOPT)
+
+INET_PROJ=../inet
+
+all:
+	cd src && $(MAKEMAKE) -f --deep --make-so -O out -I../../inet/src/inet/linklayer/common -I../../inet/src/inet/mobility/contract -I../../inet/src/inet/mobility/static -I../../inet/src/inet/networklayer/contract/ipv4 -I../../inet/src/inet/common -I../../inet/src/inet/networklayer/common -I../../inet/src -I../../inet/src/inet/common/geometry/common -I../../inet/src/inet/transportlayer/tcp_common -I../../inet/src/inet/common/queue -I../../inet/src/inet/transportlayer/udp -I../../inet/src/inet/networklayer/ipv4 -I../../inet/src/inet/transportlayer/contract/udp -I../../inet/src/inet/transportlayer/contract/sctp -I../../inet/src/inet/applications/sctpapp -I../../inet/src/inet/transportlayer/sctp -I../../inet/src/inet/networklayer/configurator/ipv4 -L../../inet/out/$$\(CONFIGNAME\)/src -lINET -KINET_PROJ=../../inet
