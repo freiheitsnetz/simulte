@@ -88,11 +88,14 @@ simple AODVLDRouting
         
         
         @signal[numRREQsent];
-        @statistic[numRREQsent](title="numRREQsents"; record=vector);
+        @statistic[numRREQsent](title="numRREQsent"; record=vector);
         @signal[RouteNeededButNotExistent]; //Finds Route fails
         @statistic[RouteNeededButNotExistent](title="RouteNeededButNotExistent"; record=vector);
-        @signal[RREP_Arrival];
-        @statistic[RREP_Arrival](title="RREP_Arrival"; record=vector);
+        @signal[interRREPRouteDiscoveryTime]; //From last RREP to next route discovery (Route Duration)
+        @statistic[interRREPRouteDiscoveryTime](title="interRREPRouteDiscoveryTime"; record=vector);
+        
+        @signal[interRREQRREPTime]; //Route Discovery Start - RREP arrive ( can occure multiple times for 1 RREQ)
+        @statistic[interRREQRREPTime](title="interRREQRREPTime"; record=vector);
         @signal[numFinalHops];//numHop of final routes
         @statistic[numFinalHops](title="numFinalHops"; record=vector);
         @signal[numRREQForwarded];//numHop of final routes

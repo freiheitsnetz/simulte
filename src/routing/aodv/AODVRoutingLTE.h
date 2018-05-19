@@ -105,12 +105,14 @@ class INET_API AODVRoutingLTE : public cSimpleModule, public ILifecycle, public 
     simtime_t netTraversalTime;
     simtime_t nextHopWait;
     simtime_t pathDiscoveryTime;
+    simtime_t RREP_Arrival_timestamp=0;
 
     //statistics
 
     simsignal_t numRREQsent;
     simsignal_t RouteNeededButNotExistent;
-    simsignal_t RREP_Arrival;
+    simsignal_t interRREQRREPTime;
+    simsignal_t interRREPRouteDiscoveryTime;
     simsignal_t numFinalHops;
     simsignal_t numRREQForwarded;
     simsignal_t numSentRERR;

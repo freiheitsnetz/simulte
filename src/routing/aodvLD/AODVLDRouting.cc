@@ -109,11 +109,12 @@ void AODVLDRouting::initialize(int stage)
 
         numRREQsent = registerSignal("numRREQsent");
         RouteNeededButNotExistent = registerSignal("RouteNeededButNotExistent");
-        RREP_Arrival = registerSignal("RREP_Arrival");
+        interRREQRREPTime = registerSignal("interRREQRREPTime");
         numFinalHops = registerSignal("numFinalHops");
         numRREQForwarded=registerSignal("numRREQForwarded");
         numSentRERR=registerSignal("numSentRERR");
         numReceivedRERR=registerSignal("numReceivedRERR");
+        interRREPRouteDiscoveryTime=registerSignal("interRREPRouteDiscoveryTime");
 
 
 
@@ -299,6 +300,12 @@ void AODVLDRouting::startRouteDiscovery(const L3Address& target, unsigned timeTo
     ASSERT(!hasOngoingRouteDiscovery(target));
     AODVLDRREQ *rreq = createRREQ(target);
     addressToRreqRetries[target] = 0;
+
+
+    simtime_t timestamp=simTime()-RREP_Arrival_timestamp;
+    cTimestampedValue tmp(timestamp, 1.0);
+    emit(interRREPRouteDiscoveryTime,&tmp);
+
     RREQsent= simTime();
     sendRREQ(rreq, addressType->getBroadcastAddress(), timeToLive);
 }
@@ -780,14 +787,14 @@ void AODVLDRouting::handleRREP(AODVLDRREP *rrep, const L3Address& sourceAddr)
     }
     else {
             updateRoutingTable(destRoute, sourceAddr, newHopCount, true, destSeqNum, true, simTime() + lifeTime, simTime() + newResidualRouteLifetime);
-            firstRREPArrives= simTime().dbl()-RREQsent.dbl();
-            simtime_t RREP_Arrival_timestamp =simTime();
+            simtime_t interRREQRREPTime_timestamp= simTime().dbl()-RREQsent.dbl();
+            RREP_Arrival_timestamp =simTime();
             numHops= newHopCount;
 
 
 
-            cTimestampedValue tmp1(RREP_Arrival_timestamp, 1.0);
-            emit(RREP_Arrival,&tmp1);
+            cTimestampedValue tmp1(interRREQRREPTime_timestamp, 1.0);
+            emit(interRREQRREPTime,&tmp1);
             cTimestampedValue tmp2(RREP_Arrival_timestamp, (double)numHops);
             emit(numFinalHops,&tmp2);
 

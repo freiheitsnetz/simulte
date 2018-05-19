@@ -130,16 +130,21 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     simtime_t nextHopWait;
     simtime_t pathDiscoveryTime;
     simtime_t RREQCollectionTime;
+    simtime_t RREP_Arrival_timestamp=0;
 
     //statistics
 
     simsignal_t numRREQsent;
     simsignal_t RouteNeededButNotExistent;
-    simsignal_t RREP_Arrival;
+    simsignal_t interRREQRREPTime;
+    simsignal_t interRREPRouteDiscoveryTime;
     simsignal_t numFinalHops;
     simsignal_t numRREQForwarded;
     simsignal_t numSentRERR;
     simsignal_t numReceivedRERR;
+
+
+
 
     // state
     unsigned int rreqId = 0;    // when sending a new RREQ packet, rreqID incremented by one from the last id used by this node

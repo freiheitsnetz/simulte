@@ -20,8 +20,7 @@
 #include <limits>
 
 //Delete after debuggin
-#include <iostream>
-#include <fstream>
+
 
 Define_Module(ResidualLinklifetime);
 
@@ -141,8 +140,7 @@ simtime_t ResidualLinklifetime::getMetrik (inet::L3Address IPaddress){
 
 void ResidualLinklifetime::setInitialLLVector(){
 
-    std::ofstream myfile;
-    myfile.open ("intialLL.txt");
+
     volatile double randValue=0;
     std::map<cModule*,bool> tmpConnection =neighborModule->getConnectionVector();
     int rng=0;
@@ -151,10 +149,9 @@ void ResidualLinklifetime::setInitialLLVector(){
             randValue=uniform(0,1,rng);
             LinkTimeTable->setNeighborLinkTime(it->first,cdfModule->getClosestT_value(randValue));
         }
-        myfile <<cdfModule->getClosestT_value(randValue) <<" " << it->first << " "<< randValue<<" " << it->second << " " << LinkTimeTable->getNeighborLinkTime(it->first)<< "\n";
+
         randValue=0;
         }
-    myfile.close();
 
 }
 
