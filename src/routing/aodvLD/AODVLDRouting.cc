@@ -301,9 +301,9 @@ void AODVLDRouting::startRouteDiscovery(const L3Address& target, unsigned timeTo
     AODVLDRREQ *rreq = createRREQ(target);
     addressToRreqRetries[target] = 0;
 
-
-    simtime_t timestamp=simTime()-RREP_Arrival_timestamp;
-    cTimestampedValue tmp(timestamp, 1.0);
+    simtime_t timestamp=simTime();
+    double interTime=simTime().dbl()-RREP_Arrival_timestamp.dbl();
+    cTimestampedValue tmp(timestamp, interTime);
     emit(interRREPRouteDiscoveryTime,&tmp);
 
     RREQsent= simTime();
@@ -787,13 +787,13 @@ void AODVLDRouting::handleRREP(AODVLDRREP *rrep, const L3Address& sourceAddr)
     }
     else {
             updateRoutingTable(destRoute, sourceAddr, newHopCount, true, destSeqNum, true, simTime() + lifeTime, simTime() + newResidualRouteLifetime);
-            simtime_t interRREQRREPTime_timestamp= simTime().dbl()-RREQsent.dbl();
             RREP_Arrival_timestamp =simTime();
+            double interRREQRREPTime_timestamp= simTime().dbl()-RREQsent.dbl();
             numHops= newHopCount;
 
 
 
-            cTimestampedValue tmp1(interRREQRREPTime_timestamp, 1.0);
+            cTimestampedValue tmp1(RREP_Arrival_timestamp, interRREQRREPTime_timestamp);
             emit(interRREQRREPTime,&tmp1);
             cTimestampedValue tmp2(RREP_Arrival_timestamp, (double)numHops);
             emit(numFinalHops,&tmp2);
