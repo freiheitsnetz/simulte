@@ -189,7 +189,11 @@ cModule* SimpleNeighborDiscovery::getAddressFromIP(L3Address IPaddress){
 
 
     SimpleNeighborDiscovery::~SimpleNeighborDiscovery(){
+        if(sec->isScheduled());
+        cancelEvent(sec);
         delete sec;
+        if(update->isScheduled());
+        cancelEvent(update);
         delete update;
 
 

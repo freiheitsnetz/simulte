@@ -615,9 +615,7 @@ AODVLDRREP *AODVLDRouting::createGratuitousRREP(AODVLDRREQ *rreq, IRoute *origin
 
 void AODVLDRouting::handleRREP(AODVLDRREP *rrep, const L3Address& sourceAddr)
 {
-    std::string sourceAddress=sourceAddr.str();
-    std::string temptime=simTime().str();
-    std::string ownAddress=getSelfIPAddress().str();
+
     EV_INFO << "AODVLD Route Reply arrived with source addr: " << sourceAddr << " originator addr: " << rrep->getOriginatorAddr()
             << " destination addr: " << rrep->getDestAddr() << endl;
 
@@ -1129,9 +1127,6 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
     IRoute *destRoute = routingTable->findBestMatchingRoute(rreq->getDestAddr());
     AODVLDRouteData *destRouteData = destRoute ? dynamic_cast<AODVLDRouteData *>(destRoute->getProtocolData()) : nullptr;
 
-    std::string tempDest=rreq->getDestAddr().str();
-    std::string tempOwn=getSelfIPAddress().str();
-
     // check (i)
     if (rreq->getDestAddr() == getSelfIPAddress()) {
         EV_INFO << "I am the destination node for which the route was requested" << endl;
@@ -1146,11 +1141,13 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
         return;    // discard RREQ, in this case, we do not forward it.
     }
 
-    // check (ii) //TODO do we really need this?
+    // check (ii) //TODO do we really need this? Solution: Only send a RREP back if the RRL of the route to destination is higher,
+    // than the minRLL contained in RREQ. RRL in RREP is then set to min RLL in RREQ. So only if links of previous nodes are the bottleneck,
+    // use existing node
     if(getSelfIPAddress()!=rreq->getOriginatorAddr()){
 
     if (destRouteData && destRouteData->isActive() && destRouteData->hasValidDestNum() &&
-        destRouteData->getDestSeqNum() >= rreq->getDestSeqNum())
+        destRouteData->getDestSeqNum() >= rreq->getDestSeqNum()&&destRouteData->getResidualRouteLifetime()>rreq->getResidualLinklifetime())
     {
         EV_INFO << "I am an intermediate node who has information about a route to " << rreq->getDestAddr() << endl;
 
@@ -2008,13 +2005,21 @@ AODVLDRouting::~AODVLDRouting()
     delete counterTimer;
     delete rrepAckTimer;
     delete blacklistTimer;
+    cOwnedObject *Del=NULL;
+    int OwnedSize=this->defaultListSize();
+    for(int i=0;i<OwnedSize;i++){
+            Del=this->defaultListGet(0);
+            this->drop(Del);
+            delete Del;
+    }
 
-    for(std::vector<WaitForRREQ *>::iterator it = rreqcollectionTimer.begin();it !=rreqcollectionTimer.end();++it){
+
+ /*   for(std::vector<WaitForRREQ *>::iterator it = rreqcollectionTimer.begin();it !=rreqcollectionTimer.end();++it){
 
         delete (*it);
 
     }
-
+*/
 }
 
 } // namespace inet
