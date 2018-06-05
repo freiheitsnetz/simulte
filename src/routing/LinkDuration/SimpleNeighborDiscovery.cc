@@ -39,7 +39,7 @@ void SimpleNeighborDiscovery::initialize(int stage)
     setAllUEsAddresses();
     updateNodeDistanceEntries();
     updateConnectionVector(stage);
-    setConnectionTimeoutVec();
+    //setConnectionTimeoutVec();
     WATCH_MAP(neighborConnection);
     WATCH_MAP(nodeDistance);
     WATCH_MAP(realConnectionTimeout);
