@@ -403,9 +403,7 @@ void AODVLDRouting::sendRREQ(AODVLDRREQ *rreq, const L3Address& destAddr, unsign
 void AODVLDRouting::sendRREP(AODVLDRREP *rrep, const L3Address& destAddr, unsigned int timeToLive)
 {
 
-    std::string destAddress=destAddr.str();
-    std::string temptime=simTime().str();
-    std::string ownAddress=getSelfIPAddress().str();
+
 
     EV_INFO << "Sending Route Reply to " << destAddr << endl;
 
@@ -785,6 +783,7 @@ void AODVLDRouting::handleRREP(AODVLDRREP *rrep, const L3Address& sourceAddr)
     }
     else {
             updateRoutingTable(destRoute, sourceAddr, newHopCount, true, destSeqNum, true, simTime() + lifeTime, simTime() + newResidualRouteLifetime);
+            if(rrep->getOriginatorSeqNum()== sequenceNum){
             RREP_Arrival_timestamp =simTime();
             double interRREQRREPTime_timestamp= simTime().dbl()-RREQsent.dbl();
             numHops= newHopCount;
@@ -795,7 +794,7 @@ void AODVLDRouting::handleRREP(AODVLDRREP *rrep, const L3Address& sourceAddr)
             emit(interRREQRREPTime,&tmp1);
             cTimestampedValue tmp2(RREP_Arrival_timestamp, (double)numHops);
             emit(numFinalHops,&tmp2);
-
+            }
         if (hasOngoingRouteDiscovery(rrep->getDestAddr())) {
             EV_INFO << "The Route Reply has arrived for our Route Request to node " << rrep->getDestAddr() << endl;
             completeRouteDiscovery(rrep->getDestAddr());
