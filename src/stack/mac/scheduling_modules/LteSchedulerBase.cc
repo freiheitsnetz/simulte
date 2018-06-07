@@ -209,6 +209,7 @@ Direction LteSchedulerBase::getDirection(const MacCid& connection) {
 		dir = (MacCidToLcid(connection) == D2D_SHORT_BSR) ? D2D : (MacCidToLcid(connection) == D2D_MULTI_SHORT_BSR) ? D2D_MULTI : UL;
 	else
 		dir = DL;
+
 	return dir;
 }
 

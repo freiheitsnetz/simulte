@@ -63,6 +63,13 @@ void Oracle::configure() {
     }
 }
 
+void Oracle::finish() {
+	cout << "FINIIIISH" << endl;
+	for (std::pair<std::string, unsigned long> scalarPair : scalarVec)
+		recordScalar(scalarPair.first.c_str(), scalarPair.second);
+	cSimpleModule::finish();
+}
+
 void Oracle::handleMessage(cMessage *msg) {
     EV << "Oracle::handleMessage" << std::endl;
     if (msg == &configMessage) {
@@ -365,6 +372,14 @@ std::string Oracle::stackelberg_getLeaderScheduler() const {
     return par("stackelberg_scheduleLeaders").stringValue();
 }
 
+std::string Oracle::stackelberg_getFollowerScheduler() const {
+	return par("stackelberg_scheduleFollowers").stringValue();
+}
+
+bool Oracle::stackelberg_shouldSetTxPower() const {
+	return par("stackelberg_setTxPower").boolValue();
+}
+
 MacNodeId Oracle::getTransmissionPartner(const MacNodeId id) const {
 	string appName = getApplicationName(id);
 	if (appName == string("inet::UDPBasicApp")) {
@@ -412,6 +427,51 @@ MacNodeId Oracle::getTransmissionPartner(const MacNodeId id) const {
         } catch (const exception& e) {
             throw invalid_argument("Oracle::getTransmissionPartner couldn't find partner for '" + getName(id) + "'.");
         }
+	} else if (appName == string("VoIPReceiver")) {
+		string targetName = getName(id);
+		string from = "Rx", to = "Tx";
+		size_t start_pos = targetName.find(from);
+		targetName.replace(start_pos, from.length(), to);
+
+		std::vector<UeInfo*>* ueList = getBinder()->getUeList();
+		for (auto iterator = ueList->begin(); iterator != ueList->end(); iterator++) {
+			const UeInfo* partnerInfo = *iterator;
+			MacNodeId partnerId = partnerInfo->id;
+			string partnerName = getName(partnerId);			;
+			if (partnerName == targetName) {
+				return partnerId;
+			}
+		}
+	} else if (appName == string("inet::UDPVideoStreamSvr")) {
+		string targetName = getName(id);
+		string from = "Tx", to = "Rx";
+		size_t start_pos = targetName.find(from);
+		targetName.replace(start_pos, from.length(), to);
+
+		std::vector<UeInfo*>* ueList = getBinder()->getUeList();
+		for (auto iterator = ueList->begin(); iterator != ueList->end(); iterator++) {
+			const UeInfo* partnerInfo = *iterator;
+			MacNodeId partnerId = partnerInfo->id;
+			string partnerName = getName(partnerId);			;
+			if (partnerName == targetName) {
+				return partnerId;
+			}
+		}
+	} else if (appName == string("inet::UDPVideoStreamCli")) {
+		string targetName = getName(id);
+		string from = "Rx", to = "Tx";
+		size_t start_pos = targetName.find(from);
+		targetName.replace(start_pos, from.length(), to);
+
+		std::vector<UeInfo*>* ueList = getBinder()->getUeList();
+		for (auto iterator = ueList->begin(); iterator != ueList->end(); iterator++) {
+			const UeInfo* partnerInfo = *iterator;
+			MacNodeId partnerId = partnerInfo->id;
+			string partnerName = getName(partnerId);			;
+			if (partnerName == targetName) {
+				return partnerId;
+			}
+		}
 	}
 
 	throw invalid_argument("Oracle::getTransmissionPartner doesn't support '" + getName(id) + "' with app '" + appName + "'.");
@@ -429,6 +489,18 @@ void Oracle::setUETxPower(MacNodeId id, bool d2d, double power_dBm) {
     } catch (const exception& e) {
         throw runtime_error("Oracle::setUETxPower(" + to_string(id) + ", " + to_string(d2d) + ", " + to_string(power_dBm) + ") error: " + string(e.what()));
     }
+}
+
+void Oracle::scalar(std::string name, unsigned long value) {
+	for (size_t i = 0; i < scalarVec.size(); i++) {
+		std::pair<std::string, unsigned long>& current = scalarVec.at(i);
+		if (current.first == name) {
+			current.second = value;
+			scalarVec.at(i) = current;
+			return;
+		}
+	}
+	scalarVec.push_back(std::pair<std::string, unsigned long>(name, value));
 }
 
 //unsigned int Oracle::getAverageBytesPerBlock(const MacCid& connection) {

@@ -32,6 +32,8 @@ public:
         return SINGLETON;
     }
 
+    void finish() override;
+
     /**
      * @return Maximum simulation time.
      */
@@ -72,7 +74,7 @@ public:
     double getDistance(inet::Coord from, inet::Coord to) const;
 
     /**
-     * @return The node's transmission power in the specified direction in dB.
+     * @return The node's transmission power in the specified direction in dBm.
      */
     double getTxPower(const MacNodeId id, Direction dir) const;
 
@@ -111,6 +113,8 @@ public:
     double stackelberg_getBeta() const;
     double stackelberg_getDelta() const;
     std::string stackelberg_getLeaderScheduler() const;
+    std::string stackelberg_getFollowerScheduler() const;
+    bool stackelberg_shouldSetTxPower() const;
 
     /**
      * @return Linear channel gain where fading is averaged over all resource blocks in 'resources'.
@@ -131,11 +135,15 @@ public:
 
     /**
      * @param d2d Whether to set the D2D transmission power or not.
+     * @param power_dBm in dBm.
      */
     void setUETxPower(MacNodeId id, bool d2d, double power_dBm);
 
+    void scalar(std::string name, unsigned long value);
+
 protected:
     double maxSimTime = 0.0;
+    std::vector<std::pair<std::string, unsigned long>> scalarVec;
 
     void initialize() override;
 

@@ -19,6 +19,8 @@ LteModdedStackelbergGame::LteModdedStackelbergGame() {
     // Only supports TU game for leader scheduling.
     scheduler_tu = new LteTUGame();
     scheduler_tu->setD2DPenalty(Oracle::get()->getD2DPenalty());
+    scheduler_tu->getRBsRequired = [&](const MacCid& connection, const unsigned int& numBytes) {return getRBDemand(connection, numBytes);};
+	scheduler_tu->getBytesOnBandFunc = [&](const MacNodeId& nodeId, const Band& band, const unsigned int& numBlocks, const Direction& dir) {return getBytesOnBand(nodeId, band, numBlocks, dir);};
     scheduleLeaders = [this](const std::set<MacCid>& connections) {
         std::map<unsigned short, const TUGameUser*> map = this->scheduler_tu->getSchedulingMap(connections);
         std::map<MacCid, std::vector<Band>> convertedMap;
@@ -29,11 +31,15 @@ LteModdedStackelbergGame::LteModdedStackelbergGame() {
         }
         return convertedMap;
     };
+
+    cout << "Running modded Stackelberg scheduler." << endl;
 }
 
 LteModdedStackelbergGame::~LteModdedStackelbergGame() {
     delete scheduler_tu;
     scheduler_tu = nullptr; // This is important because LteStackelberg's destructor will delete this again.
+
+//    cout << "numTraditionalGames=" << numCellD2DGames << " numReverseGames=" << numD2DCellGames << " numD2DGames=" << numD2DD2DGames << endl;
 }
 
 void LteModdedStackelbergGame::schedule(std::set<MacCid>& connections) {
@@ -50,16 +56,21 @@ void LteModdedStackelbergGame::schedule(std::set<MacCid>& connections) {
     vector<StackelbergUser*> leaders, followers;
     for (const User* user : getUserManager().getActiveUsers()) {
         const MacCid& connection = user->getConnectionId();
+        StackelbergUser* stackeluser = new StackelbergUser(*user);
+        stackeluser->setTxPower(defaultTxPower);
+		Oracle::get()->setUETxPower(stackeluser->getNodeId(), stackeluser->isD2D(), defaultTxPower);
         // Not present in scheduling map? Then it's a follower.
         if (schedulingMap_tu.find(connection) == schedulingMap_tu.end()) {
-            followers.push_back(new StackelbergUser(*user));
+            followers.push_back(stackeluser);
         } else {
             const vector<Band>& resources = schedulingMap_tu.at(connection);
             // Didn't get any resources? Follower.
             if (resources.empty()) {
-                followers.push_back(new StackelbergUser(*user));
+                followers.push_back(stackeluser);
             } else { // Did get resources -> leader.
-                leaders.push_back(new StackelbergUser(*user));
+                leaders.push_back(stackeluser);
+                for (const Band& resource : resources)
+                	scheduleUeReuse(stackeluser->getConnectionId(), resource);
             }
         }
     }
@@ -96,6 +107,15 @@ void LteModdedStackelbergGame::schedule(std::set<MacCid>& connections) {
             const StackelbergUser* follower = (*iterator).second;
             const vector<Band>& resources = schedulingMap_tu[leader->getConnectionId()];
             if (!resources.empty()) {
+            	// Remember which type of game was played.
+            	if (!leader->isD2D() && follower->isD2D())
+            		numCellD2DGames++;
+            	else if (leader->isD2D() && !follower->isD2D())
+            		numD2DCellGames++;
+            	else if (leader->isD2D() && follower->isD2D())
+            		numD2DD2DGames++;
+            	else
+            		throw logic_error("A Stackelberg Game between two cellular users was played?!");
                 double txPower_linear = follower->getTxPower();
                 double txPower_dBm = linearToDBm(txPower_linear / 1000);
                 Oracle::get()->setUETxPower(follower->getNodeId(), follower->isD2D(), txPower_dBm);
@@ -117,4 +137,8 @@ void LteModdedStackelbergGame::schedule(std::set<MacCid>& connections) {
     for (size_t i = 0; i < followers.size(); i++)
         delete followers.at(i);
     followers.clear();
+
+    Oracle::get()->scalar("numCellD2DGames", numCellD2DGames);
+	Oracle::get()->scalar("numD2DCellGames", numD2DCellGames);
+	Oracle::get()->scalar("numD2DD2DGames", numD2DD2DGames);
 }
