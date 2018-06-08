@@ -64,7 +64,6 @@ void Oracle::configure() {
 }
 
 void Oracle::finish() {
-	cout << "FINIIIISH" << endl;
 	for (std::pair<std::string, unsigned long> scalarPair : scalarVec)
 		recordScalar(scalarPair.first.c_str(), scalarPair.second);
 	cSimpleModule::finish();

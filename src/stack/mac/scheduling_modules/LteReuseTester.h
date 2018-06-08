@@ -24,7 +24,21 @@ public:
 				scheduleUeReuse(connection, band);
 			}
 		}
+
+		vector<User*> users = userManager.getUsers();
+		MacNodeId senderId = 1025, receiverId = 1035;
+		vector<double> sinr = Oracle::get()->getSINR(senderId, receiverId);
+		double sinrMean = 0.0;
+		for (size_t i = 0; i < sinr.size(); i++)
+		    sinrMean += sinr.at(i);
+		sinrMean /= sinr.size();
+		totalSinrMean += sinrMean;
+		sinrsCollected++;
+		Oracle::get()->scalar("SINR", totalSinrMean / sinrsCollected);
 	}
+
+	double totalSinrMean = 0;
+	unsigned long sinrsCollected = 0;
 };
 
 
