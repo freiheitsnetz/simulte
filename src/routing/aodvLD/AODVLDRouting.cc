@@ -52,6 +52,7 @@
 #include "inet/transportlayer/contract/udp/UDPControlInfo.h"
 #include "inet/common/ModuleAccess.h"
 #include "inet/common/lifecycle/NodeOperations.h"
+#include "L3AddressResolver.h"
 
 //Delete after debuggin
 //#include <iostream>
@@ -100,22 +101,22 @@ void AODVLDRouting::initialize(int stage)
         netTraversalTime = par("netTraversalTime");
         nextHopWait = par("nextHopWait");
         pathDiscoveryTime = par("pathDiscoveryTime");
-        RREQCollectionTime = par("RREQCollectionTime");
-        //multicastAddress.tryParse(par("multicastAddress").stringValue());
+        DestinationAddress =L3AddressResolver().resolve(par("DestinationAddress").stringValue());
+
 
         //statistics
         WATCH(firstRREPArrives);
         WATCH(numHops);
 
         numRREQsent = registerSignal("numRREQsent");
-        RouteNeededButNotExistent = registerSignal("RouteNeededButNotExistent");
+        routeAvailability = registerSignal("routeAvailability");
         interRREQRREPTime = registerSignal("interRREQRREPTime");
         numFinalHops = registerSignal("numFinalHops");
         numRREQForwarded=registerSignal("numRREQForwarded");
         numSentRERR=registerSignal("numSentRERR");
         numReceivedRERR=registerSignal("numReceivedRERR");
         interRREPRouteDiscoveryTime=registerSignal("interRREPRouteDiscoveryTime");
-
+        newSeqNum=registerSignal("newSeqNum");
 
 
 
@@ -149,7 +150,8 @@ void AODVLDRouting::initialize(int stage)
         counterTimer = new cMessage("CounterTimer");
         rrepAckTimer = new cMessage("RREPACKTimer");
         blacklistTimer = new cMessage("BlackListTimer");
-
+        updateTimer = new cMessage("updateTimer");
+        scheduleAt(simTime() + 0.1, updateTimer);
 
         if (isOperational)
             scheduleAt(simTime() + 1, counterTimer);
@@ -184,6 +186,22 @@ void AODVLDRouting::handleMessage(cMessage *msg)
             handleBlackListTimer();
         else if (dynamic_cast<WaitForRREQ *>(msg))
             handleRREQ((WaitForRREQ *)msg);
+        else if (msg ==updateTimer){
+            std::string temp= DestinationAddress.str();
+            L3Address tmp = routingTable->getNextHopForDestination(DestinationAddress);
+            simtime_t timestamp=simTime();
+            scheduleAt(simTime() + 0.1, updateTimer);
+            if(tmp.isUnspecified()){
+            cTimestampedValue tmp(timestamp, 0.0);
+            emit(routeAvailability,&tmp);
+            }
+            else{
+            cTimestampedValue tmp(timestamp, 1.0);
+            emit(routeAvailability,&tmp);
+        }
+
+
+        }
 
         else
             throw cRuntimeError("Unknown self message");
@@ -265,10 +283,7 @@ INetfilter::IHook::Result AODVLDRouting::ensureRouteForDatagram(INetworkDatagram
                 // (e.g., upon route loss), the TTL in the RREQ IP header is initially
                 // set to the Hop Count plus TTL_INCREMENT.
 
-                /*For statistics: This will be called at the beginning and after route fail*/
-                simtime_t timestamp=simTime();
-                cTimestampedValue tmp(timestamp, 1.0);
-                emit(RouteNeededButNotExistent,&tmp);
+
 
                 if (isInactive)
                     startRouteDiscovery(destAddr, route->getMetric() + ttlIncrement);
@@ -308,6 +323,8 @@ void AODVLDRouting::startRouteDiscovery(const L3Address& target, unsigned timeTo
 
     RREQsent= simTime();
     sendRREQ(rreq, addressType->getBroadcastAddress(), timeToLive);
+
+
 }
 
 L3Address AODVLDRouting::getSelfIPAddress() const
@@ -451,6 +468,9 @@ AODVLDRREQ *AODVLDRouting::createRREQ(const L3Address& destAddr)
     // node's own sequence number, which is incremented prior to
     // insertion in a RREQ.
     sequenceNum++;
+    simtime_t timestamp=simTime();
+    cTimestampedValue tmp(timestamp, 0.0);
+    emit(interRREQRREPTime,&tmp);
 
     rreqPacket->setOriginatorSeqNum(sequenceNum);
 
@@ -520,8 +540,14 @@ AODVLDRREP *AODVLDRouting::createRREP(AODVLDRREQ *rreq, IRoute *destRoute, IRout
         // its own sequence number by one if the sequence number in the RREQ
         // packet is equal to that incremented value.
 
-        if (!rreq->getUnknownSeqNumFlag() && sequenceNum + 1 == rreq->getDestSeqNum())
+        if (!rreq->getUnknownSeqNumFlag() && sequenceNum + 1 == rreq->getDestSeqNum()){
             sequenceNum++;
+            simtime_t timestamp=simTime();
+            cTimestampedValue tmp(timestamp, 0.0);
+            emit(interRREQRREPTime,&tmp);
+
+        }
+
 
         // The destination node places its (perhaps newly incremented)
         // sequence number into the Destination Sequence Number field of

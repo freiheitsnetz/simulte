@@ -81,11 +81,12 @@ simple AODVRoutingLTE
         double netTraversalTime @unit("s") = default(2 * nodeTraversalTime * netDiameter); // an estimation of the traversal time for the complete network
         double nextHopWait @unit("s") = default(nodeTraversalTime + 0.01s); // timeout for a RREP-ACK
         double pathDiscoveryTime @unit("s") = default(2 * netTraversalTime); // buffer timeout for each broadcasted RREQ message
+        string DestinationAddress = default("10.0.3.3"); //Destination of VOIPpackets, to measure if route is there or not
         
         @signal[numRREQsent];
         @statistic[numRREQsent](title="numRREQsent"; record=vector);
-        @signal[RouteNeededButNotExistent]; //Finds Route fails
-        @statistic[RouteNeededButNotExistent](title="RouteNeededButNotExistent"; record=vector);
+        @signal[routeAvailability]; //Finds Route fails
+        @statistic[routeAvailability](title="routeAvailability"; record=vector);
         @signal[interRREPRouteDiscoveryTime]; //From last RREP to next route discovery (Route Duration)
         @statistic[interRREPRouteDiscoveryTime](title="interRREPRouteDiscoveryTime"; record=vector);
         
@@ -99,6 +100,8 @@ simple AODVRoutingLTE
         @statistic[numSentRERR](title="numSentRERR"; record=vector);
         @signal[numReceivedRERR];//numHop of final routes
         @statistic[numReceivedRERR](title="numReceivedRERR"; record=vector);
+        @signal[ newSeqNum];//numHop of final routes
+        @statistic[ newSeqNum](title=" newSeqNum"; record=vector);
     gates:
         input ipIn;
         output ipOut;

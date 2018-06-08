@@ -110,13 +110,14 @@ class INET_API AODVRoutingLTE : public cSimpleModule, public ILifecycle, public 
     //statistics
 
     simsignal_t numRREQsent;
-    simsignal_t RouteNeededButNotExistent;
+    simsignal_t routeAvailability;
     simsignal_t interRREQRREPTime;
     simsignal_t interRREPRouteDiscoveryTime;
     simsignal_t numFinalHops;
     simsignal_t numRREQForwarded;
     simsignal_t numSentRERR;
     simsignal_t numReceivedRERR;
+    simsignal_t newSeqNum;
 
     double firstRREPArrives;
     simtime_t RREQsent;
@@ -133,6 +134,7 @@ class INET_API AODVRoutingLTE : public cSimpleModule, public ILifecycle, public 
     unsigned int rreqCount = 0;    // num of originated RREQ in the last second
     simtime_t lastBroadcastTime;    // the last time when any control packet was broadcasted
     std::map<L3Address, unsigned int> addressToRreqRetries;    // number of re-discovery attempts per address
+    L3Address DestinationAddress;
 
     // self messages
     cMessage *helloMsgTimer = nullptr;    // timer to send hello messages (only if the feature is enabled)
@@ -140,7 +142,7 @@ class INET_API AODVRoutingLTE : public cSimpleModule, public ILifecycle, public 
     cMessage *counterTimer = nullptr;    // timer to set rrerCount = rreqCount = 0 in each second
     cMessage *rrepAckTimer = nullptr;    // timer to wait for RREP-ACKs (RREP-ACK timeout)
     cMessage *blacklistTimer = nullptr;    // timer to clean the blacklist out
-
+    cMessage *updateTimer = nullptr; // Statistics: Used for timetamp, if route is there or not to DestinationAddress
     // lifecycle
     simtime_t rebootTime;    // the last time when the node rebooted
     bool isOperational = false;

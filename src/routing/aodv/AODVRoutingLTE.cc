@@ -48,6 +48,7 @@
 #include "inet/transportlayer/contract/udp/UDPControlInfo.h"
 #include "inet/common/ModuleAccess.h"
 #include "inet/common/lifecycle/NodeOperations.h"
+#include "L3AddressResolver.h"
 
 namespace inet {
 
@@ -90,19 +91,21 @@ void AODVRoutingLTE::initialize(int stage)
         netTraversalTime = par("netTraversalTime");
         nextHopWait = par("nextHopWait");
         pathDiscoveryTime = par("pathDiscoveryTime");
+        DestinationAddress =L3AddressResolver().resolve(par("DestinationAddress").stringValue());
 
         //statistics
         WATCH(firstRREPArrives);
         WATCH(numHops);
 
         numRREQsent = registerSignal("numRREQsent");
-        RouteNeededButNotExistent = registerSignal("RouteNeededButNotExistent");
+        routeAvailability = registerSignal("routeAvailability");
         interRREQRREPTime = registerSignal("interRREQRREPTime");
         numFinalHops = registerSignal("numFinalHops");
         numRREQForwarded=registerSignal("numRREQForwarded");
         numSentRERR=registerSignal("numSentRERR");
         numReceivedRERR=registerSignal("numReceivedRERR");
         interRREPRouteDiscoveryTime=registerSignal("interRREPRouteDiscoveryTime");
+        newSeqNum=registerSignal("newSeqNum");
 
     }
     else if (stage == INITSTAGE_ROUTING_PROTOCOLS) {
@@ -130,6 +133,8 @@ void AODVRoutingLTE::initialize(int stage)
         counterTimer = new cMessage("CounterTimer");
         rrepAckTimer = new cMessage("RREPACKTimer");
         blacklistTimer = new cMessage("BlackListTimer");
+        updateTimer = new cMessage("updateTimer");
+        scheduleAt(simTime() + 0.1, updateTimer);
 
         if (isOperational)
             scheduleAt(simTime() + 1, counterTimer);
@@ -162,6 +167,24 @@ void AODVRoutingLTE::handleMessage(cMessage *msg)
             handleRREPACKTimer();
         else if (msg == blacklistTimer)
             handleBlackListTimer();
+
+        else if (msg ==updateTimer){
+                    std::string temp= DestinationAddress.str();
+                    L3Address tmp = routingTable->getNextHopForDestination(DestinationAddress);
+                    simtime_t timestamp=simTime();
+                    scheduleAt(simTime() + 0.1, updateTimer);
+                    if(tmp.isUnspecified()){
+                    cTimestampedValue tmp(timestamp, 0.0);
+                    emit(routeAvailability,&tmp);
+                    }
+                    else{
+                    cTimestampedValue tmp(timestamp, 1.0);
+                    emit(routeAvailability,&tmp);
+                }
+
+
+                }
+
         else
             throw cRuntimeError("Unknown self message");
     }
@@ -242,9 +265,6 @@ INetfilter::IHook::Result AODVRoutingLTE::ensureRouteForDatagram(INetworkDatagra
                 // (e.g., upon route loss), the TTL in the RREQ IP header is initially
                 // set to the Hop Count plus TTL_INCREMENT.
 
-                simtime_t timestamp=simTime();
-                cTimestampedValue tmp(timestamp, 1.0);
-                emit(RouteNeededButNotExistent,&tmp);
 
 
                 if (isInactive)
@@ -421,6 +441,9 @@ AODVRREQ *AODVRoutingLTE::createRREQ(const L3Address& destAddr)
     // node's own sequence number, which is incremented prior to
     // insertion in a RREQ.
     sequenceNum++;
+    simtime_t timestamp=simTime();
+    cTimestampedValue tmp(timestamp, 0.0);
+    emit(interRREQRREPTime,&tmp);
 
     rreqPacket->setOriginatorSeqNum(sequenceNum);
 
@@ -491,6 +514,9 @@ AODVRREP *AODVRoutingLTE::createRREP(AODVRREQ *rreq, IRoute *destRoute, IRoute *
 
         if (!rreq->getUnknownSeqNumFlag() && sequenceNum + 1 == rreq->getDestSeqNum())
             sequenceNum++;
+        simtime_t timestamp=simTime();
+        cTimestampedValue tmp(timestamp, 0.0);
+        emit(interRREQRREPTime,&tmp);
 
         // The destination node places its (perhaps newly incremented)
         // sequence number into the Destination Sequence Number field of
@@ -728,22 +754,27 @@ void AODVRoutingLTE::handleRREP(AODVRREP *rrep, const L3Address& sourceAddr)
             EV_ERROR << "Reverse route doesn't exist. Dropping the RREP message" << endl;
     }
     else {
-        if (hasOngoingRouteDiscovery(rrep->getDestAddr())) {
-            EV_INFO << "The Route Reply has arrived for our Route Request to node " << rrep->getDestAddr() << endl;
-            updateRoutingTable(destRoute, sourceAddr, newHopCount, true, destSeqNum, true, simTime() + lifeTime);
-            double interRREQRREPTime_timestamp= simTime().dbl()-RREQsent.dbl();
-            RREP_Arrival_timestamp =simTime();
-            numHops= newHopCount;
+                updateRoutingTable(destRoute, sourceAddr, newHopCount, true, destSeqNum, true, simTime() + lifeTime);
+                if(rrep->getOriginatorSeqNum()== sequenceNum){
+                RREP_Arrival_timestamp =simTime();
+                double interRREQRREPTime_timestamp= simTime().dbl()-RREQsent.dbl();
+                numHops= newHopCount;
 
 
 
-            cTimestampedValue tmp1(RREP_Arrival_timestamp, interRREQRREPTime_timestamp);
-            emit(interRREQRREPTime,&tmp1);
-            cTimestampedValue tmp2(RREP_Arrival_timestamp, (double)numHops);
-            emit(numFinalHops,&tmp2);
-            completeRouteDiscovery(rrep->getDestAddr());
+                cTimestampedValue tmp1(RREP_Arrival_timestamp, interRREQRREPTime_timestamp);
+                emit(interRREQRREPTime,&tmp1);
+                cTimestampedValue tmp2(RREP_Arrival_timestamp, (double)numHops);
+                emit(numFinalHops,&tmp2);
+                }
+            if (hasOngoingRouteDiscovery(rrep->getDestAddr())) {
+                EV_INFO << "The Route Reply has arrived for our Route Request to node " << rrep->getDestAddr() << endl;
+                completeRouteDiscovery(rrep->getDestAddr());
+
+
+            }
         }
-    }
+
 
     delete rrep;
 }

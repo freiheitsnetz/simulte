@@ -135,13 +135,14 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     //statistics
 
     simsignal_t numRREQsent;
-    simsignal_t RouteNeededButNotExistent;
+    simsignal_t routeAvailability;
     simsignal_t interRREQRREPTime;
     simsignal_t interRREPRouteDiscoveryTime;
     simsignal_t numFinalHops;
     simsignal_t numRREQForwarded;
     simsignal_t numSentRERR;
     simsignal_t numReceivedRERR;
+    simsignal_t newSeqNum;
 
 
 
@@ -157,6 +158,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     unsigned int rreqCount = 0;    // num of originated RREQ in the last second
     simtime_t lastBroadcastTime;    // the last time when any control packet was broadcasted
     std::map<L3Address, unsigned int> addressToRreqRetries;    // number of re-discovery attempts per address
+    L3Address DestinationAddress;
 
 
     std::map<const RREQIdentifier,std::pair<RREQAdditionalInfo,AODVLDRREQ*>,RREQIdentifierCompare>CurrentBestRREQ; // the current best rreq to transmit again from a certain originator
@@ -167,6 +169,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     cMessage *counterTimer = nullptr;    // timer to set rrerCount = rreqCount = 0 in each second
     cMessage *rrepAckTimer = nullptr;    // timer to wait for RREP-ACKs (RREP-ACK timeout)
     cMessage *blacklistTimer = nullptr;    // timer to clean the blacklist out
+    cMessage *updateTimer = nullptr; // Statistics: Used for timetamp, if route is there or not to DestinationAddress
     std::vector<WaitForRREQ *>rreqcollectionTimer;
        // lifecycle
     simtime_t rebootTime;    // the last time when the node rebooted
