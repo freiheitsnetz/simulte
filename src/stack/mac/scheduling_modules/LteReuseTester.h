@@ -26,19 +26,22 @@ public:
 		}
 
 		vector<User*> users = userManager.getUsers();
-		MacNodeId senderId = 1025, receiverId = 1035;
-		vector<double> sinr = Oracle::get()->getSINR(senderId, receiverId);
-		double sinrMean = 0.0;
-		for (size_t i = 0; i < sinr.size(); i++)
-		    sinrMean += sinr.at(i);
-		sinrMean /= sinr.size();
-		totalSinrMean += sinrMean;
-		sinrsCollected++;
-		Oracle::get()->scalar("SINR", totalSinrMean / sinrsCollected);
+		MacNodeId senderId = 1025, receiverId = 1027;
+		vector<double> interferenceVec = Oracle::get()->getInCellInterference(senderId, receiverId);
+		double intMean = 0.0;
+		for (size_t i = 0; i < interferenceVec.size(); i++)
+		    intMean  += interferenceVec.at(i);
+		if (intMean > 0.0) {
+            intMean /= interferenceVec.size();
+            totalIntMean += intMean;
+            intsCollected++;
+            Oracle::get()->scalarDouble("Interference", totalIntMean / ((double) intsCollected));
+            cout << "int(" << Oracle::get()->getName(senderId) << ", " << Oracle::get()->getName(receiverId) << ") = " << totalIntMean / intsCollected << endl;
+		}
 	}
 
-	double totalSinrMean = 0;
-	unsigned long sinrsCollected = 0;
+	double totalIntMean = 0;
+	unsigned long intsCollected = 0;
 };
 
 
