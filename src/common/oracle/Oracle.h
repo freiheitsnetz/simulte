@@ -24,9 +24,7 @@ public:
     Oracle() : configMessage("Oracle::config") {
         Oracle::SINGLETON = this;
     }
-    virtual ~Oracle() {
-        std::cout << "oracle destr" << std::endl;
-    }
+    virtual ~Oracle();
 
     static Oracle* get() {
         return SINGLETON;
@@ -82,6 +80,8 @@ public:
      * @return Signal-to-Interference+Noise-Ratio per resource.
      */
     std::vector<double> getSINR(const MacNodeId from, const MacNodeId to) const;
+
+    std::vector<double> getInCellInterference(const MacNodeId from, const MacNodeId to) const;
 
     /**
      * @return Path attenuation between 'from' and 'to'.
@@ -140,10 +140,12 @@ public:
     void setUETxPower(MacNodeId id, bool d2d, double power_dBm);
 
     void scalar(std::string name, unsigned long value);
+    void scalarDouble(std::string name, double value);
 
 protected:
     double maxSimTime = 0.0;
     std::vector<std::pair<std::string, unsigned long>> scalarVec;
+    std::vector<std::pair<std::string, double>> scalarDoubleVec;
 
     void initialize() override;
 

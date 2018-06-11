@@ -15,6 +15,11 @@ void Oracle::initialize() {
     scheduleAt(0.05, &configMessage);
 }
 
+Oracle::~Oracle() {
+    if (configMessage.isScheduled())
+        cancelEvent(&configMessage);
+}
+
 /**
  * Final configuration at some time point when other network devices are deployed and accessible.
  */
@@ -66,6 +71,8 @@ void Oracle::configure() {
 void Oracle::finish() {
 	for (std::pair<std::string, unsigned long> scalarPair : scalarVec)
 		recordScalar(scalarPair.first.c_str(), scalarPair.second);
+	for (std::pair<std::string, double> scalarPair : scalarDoubleVec)
+	        recordScalar(scalarPair.first.c_str(), scalarPair.second);
 	cSimpleModule::finish();
 }
 
@@ -206,6 +213,14 @@ std::vector<double> Oracle::getSINR(const MacNodeId from, const MacNodeId to) co
     uinfo.setD2dTxPower(getTxPower(from, Direction::D2D));
     LteRealisticChannelModel* channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(from)->getChannelModel());
     return channelModel->getSINR_D2D(&frame, &uinfo, to, getPosition(to), getEnodeBID());
+}
+
+std::vector<double> Oracle::getInCellInterference(const MacNodeId from, const MacNodeId to) const {
+    std::vector<double> interferenceVec;
+    interferenceVec.resize(getNumRBs(), 0);
+    LteRealisticChannelModel* channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(from)->getChannelModel());
+    channelModel->computeInCellD2DInterference(getEnodeBID(), from, getPosition(from), to, getPosition(to), false, &interferenceVec, determineDirection(from, to));
+    return interferenceVec;
 }
 
 double Oracle::getChannelGain(MacNodeId from, MacNodeId to, vector<Band> resources) const {
@@ -500,6 +515,18 @@ void Oracle::scalar(std::string name, unsigned long value) {
 		}
 	}
 	scalarVec.push_back(std::pair<std::string, unsigned long>(name, value));
+}
+
+void Oracle::scalarDouble(std::string name, double value) {
+    for (size_t i = 0; i < scalarDoubleVec.size(); i++) {
+        std::pair<std::string, double>& current = scalarDoubleVec.at(i);
+        if (current.first == name) {
+            current.second = value;
+            scalarDoubleVec.at(i) = current;
+            return;
+        }
+    }
+    scalarDoubleVec.push_back(std::pair<std::string, double>(name, value));
 }
 
 //unsigned int Oracle::getAverageBytesPerBlock(const MacCid& connection) {
