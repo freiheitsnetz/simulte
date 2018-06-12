@@ -101,6 +101,9 @@ void AODVLDRouting::initialize(int stage)
         netTraversalTime = par("netTraversalTime");
         nextHopWait = par("nextHopWait");
         pathDiscoveryTime = par("pathDiscoveryTime");
+        RREQCollectionTimeMin = par("RREQCollectionTimeMin");
+        RREQCollectionTimeMax = par("RREQCollectionTimeMax");
+        RREQTimerHopDependeny =par("RREQTimerHopDependeny").boolValue();
         DestinationAddress =L3AddressResolver().resolve(par("DestinationAddress").stringValue());
 
 
@@ -117,6 +120,7 @@ void AODVLDRouting::initialize(int stage)
         numReceivedRERR=registerSignal("numReceivedRERR");
         interRREPRouteDiscoveryTime=registerSignal("interRREPRouteDiscoveryTime");
         newSeqNum=registerSignal("newSeqNum");
+        theoreticalRL=registerSignal("theoreticalRL");
 
 
 
@@ -188,7 +192,7 @@ void AODVLDRouting::handleMessage(cMessage *msg)
             handleRREQ((WaitForRREQ *)msg);
         else if (msg ==updateTimer){
             std::string temp= DestinationAddress.str();
-            L3Address tmp = routingTable->getNextHopForDestination(DestinationAddress);
+            /*L3Address tmp = routingTable->getNextHopForDestination(DestinationAddress);
             simtime_t timestamp=simTime();
             scheduleAt(simTime() + 0.1, updateTimer);
             if(tmp.isUnspecified()){
@@ -199,10 +203,33 @@ void AODVLDRouting::handleMessage(cMessage *msg)
             cTimestampedValue tmp(timestamp, 1.0);
             emit(routeAvailability,&tmp);
         }
+        */
+            IRoute* temproute=routingTable->findBestMatchingRoute(DestinationAddress);
 
+            AODVLDRouteData *tempdata = temproute? dynamic_cast<AODVLDRouteData *>(temproute->getProtocolData()) : nullptr;
+            if(tempdata!=nullptr){
+            simtime_t timestamp=simTime();
+
+            scheduleAt(simTime() + 0.1, updateTimer);
+
+            if(tempdata->isActive()){
+            cTimestampedValue tmp(timestamp, 1.0);
+            emit(routeAvailability,&tmp);
+            }
+            else{
+            cTimestampedValue tmp(timestamp, 0.0);
+            emit(routeAvailability,&tmp);
+        }
 
         }
 
+        else{
+            simtime_t timestamp=simTime();
+            cTimestampedValue tmp(timestamp, 0.0);
+            emit(routeAvailability,&tmp);
+            scheduleAt(simTime() + 0.1, updateTimer);
+        }
+        }
         else
             throw cRuntimeError("Unknown self message");
     }
@@ -820,6 +847,8 @@ void AODVLDRouting::handleRREP(AODVLDRREP *rrep, const L3Address& sourceAddr)
             emit(interRREQRREPTime,&tmp1);
             cTimestampedValue tmp2(RREP_Arrival_timestamp, (double)numHops);
             emit(numFinalHops,&tmp2);
+            cTimestampedValue tmp3(RREP_Arrival_timestamp, (double)rrep->getResidualRouteLifetime().dbl());
+            emit(theoreticalRL,&tmp3);
             }
         if (hasOngoingRouteDiscovery(rrep->getDestAddr())) {
             EV_INFO << "The Route Reply has arrived for our Route Request to node " << rrep->getDestAddr() << endl;
@@ -1006,7 +1035,18 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
                      rreqcollectionTimer.push_back(new WaitForRREQ("RREQCollectionTimer"));
                      rreqcollectionTimer.back()->setOriginatorAddr(rreq->getOriginatorAddr());
                      rreqcollectionTimer.back()->setRreqID(rreq->getRreqId());
-                     scheduleAt(simTime()+RREQCollectionTime,rreqcollectionTimer.back());
+                     if(RREQCollectionTimeMin==RREQCollectionTimeMax){
+                         if(RREQTimerHopDependeny)
+                             scheduleAt(simTime()+RREQCollectionTimeMin*rreq->getHopCount(),rreqcollectionTimer.back());
+                         else
+                             scheduleAt(simTime()+RREQCollectionTimeMin,rreqcollectionTimer.back());
+                     }
+                     else{
+                         if(RREQTimerHopDependeny)
+                             scheduleAt(simTime()+uniform(RREQCollectionTimeMin*rreq->getHopCount(),RREQCollectionTimeMax*rreq->getHopCount()),rreqcollectionTimer.back());
+                         else
+                             scheduleAt(simTime()+uniform(RREQCollectionTimeMin,RREQCollectionTimeMax),rreqcollectionTimer.back());
+                     }
                     }
                 }
         else if(!previouslyTransmitted && !currentBestExistend){
@@ -1024,7 +1064,18 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
                      rreqcollectionTimer.push_back(new WaitForRREQ("RREQCollectionTimer"));
                      rreqcollectionTimer.back()->setOriginatorAddr(rreq->getOriginatorAddr());
                      rreqcollectionTimer.back()->setRreqID(rreq->getRreqId());
-                     scheduleAt(simTime()+RREQCollectionTime,rreqcollectionTimer.back());
+                     if(RREQCollectionTimeMin==RREQCollectionTimeMax){
+                           if(RREQTimerHopDependeny)
+                                 scheduleAt(simTime()+RREQCollectionTimeMin*rreq->getHopCount(),rreqcollectionTimer.back());
+                           else
+                           scheduleAt(simTime()+RREQCollectionTimeMin,rreqcollectionTimer.back());
+                        }
+                     else{
+                           if(RREQTimerHopDependeny)
+                                  scheduleAt(simTime()+uniform(RREQCollectionTimeMin*rreq->getHopCount(),RREQCollectionTimeMax*rreq->getHopCount()),rreqcollectionTimer.back());
+                           else
+                           scheduleAt(simTime()+uniform(RREQCollectionTimeMin,RREQCollectionTimeMax),rreqcollectionTimer.back());
+                        }
 
                 }
 
@@ -1267,18 +1318,19 @@ IRoute *AODVLDRouting::createRoute(const L3Address& destAddr, const L3Address& n
     newProtocolData->setLifeTime(lifeTime);
     newProtocolData->setResidualRouteLifetime(residualRouteLifetime);
     newProtocolData->setDestSeqNum(destSeqNum);
+    newProtocolData->setLinkFail(0);
 
     InterfaceEntry *ifEntry = interfaceTable->getInterfaceByName("wlan");    // TODO: IMPLEMENT: multiple interfaces
     if (ifEntry)
         newRoute->setInterface(ifEntry);
 
     newRoute->setDestination(destAddr);
-    newRoute->setSourceType(IRoute::AODV);//TODO check if correct
+    newRoute->setSourceType(IRoute::AODV);
     newRoute->setSource(this);
     newRoute->setProtocolData(newProtocolData);
     newRoute->setMetric(hopCount);
     newRoute->setNextHop(nextHop);
-    newRoute->setPrefixLength(addressType->getMaxPrefixLength());    // TODO:
+    newRoute->setPrefixLength(addressType->getMaxPrefixLength());
 
     EV_DETAIL << "Adding new route " << newRoute << endl;
     routingTable->addRoute(newRoute);
@@ -1406,6 +1458,7 @@ std::string temp= getFullPath() ;
             routeData->setIsActive(false);
             routeData->setLifeTime(simTime() + deletePeriod);
             //AODVLD (LIfetime has no effekt)
+            routeData->setLinkFail(true);
             routeData->setResidualRouteLifetime(simTime() + deletePeriod);
             scheduleExpungeRoutes();
 
@@ -1774,6 +1827,8 @@ void AODVLDRouting::expungeRoutes()
         if (route->getSource() == this) {
             AODVLDRouteData *routeData = check_and_cast<AODVLDRouteData *>(route->getProtocolData());
             ASSERT(routeData != nullptr);
+            if(routeData->getLinkFail()==0&&routeData->getResidualRouteLifetime() <= simTime())
+                routeData->setResidualRouteLifetime(simTime()+50);
             if (routeData->getResidualRouteLifetime() <= simTime()) {
                 if (routeData->isActive()) {
                     EV_DETAIL << "Route to " << route->getDestinationAsGeneric() << " expired and set to inactive. It will be deleted after DELETE_PERIOD time" << endl;
@@ -1789,7 +1844,7 @@ void AODVLDRouting::expungeRoutes()
                     // before (current_time + 2 * NET_TRAVERSAL_TIME).
                     if (hasOngoingRouteDiscovery(route->getDestinationAsGeneric())) {
                         EV_DETAIL << "Route to " << route->getDestinationAsGeneric() << " expired and is inactive, but we are waiting for a RREP to this destination, so we extend its lifetime with 2 * NET_TRAVERSAL_TIME" << endl;
-                        routeData->setResidualRouteLifetime(simTime() + 2 * netTraversalTime+ netDiameter*RREQCollectionTime);
+                        routeData->setResidualRouteLifetime(simTime() + 2 * netTraversalTime+ netDiameter);
                     }
                     else {
                         EV_DETAIL << "Route to " << route->getDestinationAsGeneric() << " expired and is inactive and we are not expecting any RREP to this destination, so we delete this route" << endl;

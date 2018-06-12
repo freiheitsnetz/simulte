@@ -169,21 +169,45 @@ void AODVRoutingLTE::handleMessage(cMessage *msg)
             handleBlackListTimer();
 
         else if (msg ==updateTimer){
-                    std::string temp= DestinationAddress.str();
-                    L3Address tmp = routingTable->getNextHopForDestination(DestinationAddress);
-                    simtime_t timestamp=simTime();
-                    scheduleAt(simTime() + 0.1, updateTimer);
-                    if(tmp.isUnspecified()){
-                    cTimestampedValue tmp(timestamp, 0.0);
-                    emit(routeAvailability,&tmp);
-                    }
-                    else{
-                    cTimestampedValue tmp(timestamp, 1.0);
-                    emit(routeAvailability,&tmp);
-                }
+            std::string temp= DestinationAddress.str();
+            /*L3Address tmp = routingTable->getNextHopForDestination(DestinationAddress);
+            simtime_t timestamp=simTime();
+            scheduleAt(simTime() + 0.1, updateTimer);
+            if(tmp.isUnspecified()){
+            cTimestampedValue tmp(timestamp, 0.0);
+            emit(routeAvailability,&tmp);
+            }
+            else{
+            cTimestampedValue tmp(timestamp, 1.0);
+            emit(routeAvailability,&tmp);
+        }
+        */
+            IRoute* temproute=routingTable->findBestMatchingRoute(DestinationAddress);
 
+            AODVRouteData *tempdata = temproute? dynamic_cast<AODVRouteData *>(temproute->getProtocolData()) : nullptr;
+            if(tempdata!=nullptr){
+            simtime_t timestamp=simTime();
 
-                }
+            scheduleAt(simTime() + 0.1, updateTimer);
+
+            if(tempdata->isActive()){
+            cTimestampedValue tmp(timestamp, 1.0);
+            emit(routeAvailability,&tmp);
+            }
+            else{
+            cTimestampedValue tmp(timestamp, 0.0);
+            emit(routeAvailability,&tmp);
+        }
+
+        }
+
+        else{
+            simtime_t timestamp=simTime();
+            cTimestampedValue tmp(timestamp, 0.0);
+            emit(routeAvailability,&tmp);
+            scheduleAt(simTime() + 0.1, updateTimer);
+        }
+        }
 
         else
             throw cRuntimeError("Unknown self message");

@@ -36,6 +36,7 @@ class INET_API AODVLDRouteData : public cObject
     unsigned int destSeqNum;
     simtime_t residualRouteLifetime; //Expected expiration of route
     simtime_t lifeTime;    // expiration or deletion time of the route
+    bool linkFail; //Distinguish between link fail or expiration of route
 
   public:
 
@@ -68,6 +69,8 @@ class INET_API AODVLDRouteData : public cObject
     const std::set<L3Address>& getPrecursorList() const { return precursorList; }
     simtime_t getResidualRouteLifetime() const { return residualRouteLifetime; }
     void setResidualRouteLifetime (simtime_t residualRouteLifetime) { this->residualRouteLifetime = residualRouteLifetime; }
+    void setLinkFail(bool linkFail){this->linkFail=linkFail;}
+    bool getLinkFail(){return linkFail;}
 };
 
 std::ostream& operator<<(std::ostream& out, const AODVLDRouteData *data);

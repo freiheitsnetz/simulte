@@ -129,7 +129,10 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     simtime_t netTraversalTime;
     simtime_t nextHopWait;
     simtime_t pathDiscoveryTime;
-    simtime_t RREQCollectionTime;
+    simtime_t RREQCollectionTimeMin;
+    simtime_t RREQCollectionTimeMax;
+
+    bool RREQTimerHopDependeny;
     simtime_t RREP_Arrival_timestamp=0;
 
     //statistics
@@ -143,6 +146,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     simsignal_t numSentRERR;
     simsignal_t numReceivedRERR;
     simsignal_t newSeqNum;
+    simsignal_t theoreticalRL;
 
 
 
