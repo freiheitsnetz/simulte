@@ -251,6 +251,12 @@ class LteRealisticChannelModel : public LteChannelModel
      * @param nodeid mac node id of UE
      */
     double computeRuralMacro(double distance, double& dbp, MacNodeId nodeId);
+
+    /**
+     * Compute free space path loss over a given distance in meters.
+     */
+    double computeFreeSpacePathLoss(double distance_m) const;
+
     /*
      * compute std deviation of shadowing according to scenario and visibility
      *

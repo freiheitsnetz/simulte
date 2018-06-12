@@ -380,6 +380,9 @@ double LteRealisticChannelModel::getAttenuation(MacNodeId nodeId, Direction dir,
     case SUBURBAN_MACROCELL:
         attenuation = computeSubUrbanMacro(sqrDistance, dbp, nodeId);
         break;
+    case FREE_SPACE:
+        attenuation = computeFreeSpacePathLoss(sqrDistance);
+        break;
     default:
         throw cRuntimeError("Wrong value %d for path-loss scenario", scenario_);
     }
@@ -502,6 +505,9 @@ double LteRealisticChannelModel::getAttenuation_D2D(MacNodeId nodeId, Direction 
             break;
         case SUBURBAN_MACROCELL:
             attenuation = computeSubUrbanMacro(sqrDistance, dbp, nodeId);
+            break;
+        case FREE_SPACE:
+            attenuation = computeFreeSpacePathLoss(sqrDistance);
             break;
         default:
             throw cRuntimeError("Wrong value %d for path-loss scenario", scenario_);
@@ -2093,6 +2099,12 @@ double LteRealisticChannelModel::computeRuralMacro(double d, double& dbp,
     return att;
 }
 
+double LteRealisticChannelModel::computeFreeSpacePathLoss(double distance_m) const {
+    // For reference see https://en.wikipedia.org/wiki/Free-space_path_loss#Free-space_path_loss_in_decibels
+    // Convert distance to kilometers, and expect frequency in GHz.
+    return 20 * log10(distance_m / 1000) + 20 * log10(carrierFrequency_) + 92.45;
+}
+
 double LteRealisticChannelModel::getStdDev(bool dist, MacNodeId nodeId)
 {
     switch (scenario_)
@@ -2111,6 +2123,7 @@ double LteRealisticChannelModel::getStdDev(bool dist, MacNodeId nodeId)
             return 6.;
         break;
     case RURAL_MACROCELL:
+    case FREE_SPACE:
     case SUBURBAN_MACROCELL:
         if (losMap_[nodeId])
         {
@@ -2238,6 +2251,9 @@ double LteRealisticChannelModel::computeExtCellPathLoss(double dist, MacNodeId n
         break;
     case SUBURBAN_MACROCELL:
         attenuation = computeSubUrbanMacro(dist, dbp, nodeId);
+        break;
+    case FREE_SPACE:
+        attenuation = computeFreeSpacePathLoss(dist);
         break;
     default:
         throw cRuntimeError("Wrong path-loss scenario value %d", scenario_);
