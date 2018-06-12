@@ -36,7 +36,7 @@ public:
             totalIntMean += intMean;
             intsCollected++;
             Oracle::get()->scalarDouble("Interference", totalIntMean / ((double) intsCollected));
-            cout << "int(" << Oracle::get()->getName(senderId) << ", " << Oracle::get()->getName(receiverId) << ") = " << totalIntMean / intsCollected << endl;
+//            cout << "int(" << Oracle::get()->getName(senderId) << ", " << Oracle::get()->getName(receiverId) << ") = " << totalIntMean / intsCollected << endl;
 		}
 
 		vector<double> sinrVec = Oracle::get()->getSINR(senderId, receiverId);
@@ -47,7 +47,7 @@ public:
         totalSinrMean += intMean;
         sinrsCollected++;
         Oracle::get()->scalarDouble("SINR", totalSinrMean / ((double) sinrsCollected));
-        cout << "sinr(" << Oracle::get()->getName(senderId) << ", " << Oracle::get()->getName(receiverId) << ") = " << totalSinrMean / sinrsCollected << endl;
+//        cout << "sinr(" << Oracle::get()->getName(senderId) << ", " << Oracle::get()->getName(receiverId) << ") = " << totalSinrMean / sinrsCollected << endl;
 	}
 
 	double totalIntMean = 0, totalSinrMean = 0;
