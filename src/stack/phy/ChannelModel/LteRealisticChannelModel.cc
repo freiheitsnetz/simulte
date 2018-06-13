@@ -2429,7 +2429,6 @@ bool LteRealisticChannelModel::computeInCellD2DInterference(MacNodeId eNbId, Mac
     std::vector<double> * interference,Direction dir)
 {
     EV << "**** In Cell D2D Interference for cellId[" << eNbId << "] node["<<destId<<"] ****" << endl;
-//    cout << Oracle::get()->getName(senderId) <<  "=" << senderId << " -> " << Oracle::get()->getName(destId) << "=" << destId << endl;
 
     // Reference to the Physical Channel  of the UeId
     LtePhyBase * ltePhy_destId;
@@ -2504,6 +2503,7 @@ bool LteRealisticChannelModel::computeInCellD2DInterference(MacNodeId eNbId, Mac
                     {
                         // Add the interference
                         (*interference)[i] += dBmToLinear(txPwr-att);
+//                        cout << "int(" << Oracle::get()->getName(senderId) << ", " << Oracle::get()->getName(destId) << ") = " << txPwr << " - " << att << " = " << txPwr - att << " for band " << i << endl;
                     }
                 }
             }
@@ -2521,6 +2521,7 @@ bool LteRealisticChannelModel::computeInCellD2DInterference(MacNodeId eNbId, Mac
                     {
                         // Add the interference
                         (*interference)[i] += dBmToLinear(txPwr-att);
+//                        cout << "int(" << Oracle::get()->getName(senderId) << ", " << Oracle::get()->getName(destId) << ") = " << txPwr << " - " << att << " = " << txPwr - att << " for band " << i << endl;
                     }
                 }
             }
