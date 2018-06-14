@@ -219,7 +219,7 @@ std::vector<double> Oracle::getInCellInterference(const MacNodeId from, const Ma
     std::vector<double> interferenceVec;
     interferenceVec.resize(getNumRBs(), 0);
     LteRealisticChannelModel* channelModel = dynamic_cast<LteRealisticChannelModel*>(getPhyBase(from)->getChannelModel());
-    channelModel->computeInCellD2DInterference(getEnodeBID(), from, getPosition(from), to, getPosition(to), true, &interferenceVec, determineDirection(from, to));
+    channelModel->computeInCellD2DInterference(getEnodeBID(), from, getPosition(from), to, getPosition(to), false, &interferenceVec, determineDirection(from, to));
     return interferenceVec;
 }
 

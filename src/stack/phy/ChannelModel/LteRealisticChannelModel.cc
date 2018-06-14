@@ -508,6 +508,7 @@ double LteRealisticChannelModel::getAttenuation_D2D(MacNodeId nodeId, Direction 
             break;
         case FREE_SPACE:
             attenuation = computeFreeSpacePathLoss(sqrDistance);
+//            cout << "att(" << Oracle::get()->getName(nodeId) << ", " << Oracle::get()->getName(node2_Id) << ") = " << attenuation << " @ d=" << sqrDistance << endl;
             break;
         default:
             throw cRuntimeError("Wrong value %d for path-loss scenario", scenario_);
@@ -2521,7 +2522,7 @@ bool LteRealisticChannelModel::computeInCellD2DInterference(MacNodeId eNbId, Mac
                     {
                         // Add the interference
                         (*interference)[i] += dBmToLinear(txPwr-att);
-//                        cout << "int(" << Oracle::get()->getName(senderId) << ", " << Oracle::get()->getName(destId) << ") = " << txPwr << " - " << att << " = " << txPwr - att << " for band " << i << endl;
+//                        cout << "intNoCqi(" << Oracle::get()->getName(senderId) << ", " << Oracle::get()->getName(destId) << ") = " << txPwr << " - " << att << " = " << txPwr - att << " for band " << i << endl;
                     }
                 }
             }
