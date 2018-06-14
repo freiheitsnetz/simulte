@@ -31,11 +31,11 @@ public:
 		double intMean = 0.0;
 		for (size_t i = 0; i < interferenceVec.size(); i++)
 		    intMean  += interferenceVec.at(i);
-		intMean = linearToDBm(intMean);
 //		cout << "intmean(" << Oracle::get()->getName(senderId) << ", " << Oracle::get()->getName(receiverId) << ") = " << intMean << endl;
 //		cout << "d=" << Oracle::get()->getDistance(Oracle::get()->getPosition(senderId), Oracle::get()->getPosition(receiverId)) << endl;
 //		cout << "att=" << Oracle::get()->getAttenuation(senderId, receiverId) << endl;
 		if (intMean != 0.0) {
+		    intMean = linearToDBm(intMean);
             intMean /= interferenceVec.size();
             totalIntMean += intMean;
             intsCollected++;
