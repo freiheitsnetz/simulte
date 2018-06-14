@@ -26,7 +26,10 @@ public:
 		}
 
 		vector<User*> users = userManager.getUsers();
-		MacNodeId senderId = 1025, receiverId = 1027;
+		MacNodeId senderId = 1025, receiverId = 1025;
+		while (Oracle::get()->getName(receiverId).compare("ueD2DRx_FULBUF[0]") != 0)
+		    receiverId++;
+
 		vector<double> interferenceVec = Oracle::get()->getInCellInterference(senderId, receiverId);
 		double intMean = 0.0;
 		for (size_t i = 0; i < interferenceVec.size(); i++)
