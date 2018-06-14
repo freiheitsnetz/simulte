@@ -170,7 +170,7 @@ void AODVRoutingLTE::handleMessage(cMessage *msg)
 
         else if (msg ==updateTimer){
             std::string temp= DestinationAddress.str();
-            /*L3Address tmp = routingTable->getNextHopForDestination(DestinationAddress);
+            L3Address tmp = routingTable->getNextHopForDestination(DestinationAddress);
             simtime_t timestamp=simTime();
             scheduleAt(simTime() + 0.1, updateTimer);
             if(tmp.isUnspecified()){
@@ -181,7 +181,7 @@ void AODVRoutingLTE::handleMessage(cMessage *msg)
             cTimestampedValue tmp(timestamp, 1.0);
             emit(routeAvailability,&tmp);
         }
-        */
+        /*
             IRoute* temproute=routingTable->findBestMatchingRoute(DestinationAddress);
 
             AODVRouteData *tempdata = temproute? dynamic_cast<AODVRouteData *>(temproute->getProtocolData()) : nullptr;
@@ -206,7 +206,7 @@ void AODVRoutingLTE::handleMessage(cMessage *msg)
             cTimestampedValue tmp(timestamp, 0.0);
             emit(routeAvailability,&tmp);
             scheduleAt(simTime() + 0.1, updateTimer);
-        }
+        }*/
         }
 
         else

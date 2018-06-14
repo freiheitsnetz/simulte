@@ -130,7 +130,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     simtime_t nextHopWait;
     simtime_t pathDiscoveryTime;
     simtime_t RREQCollectionTimeMin;
-    simtime_t RREQCollectionTimeMax;
+    simtime_t RREQCollectionTimeMean;
 
     bool RREQTimerHopDependeny;
     simtime_t RREP_Arrival_timestamp=0;

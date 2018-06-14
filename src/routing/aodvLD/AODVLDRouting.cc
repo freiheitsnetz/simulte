@@ -102,7 +102,7 @@ void AODVLDRouting::initialize(int stage)
         nextHopWait = par("nextHopWait");
         pathDiscoveryTime = par("pathDiscoveryTime");
         RREQCollectionTimeMin = par("RREQCollectionTimeMin");
-        RREQCollectionTimeMax = par("RREQCollectionTimeMax");
+        RREQCollectionTimeMean = par("RREQCollectionTimeMean");
         RREQTimerHopDependeny =par("RREQTimerHopDependeny").boolValue();
         DestinationAddress =L3AddressResolver().resolve(par("DestinationAddress").stringValue());
 
@@ -1035,18 +1035,12 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
                      rreqcollectionTimer.push_back(new WaitForRREQ("RREQCollectionTimer"));
                      rreqcollectionTimer.back()->setOriginatorAddr(rreq->getOriginatorAddr());
                      rreqcollectionTimer.back()->setRreqID(rreq->getRreqId());
-                     if(RREQCollectionTimeMin==RREQCollectionTimeMax){
+
                          if(RREQTimerHopDependeny)
-                             scheduleAt(simTime()+RREQCollectionTimeMin*rreq->getHopCount(),rreqcollectionTimer.back());
+                             scheduleAt(simTime()+RREQCollectionTimeMin*rreq->getHopCount()+exponential(RREQCollectionTimeMean*rreq->getHopCount()),rreqcollectionTimer.back());
                          else
-                             scheduleAt(simTime()+RREQCollectionTimeMin,rreqcollectionTimer.back());
-                     }
-                     else{
-                         if(RREQTimerHopDependeny)
-                             scheduleAt(simTime()+uniform(RREQCollectionTimeMin*rreq->getHopCount(),RREQCollectionTimeMax*rreq->getHopCount()),rreqcollectionTimer.back());
-                         else
-                             scheduleAt(simTime()+uniform(RREQCollectionTimeMin,RREQCollectionTimeMax),rreqcollectionTimer.back());
-                     }
+                             scheduleAt(simTime()+RREQCollectionTimeMin+exponential(RREQCollectionTimeMean),rreqcollectionTimer.back());
+
                     }
                 }
         else if(!previouslyTransmitted && !currentBestExistend){
@@ -1064,18 +1058,12 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
                      rreqcollectionTimer.push_back(new WaitForRREQ("RREQCollectionTimer"));
                      rreqcollectionTimer.back()->setOriginatorAddr(rreq->getOriginatorAddr());
                      rreqcollectionTimer.back()->setRreqID(rreq->getRreqId());
-                     if(RREQCollectionTimeMin==RREQCollectionTimeMax){
+
                            if(RREQTimerHopDependeny)
-                                 scheduleAt(simTime()+RREQCollectionTimeMin*rreq->getHopCount(),rreqcollectionTimer.back());
+                                  scheduleAt(simTime()+RREQCollectionTimeMin*rreq->getHopCount()+exponential(RREQCollectionTimeMean*rreq->getHopCount()),rreqcollectionTimer.back());
                            else
-                           scheduleAt(simTime()+RREQCollectionTimeMin,rreqcollectionTimer.back());
-                        }
-                     else{
-                           if(RREQTimerHopDependeny)
-                                  scheduleAt(simTime()+uniform(RREQCollectionTimeMin*rreq->getHopCount(),RREQCollectionTimeMax*rreq->getHopCount()),rreqcollectionTimer.back());
-                           else
-                           scheduleAt(simTime()+uniform(RREQCollectionTimeMin,RREQCollectionTimeMax),rreqcollectionTimer.back());
-                        }
+                               scheduleAt(simTime()+RREQCollectionTimeMin+exponential(RREQCollectionTimeMean),rreqcollectionTimer.back());
+
 
                 }
 
