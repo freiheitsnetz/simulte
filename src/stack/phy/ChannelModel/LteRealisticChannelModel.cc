@@ -2467,9 +2467,9 @@ bool LteRealisticChannelModel::computeInCellD2DInterference(MacNodeId eNbId, Mac
         }
         ltePhy = (*it)->phy;
 
-        if (isCqi && ltePhy->getLastActive() != NOW)  // if we are computing feedback and the interfering UE has not transmitted in this TTI, skip
+        if (isCqi && ltePhy->getLastActive() != NOW) // if we are computing feedback and the interfering UE has not transmitted in this TTI, skip
             continue;
-        if (!isCqi && ltePhy->getLastActive() != NOW - TTI)  // if we are decoding a transmission and the interfering UE has not transmitted in the previous TTI, skip
+        if (!isCqi && ltePhy->getLastActive() != NOW - TTI) // if we are decoding a transmission and the interfering UE has not transmitted in the previous TTI, skip
             continue;
 
         // Skip Self-Interference and useful signal
@@ -2483,6 +2483,7 @@ bool LteRealisticChannelModel::computeInCellD2DInterference(MacNodeId eNbId, Mac
 
         txPwr = ltePhy->getTxPwr(dir) - cableLoss_ + 2 * antennaGainUe_;
         EV << "NodeId [" << interferringId << "] - attenuation [" << att << "]" << endl;
+
 
         // The antenna set in computeTxParams is always "MACRO". Here create a fake set with MACRO as the only element
         std::set<Remote> antennas;
@@ -2503,7 +2504,9 @@ bool LteRealisticChannelModel::computeInCellD2DInterference(MacNodeId eNbId, Mac
                     if( temp!=0 )
                     {
                         // Add the interference
+//                        cout << "i=" << i << " before=" << (*interference)[i];
                         (*interference)[i] += dBmToLinear(txPwr-att);
+//                        cout << " after=" << (*interference)[i] << " change=" << txPwr-att << " resp. " << dBmToLinear(txPwr-att) << endl;
 //                        cout << "int(" << Oracle::get()->getName(senderId) << ", " << Oracle::get()->getName(destId) << ") = " << txPwr << " - " << att << " = " << txPwr - att << " for band " << i << endl;
                     }
                 }
@@ -2521,7 +2524,9 @@ bool LteRealisticChannelModel::computeInCellD2DInterference(MacNodeId eNbId, Mac
                     if( temp!=0 )
                     {
                         // Add the interference
+//                        cout << "i=" << i << " before=" << (*interference)[i];
                         (*interference)[i] += dBmToLinear(txPwr-att);
+//                        cout << " after=" << (*interference)[i] << " change=" << txPwr-att << " resp. " << dBmToLinear(txPwr-att) << endl;
 //                        cout << "intNoCqi(" << Oracle::get()->getName(senderId) << ", " << Oracle::get()->getName(destId) << ") = " << txPwr << " - " << att << " = " << txPwr - att << " for band " << i << endl;
                     }
                 }
