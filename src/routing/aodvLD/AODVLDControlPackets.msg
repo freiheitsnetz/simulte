@@ -123,3 +123,8 @@ message WaitForRREQ
         L3Address originatorAddr;
         unsigned int rreqID;
 }
+message LastTransDel
+{
+        L3Address originatorAddr;
+        unsigned int rreqID;
+}

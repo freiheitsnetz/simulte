@@ -131,6 +131,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     simtime_t pathDiscoveryTime;
     simtime_t RREQCollectionTimeMin;
     simtime_t RREQCollectionTimeMean;
+    simtime_t RREQinLastTransTimer;
 
     bool RREQTimerHopDependeny;
     simtime_t RREP_Arrival_timestamp=0;
@@ -175,6 +176,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     cMessage *blacklistTimer = nullptr;    // timer to clean the blacklist out
     cMessage *updateTimer = nullptr; // Statistics: Used for timetamp, if route is there or not to DestinationAddress
     std::vector<WaitForRREQ *>rreqcollectionTimer;
+    std::vector<LastTransDel *>rreqkeepingTimer; // How long are rreq kept in lasttransmitted buffer
        // lifecycle
     simtime_t rebootTime;    // the last time when the node rebooted
     bool isOperational = false;
@@ -234,6 +236,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     void handleWaitForRREP(WaitForRREP *rrepTimer);
     /*Handle best RREQ after timer has expired*/
     void handleRREQ(WaitForRREQ *rreqTimer);
+    void deleteLastTrans(LastTransDel* delTimer);
 
     /* General functions to handle route errors */
     void sendRERRWhenNoRouteToForward(const L3Address& unreachableAddr);
