@@ -94,7 +94,7 @@ int ResidualLinklifetime::calcRLLviaFunction(cModule* neighbor){
     //TODO simplifications okay?
     int t=LinkTimeTable->getNeighborLinkTime(neighbor); //get link lifetime from NeighborLinkTimeTable
     if(t==1)
-        t=std::numeric_limits< double >::min();; //Slight shift due to log undefined at 0
+        t=1+std::numeric_limits< double >::min();; //Slight shift due to log undefined at 0
     double DistofLL=cdfModule->returnCDFvalue(t);
     int tmpLL=(tau-DistofLL)/(1-DistofLL)-t;
     if(DistofLL<0)
@@ -147,7 +147,9 @@ void ResidualLinklifetime::setInitialLLVector(){
     for(std::map<cModule*,bool>::iterator it=tmpConnection.begin();it!=tmpConnection.end();++it){
         if(it->second==1){
             randValue=uniform(0,1,rng);
-            LinkTimeTable->setNeighborLinkTime(it->first,cdfModule->getClosestT_value(randValue));
+           double temptime=cdfModule->getClosestT_value(randValue);
+            //std::string temptimestr=temptime.parse();
+            LinkTimeTable->setNeighborLinkTime(it->first,temptime);
         }
 
         randValue=0;

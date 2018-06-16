@@ -135,6 +135,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
 
     bool RREQTimerHopDependeny;
     simtime_t RREP_Arrival_timestamp=0;
+    simtime_t RREQ_Created_timestamp=0;
 
     //statistics
 
@@ -180,6 +181,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
        // lifecycle
     simtime_t rebootTime;    // the last time when the node rebooted
     bool isOperational = false;
+    long sendAODVLDpackets=0;
 
     // internal
     std::multimap<L3Address, INetworkDatagram *> targetAddressToDelayedPackets;    // queue for the datagrams we have no route for

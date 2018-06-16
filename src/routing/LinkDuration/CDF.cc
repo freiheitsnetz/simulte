@@ -35,6 +35,7 @@ void CDF::initialize()
     EV_INFO << "CDF Init Done ";
     WATCH_VECTOR(initialCDF);
     WATCH_VECTOR(t_values);
+    WATCH(tau);
 }
 
 void CDF::handleMessage(cMessage *msg)
@@ -134,7 +135,7 @@ std::complex<double> CDF::compLog(double input) {
 
 double CDF::returnCDFvalue(double input){
 
-    input=input*tau;
+    input=input;
     std::complex<double> CDFtemp;
     std::complex<double> templog1;
     std::complex<double> templog2;
