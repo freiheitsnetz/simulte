@@ -149,6 +149,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     simsignal_t numReceivedRERR;
     simsignal_t newSeqNum;
     simsignal_t theoreticalRL;
+    simsignal_t sentAODVLDpackets;
 
 
 
@@ -169,6 +170,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
 
     std::map<const RREQIdentifier,std::pair<RREQAdditionalInfo,AODVLDRREQ*>,RREQIdentifierCompare>CurrentBestRREQ; // the current best rreq to transmit again from a certain originator
     std::map<const RREQIdentifier,std::pair<RREQAdditionalInfo,AODVLDRREQ*>,RREQIdentifierCompare>LastTransmittedRREQ; //last transmitted rreq to be able to compare it a later one is better
+
     // self messages
     cMessage *helloMsgTimer = nullptr;    // timer to send hello messages (only if the feature is enabled)
     cMessage *expungeTimer = nullptr;    // timer to clean the routing table out
@@ -177,11 +179,16 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     cMessage *blacklistTimer = nullptr;    // timer to clean the blacklist out
     cMessage *updateTimer = nullptr; // Statistics: Used for timetamp, if route is there or not to DestinationAddress
     std::vector<WaitForRREQ *>rreqcollectionTimer;
+
     std::vector<LastTransDel *>rreqkeepingTimer; // How long are rreq kept in lasttransmitted buffer
+    int lengthColTimer=0;
+    int lengthKeepTimer=0;
+    int lengthBestBuffer=0;
+    int lengthLastBuffer=0;
        // lifecycle
     simtime_t rebootTime;    // the last time when the node rebooted
     bool isOperational = false;
-    long sendAODVLDpackets=0;
+
 
     // internal
     std::multimap<L3Address, INetworkDatagram *> targetAddressToDelayedPackets;    // queue for the datagrams we have no route for

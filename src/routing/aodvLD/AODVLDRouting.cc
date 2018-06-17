@@ -111,6 +111,10 @@ void AODVLDRouting::initialize(int stage)
         //statistics
         WATCH(firstRREPArrives);
         WATCH(numHops);
+        WATCH(lengthColTimer);
+        WATCH(lengthKeepTimer);
+        WATCH(lengthBestBuffer);
+        WATCH(lengthLastBuffer);
 
         numRREQsent = registerSignal("numRREQsent");
         routeAvailability = registerSignal("routeAvailability");
@@ -122,7 +126,7 @@ void AODVLDRouting::initialize(int stage)
         interRREPRouteDiscoveryTime=registerSignal("interRREPRouteDiscoveryTime");
         newSeqNum=registerSignal("newSeqNum");
         theoreticalRL=registerSignal("theoreticalRL");
-
+        sentAODVLDpackets=registerSignal("sentAODVLDpackets");
 
 
 
@@ -155,9 +159,10 @@ void AODVLDRouting::initialize(int stage)
         counterTimer = new cMessage("CounterTimer");
         rrepAckTimer = new cMessage("RREPACKTimer");
         blacklistTimer = new cMessage("BlackListTimer");
+        if(!DestinationAddress.isUnspecified()){
         updateTimer = new cMessage("updateTimer");
         scheduleAt(simTime() + 0.1, updateTimer);
-
+        }
         if (isOperational)
             scheduleAt(simTime() + 1, counterTimer);
     }
@@ -209,6 +214,11 @@ void AODVLDRouting::handleMessage(cMessage *msg)
             emit(routeAvailability,&tmp);
         }
         */
+            lengthColTimer=rreqcollectionTimer.size();
+            lengthKeepTimer=rreqkeepingTimer.size();
+            lengthBestBuffer=CurrentBestRREQ.size();
+            lengthLastBuffer=LastTransmittedRREQ.size();
+
             IRoute* temproute=routingTable->findBestMatchingRoute(DestinationAddress);
 
             AODVLDRouteData *tempdata = temproute? dynamic_cast<AODVLDRouteData *>(temproute->getProtocolData()) : nullptr;
@@ -347,11 +357,12 @@ void AODVLDRouting::startRouteDiscovery(const L3Address& target, unsigned timeTo
     ASSERT(!hasOngoingRouteDiscovery(target));
     AODVLDRREQ *rreq = createRREQ(target);
     addressToRreqRetries[target] = 0;
-
+    if(target == DestinationAddress){
     simtime_t timestamp=simTime();
     double interTime=simTime().dbl()-RREP_Arrival_timestamp.dbl();
     cTimestampedValue tmp(timestamp, interTime);
     emit(interRREPRouteDiscoveryTime,&tmp);
+    }
 
     RREQsent= simTime();
     sendRREQ(rreq, addressType->getBroadcastAddress(), timeToLive);
@@ -440,9 +451,7 @@ void AODVLDRouting::sendRREQ(AODVLDRREQ *rreq, const L3Address& destAddr, unsign
     simtime_t ringTraversalTime = 2.0 * nodeTraversalTime * (timeToLive + timeoutBuffer);
     scheduleAt(simTime() + ringTraversalTime, rrepTimerMsg);
 
-    simtime_t timestamp=simTime();
-    cTimestampedValue tmp(timestamp, 1.0);
-    emit(numRREQsent,&tmp);
+    emit(numRREQsent,1);
 
     EV_INFO << "Sending a Route Request with target " << rreq->getDestAddr() << " and TTL= " << timeToLive << endl;
     sendAODVLDPacket(rreq, destAddr, timeToLive, jitterPar->doubleValue());
@@ -806,7 +815,7 @@ void AODVLDRouting::handleRREP(AODVLDRREP *rrep, const L3Address& sourceAddr)
     else {    // create forward route for the destination: this path will be used by the originator to send data packets
         destRoute = createRoute(rrep->getDestAddr(), sourceAddr, newHopCount, true, destSeqNum, true, simTime() + lifeTime, simTime() + newResidualRouteLifetime);
         destRouteData = check_and_cast<AODVLDRouteData *>(destRoute->getProtocolData());
-
+        if(getSelfIPAddress() == rrep->getOriginatorAddr()){
         RREP_Arrival_timestamp =simTime();
         double interRREQRREPTime_timestamp= simTime().dbl()-RREQsent.dbl();
         numHops= newHopCount;
@@ -820,7 +829,7 @@ void AODVLDRouting::handleRREP(AODVLDRREP *rrep, const L3Address& sourceAddr)
         cTimestampedValue tmp3(RREP_Arrival_timestamp, (double)rrep->getResidualRouteLifetime().dbl());
         emit(theoreticalRL,&tmp3);
 
-
+        }
 
     }
 
@@ -942,7 +951,8 @@ void AODVLDRouting::updateRoutingTable(IRoute *route, const L3Address& nextHop, 
 void AODVLDRouting::sendAODVLDPacket(AODVLDControlPacket *packet, const L3Address& destAddr, unsigned int timeToLive, double delay)
 {
     ASSERT(timeToLive != 0);
-    sendAODVLDpackets++;
+
+    emit(sentAODVLDpackets,1);
     INetworkProtocolControlInfo *networkProtocolControlInfo = addressType->createNetworkProtocolControlInfo();
 
     networkProtocolControlInfo->setHopLimit(timeToLive);
@@ -1584,10 +1594,7 @@ std::string temp= getFullPath() ;
     // broadcast
     EV_INFO << "Broadcasting Route Error message with TTL=1" << endl;
     sendAODVLDPacket(rerr, addressType->getBroadcastAddress(), 1, jitterPar->doubleValue());
-    simtime_t timestamp =simTime();
-
-    cTimestampedValue tmp1(timestamp, 1.0);
-    emit(numSentRERR,&tmp1);
+    emit(numSentRERR,1);
 }
 
 AODVLDRERR *AODVLDRouting::createRERR(const std::vector<UnreachableNode>& unreachableNodes)
@@ -1676,10 +1683,8 @@ void AODVLDRouting::handleRERR(AODVLDRERR *rerr, const L3Address& sourceAddr)
         rerrCount++;
     }
     delete rerr;
-    simtime_t timestamp =simTime();
 
-    cTimestampedValue tmp1(timestamp, 1.0);
-    emit(numReceivedRERR,&tmp1);
+    emit(numReceivedRERR,1);
 }
 
 bool AODVLDRouting::handleOperationStage(LifecycleOperation *operation, int stage, IDoneCallback *doneCallback)
@@ -1773,9 +1778,8 @@ void AODVLDRouting::forwardRREP(AODVLDRREP *rrep, const L3Address& destAddr, uns
 
 void AODVLDRouting::forwardRREQ(AODVLDRREQ *rreq, unsigned int timeToLive)
 {
-    simtime_t timestamp=simTime();
-    cTimestampedValue tmp(timestamp, 1.0);
-    emit(numRREQForwarded,&tmp);
+
+    emit(numRREQForwarded,1);
     EV_INFO << "Forwarding the Route Request message with TTL= " << timeToLive << endl;
     sendAODVLDPacket(rreq, addressType->getBroadcastAddress(), timeToLive, jitterPar->doubleValue());
 }
