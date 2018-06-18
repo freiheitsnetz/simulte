@@ -2527,7 +2527,8 @@ bool LteRealisticChannelModel::computeInCellD2DInterference(MacNodeId eNbId, Mac
 //                        cout << "i=" << i << " before=" << (*interference)[i];
                         (*interference)[i] += dBmToLinear(txPwr-att);
 //                        cout << " after=" << (*interference)[i] << " change=" << txPwr-att << " resp. " << dBmToLinear(txPwr-att) << endl;
-//                        cout << "intNoCqi(" << Oracle::get()->getName(senderId) << ", " << Oracle::get()->getName(destId) << ") = " << txPwr << " - " << att << " = " << txPwr - att << " for band " << i << endl;
+//                        cout << "intNoCqi(" << Oracle::get()->getName(senderId) << ", " << Oracle::get()->getName(destId) << ")"
+//                                " = " << txPwr << " - " << att << " = " << txPwr - att << " for band " << i << endl;
                     }
                 }
             }
