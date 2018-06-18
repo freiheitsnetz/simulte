@@ -83,8 +83,9 @@ simple AODVRoutingLTE
         double pathDiscoveryTime @unit("s") = default(2 * netTraversalTime); // buffer timeout for each broadcasted RREQ message
         string DestinationAddress = default("10.0.3.3"); //Destination of VOIPpackets, to measure if route is there or not
         
+        
         @signal[numRREQsent];
-        @statistic[numRREQsent](title="numRREQsent"; record=vector);
+        @statistic[numRREQsent](title="numRREQsent"; record=sum);
         @signal[routeAvailability]; //Finds Route fails
         @statistic[routeAvailability](title="routeAvailability"; record=vector);
         @signal[interRREPRouteDiscoveryTime]; //From last RREP to next route discovery (Route Duration)
@@ -94,14 +95,19 @@ simple AODVRoutingLTE
         @statistic[interRREQRREPTime](title="interRREQRREPTime"; record=vector);
         @signal[numFinalHops];//numHop of final routes
         @statistic[numFinalHops](title="numFinalHops"; record=vector);
-        @signal[numRREQForwarded];//numHop of final routes
-        @statistic[numRREQForwarded](title="numRREQForwarded"; record=vector);
+        @signal[numRREQForwarded];
+        @statistic[numRREQForwarded](title="numRREQForwarded"; record=sum);
         @signal[numSentRERR];//numHop of final routes
-        @statistic[numSentRERR](title="numSentRERR"; record=vector);
-        @signal[numReceivedRERR];//numHop of final routes
-        @statistic[numReceivedRERR](title="numReceivedRERR"; record=vector);
-        @signal[ newSeqNum];//numHop of final routes
+        @statistic[numSentRERR](title="numSentRERR"; record=sum);
+        
+        @signal[sentAODVpackets];
+        @statistic[sentAODVpackets](title="sentAODVpackets"; record=sum);
+        
+        @signal[numReceivedRERR];
+        @statistic[numReceivedRERR](title="numReceivedRERR"; record=sum);
+        @signal[ newSeqNum];
         @statistic[ newSeqNum](title=" newSeqNum"; record=vector);
+
     gates:
         input ipIn;
         output ipOut;

@@ -107,6 +107,8 @@ void AODVRoutingLTE::initialize(int stage)
         interRREPRouteDiscoveryTime=registerSignal("interRREPRouteDiscoveryTime");
         newSeqNum=registerSignal("newSeqNum");
 
+        sentAODVpackets=registerSignal("sentAODVpackets");
+
     }
     else if (stage == INITSTAGE_ROUTING_PROTOCOLS) {
         NodeStatus *nodeStatus = dynamic_cast<NodeStatus *>(host->getSubmodule("status"));
@@ -134,7 +136,10 @@ void AODVRoutingLTE::initialize(int stage)
         rrepAckTimer = new cMessage("RREPACKTimer");
         blacklistTimer = new cMessage("BlackListTimer");
         updateTimer = new cMessage("updateTimer");
-        scheduleAt(simTime() + 0.1, updateTimer);
+        if(!DestinationAddress.isUnspecified()){
+                updateTimer = new cMessage("updateTimer");
+                scheduleAt(simTime() + 0.1, updateTimer);
+                }
 
         if (isOperational)
             scheduleAt(simTime() + 1, counterTimer);
@@ -169,7 +174,7 @@ void AODVRoutingLTE::handleMessage(cMessage *msg)
             handleBlackListTimer();
 
         else if (msg ==updateTimer){
-            std::string temp= DestinationAddress.str();
+            /*std::string temp= DestinationAddress.str();
             L3Address tmp = routingTable->getNextHopForDestination(DestinationAddress);
             simtime_t timestamp=simTime();
             scheduleAt(simTime() + 0.1, updateTimer);
@@ -181,7 +186,8 @@ void AODVRoutingLTE::handleMessage(cMessage *msg)
             cTimestampedValue tmp(timestamp, 1.0);
             emit(routeAvailability,&tmp);
         }
-        /*
+        */
+
             IRoute* temproute=routingTable->findBestMatchingRoute(DestinationAddress);
 
             AODVRouteData *tempdata = temproute? dynamic_cast<AODVRouteData *>(temproute->getProtocolData()) : nullptr;
@@ -206,7 +212,7 @@ void AODVRoutingLTE::handleMessage(cMessage *msg)
             cTimestampedValue tmp(timestamp, 0.0);
             emit(routeAvailability,&tmp);
             scheduleAt(simTime() + 0.1, updateTimer);
-        }*/
+        }
         }
 
         else
@@ -321,10 +327,12 @@ void AODVRoutingLTE::startRouteDiscovery(const L3Address& target, unsigned timeT
     ASSERT(!hasOngoingRouteDiscovery(target));
     AODVRREQ *rreq = createRREQ(target);
     addressToRreqRetries[target] = 0;
+    if(target == DestinationAddress){
     simtime_t timestamp=simTime();
     double interTime=simTime().dbl()-RREP_Arrival_timestamp.dbl();
     cTimestampedValue tmp(timestamp, interTime);
     emit(interRREPRouteDiscoveryTime,&tmp);
+    }
     RREQsent=simTime();
     sendRREQ(rreq, addressType->getBroadcastAddress(), timeToLive);
 }
@@ -468,6 +476,9 @@ AODVRREQ *AODVRoutingLTE::createRREQ(const L3Address& destAddr)
     simtime_t timestamp=simTime();
     cTimestampedValue tmp(timestamp, 0.0);
     emit(interRREQRREPTime,&tmp);
+    cTimestampedValue tmp2(timestamp, 0.0);
+    emit(numFinalHops,&tmp2);
+
 
     rreqPacket->setOriginatorSeqNum(sequenceNum);
 
@@ -536,12 +547,15 @@ AODVRREP *AODVRoutingLTE::createRREP(AODVRREQ *rreq, IRoute *destRoute, IRoute *
         // its own sequence number by one if the sequence number in the RREQ
         // packet is equal to that incremented value.
 
-        if (!rreq->getUnknownSeqNumFlag() && sequenceNum + 1 == rreq->getDestSeqNum())
+        if (!rreq->getUnknownSeqNumFlag() && sequenceNum + 1 == rreq->getDestSeqNum()){
             sequenceNum++;
         simtime_t timestamp=simTime();
         cTimestampedValue tmp(timestamp, 0.0);
         emit(interRREQRREPTime,&tmp);
+        cTimestampedValue tmp2(timestamp, 0.0);
+        emit(numFinalHops,&tmp2);
 
+        }
         // The destination node places its (perhaps newly incremented)
         // sequence number into the Destination Sequence Number field of
         // the RREP,
@@ -668,6 +682,18 @@ void AODVRoutingLTE::handleRREP(AODVRREP *rrep, const L3Address& sourceAddr)
 
     if (destRoute && destRoute->getSource() == this) {    // already exists
         destRouteData = check_and_cast<AODVRouteData *>(destRoute->getProtocolData());
+
+        RREP_Arrival_timestamp =simTime();
+        double interRREQRREPTime_timestamp= simTime().dbl()-RREQsent.dbl();
+        numHops= newHopCount;
+
+
+
+        cTimestampedValue tmp1(RREP_Arrival_timestamp, interRREQRREPTime_timestamp);
+        emit(interRREQRREPTime,&tmp1);
+        cTimestampedValue tmp2(RREP_Arrival_timestamp, (double)numHops);
+        emit(numFinalHops,&tmp2);
+
         // Upon comparison, the existing entry is updated only in the following circumstances:
 
         // (i) the sequence number in the routing table is marked as
@@ -717,6 +743,18 @@ void AODVRoutingLTE::handleRREP(AODVRREP *rrep, const L3Address& sourceAddr)
     else {    // create forward route for the destination: this path will be used by the originator to send data packets
         destRoute = createRoute(rrep->getDestAddr(), sourceAddr, newHopCount, true, destSeqNum, true, simTime() + lifeTime);
         destRouteData = check_and_cast<AODVRouteData *>(destRoute->getProtocolData());
+        if(getSelfIPAddress() == rrep->getOriginatorAddr()){
+        RREP_Arrival_timestamp =simTime();
+        double interRREQRREPTime_timestamp= simTime().dbl()-RREQsent.dbl();
+        numHops= newHopCount;
+
+
+
+        cTimestampedValue tmp1(RREP_Arrival_timestamp, interRREQRREPTime_timestamp);
+        emit(interRREQRREPTime,&tmp1);
+        cTimestampedValue tmp2(RREP_Arrival_timestamp, (double)numHops);
+        emit(numFinalHops,&tmp2);
+    }
     }
 
     // If the current node is not the node indicated by the Originator IP
@@ -779,7 +817,7 @@ void AODVRoutingLTE::handleRREP(AODVRREP *rrep, const L3Address& sourceAddr)
     }
     else {
                 updateRoutingTable(destRoute, sourceAddr, newHopCount, true, destSeqNum, true, simTime() + lifeTime);
-                if(rrep->getOriginatorSeqNum()== sequenceNum){
+               /* if(rrep->getOriginatorSeqNum()== sequenceNum){
                 RREP_Arrival_timestamp =simTime();
                 double interRREQRREPTime_timestamp= simTime().dbl()-RREQsent.dbl();
                 numHops= newHopCount;
@@ -790,7 +828,7 @@ void AODVRoutingLTE::handleRREP(AODVRREP *rrep, const L3Address& sourceAddr)
                 emit(interRREQRREPTime,&tmp1);
                 cTimestampedValue tmp2(RREP_Arrival_timestamp, (double)numHops);
                 emit(numFinalHops,&tmp2);
-                }
+                }*/
             if (hasOngoingRouteDiscovery(rrep->getDestAddr())) {
                 EV_INFO << "The Route Reply has arrived for our Route Request to node " << rrep->getDestAddr() << endl;
                 completeRouteDiscovery(rrep->getDestAddr());
@@ -826,7 +864,7 @@ void AODVRoutingLTE::updateRoutingTable(IRoute *route, const L3Address& nextHop,
 void AODVRoutingLTE::sendAODVPacket(AODVControlPacket *packet, const L3Address& destAddr, unsigned int timeToLive, double delay)
 {
     ASSERT(timeToLive != 0);
-
+    emit(sentAODVpackets,1);
     INetworkProtocolControlInfo *networkProtocolControlInfo = addressType->createNetworkProtocolControlInfo();
 
     networkProtocolControlInfo->setHopLimit(timeToLive);

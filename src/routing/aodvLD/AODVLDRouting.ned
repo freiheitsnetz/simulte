@@ -108,7 +108,7 @@ simple AODVLDRouting
         @statistic[numSentRERR](title="numSentRERR"; record=sum);
         
         @signal[sentAODVLDpackets];
-        @statistic[sentAODVLDpackets](title="numSentRERR"; record=sum);
+        @statistic[sentAODVLDpackets](title="sentAODVLDpackets"; record=sum);
         
         @signal[numReceivedRERR];
         @statistic[numReceivedRERR](title="numReceivedRERR"; record=sum);

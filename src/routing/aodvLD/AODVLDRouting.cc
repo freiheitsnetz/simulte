@@ -951,7 +951,6 @@ void AODVLDRouting::updateRoutingTable(IRoute *route, const L3Address& nextHop, 
 void AODVLDRouting::sendAODVLDPacket(AODVLDControlPacket *packet, const L3Address& destAddr, unsigned int timeToLive, double delay)
 {
     ASSERT(timeToLive != 0);
-
     emit(sentAODVLDpackets,1);
     INetworkProtocolControlInfo *networkProtocolControlInfo = addressType->createNetworkProtocolControlInfo();
 
@@ -993,7 +992,20 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
         delete rreq;
         return;
     }
+    const RREQIdentifier  rreqIdentifier(rreq->getOriginatorAddr(), rreq->getRreqId());
+    RREQIdentifierCompare compRREQID;
+    RREQAdditionalInfo rreqAddInfo;
+    std::pair<RREQAdditionalInfo,AODVLDRREQ*> tmpPair;
 
+    //Check if sequence number of originator has increased already. In this case delete rreq in lasttransmitted buffer
+   for(auto LT= LastTransmittedRREQ.begin();LT!=LastTransmittedRREQ.end();++LT){
+    if (LT!=LastTransmittedRREQ.end()){
+        if(compRREQID(LT->first,rreqIdentifier)){
+        delete LT->second.second;
+        LastTransmittedRREQ.erase(LT);
+    }
+    }
+   }
 
 
     //Check if the minRLL of the RREQ is higher than the last hop.
@@ -1016,9 +1028,7 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
         updateRoutingTable(previousHopRoute, sourceAddr, 1, false, rreq->getOriginatorSeqNum(), true, simTime() + activeRouteTimeout,tempMetrik+simTime());
 
 
-    RREQIdentifier  rreqIdentifier(rreq->getOriginatorAddr(), rreq->getRreqId());
-    RREQAdditionalInfo rreqAddInfo;
-    std::pair<RREQAdditionalInfo,AODVLDRREQ*> tmpPair;
+
 
     //auto checkRREQArrivalTime = rreqsArrivalTime.find(rreqIdentifier);
 
@@ -1051,6 +1061,8 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
             }
     }
 
+
+
      simtime_t tmpRLL=rreq->getResidualLinklifetime();
     //Compare
 
@@ -1077,9 +1089,15 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
                     CurrentBestRREQ[rreqIdentifier]=tmpPair;
                     return;
                 }
-                else delete rreq;
+                else {
+                    delete rreq;
+                    return;
+                }
             }
-            else delete rreq;
+            else {
+                delete rreq;
+                return;
+            }
         }
         else if(!previouslyTransmitted && currentBestExistend){
                 if(it2->second.second->getResidualLinklifetime()< tmpRLL){
@@ -1103,7 +1121,10 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
                     return;
 
             }
-                else delete rreq;
+                else {
+                    delete rreq;
+                    return;
+                }
         }
 
         else if(previouslyTransmitted && !currentBestExistend){
@@ -1130,7 +1151,10 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
                            return;
 
                     }
-                else delete rreq;
+                else {
+                    delete rreq;
+                    return;
+                }
                 }
         else if(!previouslyTransmitted && !currentBestExistend){
 
@@ -1156,9 +1180,13 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
                            return;
 
                 }
-        else delete rreq;
+        else {
+            delete rreq;
 
-    //-------
+        }
+
+
+
 
 
 
@@ -1183,12 +1211,15 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
 
             }
       }*/
-      if(it==CurrentBestRREQ.end())
-         cRuntimeError("No rreq matching to timer");
+     delete rreqTimer;
+      if(it==CurrentBestRREQ.end()){
+         //cRuntimeError("No rreq matching to timer");
+          return; //Bug handle in case (however this is possible) a timer is scheduled but no rreq is in buffer
+      }
 
       AODVLDRREQ *rreq=it->second.second;
       RREQAdditionalInfo rreqAddInfo=it->second.first;
-      delete rreqTimer;
+
 
 
     // First, it first increments the hop count value in the RREQ by one, to

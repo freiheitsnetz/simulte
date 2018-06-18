@@ -59,6 +59,8 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
         {
             return this->originatorAddr == other.originatorAddr && this->rreqID == other.rreqID;
         }
+        L3Address getOrignatorAddress(){return originatorAddr;}
+
     };
 
     class RREQAdditionalInfo
@@ -80,7 +82,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
       public:
         bool operator()(const RREQIdentifier& lhs, const RREQIdentifier& rhs) const
         {
-            return lhs.rreqID < rhs.rreqID;
+            return ((lhs.rreqID < rhs.rreqID)&&(lhs.originatorAddr==rhs.originatorAddr));
         }
     };
 

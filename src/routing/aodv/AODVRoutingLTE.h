@@ -97,6 +97,9 @@ class INET_API AODVRoutingLTE : public cSimpleModule, public ILifecycle, public 
     cPar *jitterPar = nullptr;
     cPar *periodicJitter = nullptr;
 
+    simtime_t RREP_Arrival_timestamp=0;
+    simtime_t RREQ_Created_timestamp=0;
+
     // the following parameters are calculated from the parameters defined above
     // see the NED file for more info
     simtime_t deletePeriod;
@@ -105,7 +108,7 @@ class INET_API AODVRoutingLTE : public cSimpleModule, public ILifecycle, public 
     simtime_t netTraversalTime;
     simtime_t nextHopWait;
     simtime_t pathDiscoveryTime;
-    simtime_t RREP_Arrival_timestamp=0;
+
 
     //statistics
 
@@ -118,6 +121,8 @@ class INET_API AODVRoutingLTE : public cSimpleModule, public ILifecycle, public 
     simsignal_t numSentRERR;
     simsignal_t numReceivedRERR;
     simsignal_t newSeqNum;
+
+    simsignal_t sentAODVpackets;
 
     double firstRREPArrives;
     simtime_t RREQsent;
