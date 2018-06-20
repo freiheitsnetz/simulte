@@ -175,8 +175,8 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
         destAddr = binder_->getIPfromMAC(tmpControl->getDestinationAddress());
 
         /*Avoid VoIP packets travel down any further down the stack when there is no connection*/
-        std::map<cModule*,bool> connectionVector=neighborModule->getConnectionVector();
-        std::map<cModule*,bool>::iterator it= connectionVector.find(neighborModule->getAddressFromIP(destAddr));
+        std::map<cModule*,bool>* connectionVector=neighborModule->getConnectionVector();
+        auto it= connectionVector->find(neighborModule->getAddressFromIP(destAddr));
         if(it->second==0){
             emit(NF_LINK_BREAK,datagram);
             delete datagram;

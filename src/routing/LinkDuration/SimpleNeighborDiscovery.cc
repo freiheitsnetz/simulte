@@ -199,8 +199,8 @@ cModule* SimpleNeighborDiscovery::getAddressFromIP(L3Address IPaddress){
 
     }
 
-std::map<cModule*,bool> SimpleNeighborDiscovery::getConnectionVector(){
-return neighborConnection;
+std::map<cModule*,bool>* SimpleNeighborDiscovery::getConnectionVector(){
+return &neighborConnection;
 }
 
 //Untested: Should calculate the connection timeout( When UEs are out of range)

@@ -142,9 +142,9 @@ void ResidualLinklifetime::setInitialLLVector(){
 
 
     volatile double randValue=0;
-    std::map<cModule*,bool> tmpConnection =neighborModule->getConnectionVector();
+    std::map<cModule*,bool>* tmpConnection =neighborModule->getConnectionVector();
     int rng=0;
-    for(std::map<cModule*,bool>::iterator it=tmpConnection.begin();it!=tmpConnection.end();++it){
+    for(auto it=tmpConnection->begin();it!=tmpConnection->end();++it){
         if(it->second==1){
             randValue=uniform(0,1,rng);
            double temptime=cdfModule->getClosestT_value(randValue);

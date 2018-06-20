@@ -79,7 +79,7 @@ class INET_API SimpleNeighborDiscovery:  public cSimpleModule
     /*untested*/
     simtime_t calcRealConnectionTimeout(cModule* neighbor); //returns real connection time out. Needs "LinearMobilityExtended" module because it requests for initial angle
 
-    std::map<cModule*,bool> getConnectionVector();
+    std::map<cModule*,bool>* getConnectionVector();
     cModule* getAddressFromIP(L3Address);
     virtual ~SimpleNeighborDiscovery();
 
