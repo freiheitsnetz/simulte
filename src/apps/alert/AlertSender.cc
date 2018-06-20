@@ -24,6 +24,13 @@ AlertSender::AlertSender()
 AlertSender::~AlertSender()
 {
     cancelAndDelete(selfSender_);
+    cOwnedObject *Del=NULL;
+    int OwnedSize=this->defaultListSize();
+    for(int i=0;i<OwnedSize;i++){
+            Del=this->defaultListGet(0);
+            this->drop(Del);
+            delete Del;
+    }
 }
 
 void AlertSender::initialize(int stage)
@@ -81,6 +88,7 @@ void AlertSender::handleMessage(cMessage *msg)
         else
             throw cRuntimeError("AlertSender::handleMessage - Unrecognized self message");
     }
+    else delete msg;
 }
 
 void AlertSender::sendAlertPacket()

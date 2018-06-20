@@ -100,6 +100,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     IInterfaceTable *interfaceTable = nullptr;
     INetfilter *networkProtocol = nullptr;
     ResidualLinklifetime *metrikmodule=nullptr;
+    SimpleNeighborDiscovery* neighborModule=nullptr;
 
     // AODVLD parameters: the following parameters are configurable, see the NED file for more info.
     unsigned int rerrRatelimit = 0;
@@ -122,6 +123,8 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     //L3Address multicastAddress;//for SIMULTE since LTE-A uses Multicast instead of Broadcast. Same address as in demo.xml
     cPar *jitterPar = nullptr;
     cPar *periodicJitter = nullptr;
+    int routeErrorCounter =0; //Counts the number of unicast packets passing aodvld without having a route to destination
+
 
     // the following parameters are calculated from the parameters defined above
     // see the NED file for more info
@@ -138,6 +141,8 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     bool RREQTimerHopDependeny;
     simtime_t RREP_Arrival_timestamp=0;
     simtime_t RREQ_Created_timestamp=0;
+
+    IPv4Datagram* tmpdatagram;
 
     //statistics
 

@@ -134,6 +134,7 @@ void AODVLDRouting::initialize(int stage)
     }
     else if (stage == INITSTAGE_ROUTING_PROTOCOLS) {
         metrikmodule = getModuleFromPar<ResidualLinklifetime>(par("residualLinkLifetimeModule"),this);
+        neighborModule = inet::getModuleFromPar<inet::SimpleNeighborDiscovery>(par("neighborDiscoveryModule"), this);
         NodeStatus *nodeStatus = dynamic_cast<NodeStatus *>(host->getSubmodule("status"));
         isOperational = !nodeStatus || nodeStatus->getState() == NodeStatus::UP;
 
@@ -142,6 +143,7 @@ void AODVLDRouting::initialize(int stage)
         socket.registerProtocol(IP_PROT_MANET);
         networkProtocol->registerHook(0, this);
         host->subscribe(NF_LINK_BREAK, this);
+        tmpdatagram= new IPv4Datagram;
 
 
         if (useHelloMessages) {
@@ -285,9 +287,13 @@ void AODVLDRouting::handleMessage(cMessage *msg)
 
 INetfilter::IHook::Result AODVLDRouting::ensureRouteForDatagram(INetworkDatagram *datagram)
 {
+
+
     Enter_Method("datagramPreRoutingHook");
     const L3Address& destAddr = datagram->getDestinationAddress();
     const L3Address& sourceAddr = datagram->getSourceAddress();
+
+
 
     if (destAddr.isBroadcast() || routingTable->isLocalAddress(destAddr) || destAddr.isMulticast())
         return ACCEPT;
@@ -298,6 +304,27 @@ INetfilter::IHook::Result AODVLDRouting::ensureRouteForDatagram(INetworkDatagram
         bool isActive = routeData && routeData->isActive();
         if (isActive && !route->getNextHopAsGeneric().isUnspecified()) {
             EV_INFO << "Active route found: " << route << endl;
+            //CHECK IF CONNECTION IS REALLY THERE:
+            //To not overflood the network with route errors, send only route error each 10 VoiP packet
+            std::map<cModule*,bool> connectionVector=neighborModule->getConnectionVector();
+            std::map<cModule*,bool>::iterator it= connectionVector.find(neighborModule->getAddressFromIP(route->getNextHopAsGeneric()));
+            if(it!=connectionVector.end()){
+            if(it->second==0){
+
+                tmpdatagram->setDestinationAddress(route->getNextHopAsGeneric());
+
+                if(routeErrorCounter==0){
+                emit(NF_LINK_BREAK,tmpdatagram);
+                //routeErrorCounter++;
+                }
+                else if(routeErrorCounter==1)
+                    routeErrorCounter=0;
+
+                return QUEUE;
+
+                    }
+            }
+
 
             // Each time a route is used to forward a data packet, its Active Route
             // Lifetime field of the source, destination and the next hop on the
@@ -321,6 +348,10 @@ INetfilter::IHook::Result AODVLDRouting::ensureRouteForDatagram(INetworkDatagram
             delayDatagram(datagram);
 
             if (!hasOngoingRouteDiscovery(destAddr)) {
+
+                //ONLY SOURCE MY DO ROUTE DISCOVERY...It can be identified by having a destination address
+                    if(!DestinationAddress.isUnspecified()){
+
                 // When a new route to the same destination is required at a later time
                 // (e.g., upon route loss), the TTL in the RREQ IP header is initially
                 // set to the Hop Count plus TTL_INCREMENT.
@@ -331,6 +362,8 @@ INetfilter::IHook::Result AODVLDRouting::ensureRouteForDatagram(INetworkDatagram
                     startRouteDiscovery(destAddr, route->getMetric() + ttlIncrement);
                 else
                     startRouteDiscovery(destAddr);
+                    }
+                    else return DROP;
             }
             else
                 EV_DETAIL << "Route discovery is in progress, originator " << getSelfIPAddress() << " target " << destAddr << endl;
@@ -711,10 +744,10 @@ void AODVLDRouting::handleRREP(AODVLDRREP *rrep, const L3Address& sourceAddr)
 
     if (!previousHopRoute || previousHopRoute->getSource() != this) {
         // create without valid sequence number
-        previousHopRoute = createRoute(sourceAddr, sourceAddr, 1, false, rrep->getOriginatorSeqNum(), true, simTime() + activeRouteTimeout,simTime() + rrep->getResidualRouteLifetime());
+        previousHopRoute = createRoute(sourceAddr, sourceAddr, 1, false, rrep->getOriginatorSeqNum(), true, simTime() + activeRouteTimeout,simTime() + rrep->getResidualRouteLifetime()+simTime());
     }
     else
-        updateRoutingTable(previousHopRoute, sourceAddr, 1, false, rrep->getOriginatorSeqNum(), true, simTime() + activeRouteTimeout,simTime() + rrep->getResidualRouteLifetime());
+        updateRoutingTable(previousHopRoute, sourceAddr, 1, false, rrep->getOriginatorSeqNum(), true, simTime() + activeRouteTimeout,simTime() + rrep->getResidualRouteLifetime()+simTime());
 
     // Next, the node then increments the hop count value in the RREP by one,
     // to account for the new hop through the intermediate node
@@ -730,7 +763,10 @@ void AODVLDRouting::handleRREP(AODVLDRREP *rrep, const L3Address& sourceAddr)
      * which is not a problem and corrected by later appearing RREP
      */
 
-
+    if(rrep->getHopCount()>15){
+        delete rrep;
+        return;
+    }
     rrep->setHopCount(newHopCount);
 
     // Then the forward route for this destination is created if it does not
@@ -992,6 +1028,14 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
         delete rreq;
         return;
     }
+    if(rreq->getOriginatorAddr()==getSelfIPAddress()){
+        delete rreq;
+        return;
+    }
+    if(rreq->getHopCount()>15){
+        delete rreq;
+        return;
+    }
     const RREQIdentifier  rreqIdentifier(rreq->getOriginatorAddr(), rreq->getRreqId());
     RREQIdentifierCompare compRREQID;
     RREQAdditionalInfo rreqAddInfo;
@@ -1037,7 +1081,7 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
     //TODO Check if really needed
     if (checkRREQArrivalTime != rreqsArrivalTime.end() && simTime() - checkRREQArrivalTime->second <= pathDiscoveryTime){*/
 
-    //Retry
+
     bool previouslyTransmitted=0; //Did we send the same RREQ already?
     bool currentBestExistend=0; //Is there a RREQ about to be sent already?
     std::map<const RREQIdentifier,std::pair<RREQAdditionalInfo,AODVLDRREQ*>,RREQIdentifierCompare>::iterator it;
@@ -1080,11 +1124,12 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
                     tmpPair.second= rreq;
 
                     //Delete old
-                    auto iter= CurrentBestRREQ.find(rreqIdentifier);
-                    if (iter!=CurrentBestRREQ.end()){
-                        delete iter->second.second;
-                        CurrentBestRREQ.erase(iter);
-                    }
+
+
+
+                            delete it2->second.second;
+                            CurrentBestRREQ.erase(it2);
+
 
                     CurrentBestRREQ[rreqIdentifier]=tmpPair;
                     return;
@@ -1111,11 +1156,8 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
                     tmpPair.first= rreqAddInfo;
                     tmpPair.second= rreq;
                     //Delete old
-                     auto iter= CurrentBestRREQ.find(rreqIdentifier);
-                           if (iter!=CurrentBestRREQ.end()){
-                             delete iter->second.second;
-                               CurrentBestRREQ.erase(iter);
-                            }
+                    delete it2->second.second;
+                    CurrentBestRREQ.erase(it2);
 
                     CurrentBestRREQ[rreqIdentifier]=tmpPair;
                     return;
@@ -1202,8 +1244,12 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
      std::map<const RREQIdentifier,std::pair<RREQAdditionalInfo,AODVLDRREQ*>,RREQIdentifierCompare>::iterator it;
       //Find the RREQ whichs timer expired
      const RREQIdentifier tmpRREQidentifier(rreqTimer->getOriginatorAddr(),rreqTimer->getRreqID());
-
-     it=CurrentBestRREQ.find(tmpRREQidentifier);
+     it=CurrentBestRREQ.end();
+     for (auto iter=CurrentBestRREQ.begin(); iter!=CurrentBestRREQ.end();++iter){
+             if(iter->first==tmpRREQidentifier)
+             it=iter;
+             break;
+         }
    /*   for (auto tempPointer=CurrentBestRREQ.begin(); tempPointer!=CurrentBestRREQ.end();++tempPointer){
             if(tempPointer->first==tmpRREQidentifier){
 
@@ -1272,12 +1318,12 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
         int newSeqNum = std::max(routeSeqNum, rreqSeqNum);
 
 
-        /* THIS BLOCK IS OLD (Of normal AODV)
-        int newHopCount = rreq->getHopCount();    // Note: already incremented by 1.
+        // THIS BLOCK IS OLD (Of normal AODV)
+       // int newHopCount = rreq->getHopCount();    // Note: already incremented by 1.
         int routeHopCount = reverseRoute->getMetric();
 
 
-         *
+
         // The route is only updated if the new sequence number is either
         //
         //   (i)       higher than the destination sequence number in the route
@@ -1290,18 +1336,18 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
         //   (iii)     the sequence number is unknown.
 
         if (rreqSeqNum > routeSeqNum ||
-            (rreqSeqNum == routeSeqNum && newHopCount < routeHopCount) ||
+            (rreqSeqNum == routeSeqNum && routeData->getResidualRouteLifetime() < rreq->getResidualLinklifetime()+simTime()) ||
             rreq->getUnknownSeqNumFlag())
         {
-            updateRoutingTable(reverseRoute, it->first.getSourceAddr(), hopCount, true, newSeqNum, true, newLifeTime);
+            updateRoutingTable(reverseRoute, it->second.first.getSourceAddr(), hopCount, true, newSeqNum, true, newLifeTime,simTime() +rreq->getResidualLinklifetime()+simTime());
         }
     }
-    */
+
 
     /*Since the function (handleRREQ(...)) is only called when a better route has been determined, the routing table must be updated every time */
-    updateRoutingTable(reverseRoute, it->second.first.getSourceAddr(), hopCount, true, newSeqNum, true, newLifeTime,simTime() +rreq->getResidualLinklifetime()+simTime());
+    //updateRoutingTable(reverseRoute, it->second.first.getSourceAddr(), hopCount, true, newSeqNum, true, newLifeTime,simTime() +rreq->getResidualLinklifetime()+simTime());
 
-  }
+
     // A node generates a RREP if either:
     //
     // (i)       it is itself the destination, or
@@ -1342,7 +1388,7 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
     if(getSelfIPAddress()!=rreq->getOriginatorAddr()){
 
     if (destRouteData && destRouteData->isActive() && destRouteData->hasValidDestNum() &&
-        destRouteData->getDestSeqNum() >= rreq->getDestSeqNum()&&destRouteData->getResidualRouteLifetime()>rreq->getResidualLinklifetime())
+        destRouteData->getDestSeqNum() >= rreq->getDestSeqNum()&&destRouteData->getResidualRouteLifetime()>rreq->getResidualLinklifetime()+simTime())
     {
         EV_INFO << "I am an intermediate node who has information about a route to " << rreq->getDestAddr() << endl;
 
@@ -1402,10 +1448,11 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
         AODVLDRREQ *outgoingRREQ = rreq->dup();
         forwardRREQ(outgoingRREQ, it->second.first.getPacketTTL());
         std::pair<RREQAdditionalInfo,AODVLDRREQ*> tmpPair(rreqAddInfo,rreq);
-        auto it2= LastTransmittedRREQ.find(tmpRREQidentifier);
-        if (it2!=LastTransmittedRREQ.end()){
+        for(auto it2= LastTransmittedRREQ.begin();it2!=LastTransmittedRREQ.end();++it2){
+        if (it2->first==tmpRREQidentifier){
             delete it2->second.second;
             LastTransmittedRREQ.erase(it2);
+        }
         }
         LastTransmittedRREQ[tmpRREQidentifier]=tmpPair;
 
@@ -1487,7 +1534,7 @@ void AODVLDRouting::receiveSignal(cComponent *source, simsignal_t signalID, cObj
         // XXX: This is a hack for supporting both IdealMac and Ieee80211Mac. etc
         cPacket *frame = check_and_cast<cPacket *>(obj);
         INetworkDatagram *datagram=nullptr;
-        if(name=="SimpleNeighborDiscovery"||name=="ip2lte"){
+        if(name=="SimpleNeighborDiscovery"||name=="ip2lte"||name=="aodvld"){
             datagram = check_and_cast<INetworkDatagram  *>(obj);
         }
 
@@ -1966,7 +2013,7 @@ void AODVLDRouting::expungeRoutes()
             AODVLDRouteData *routeData = check_and_cast<AODVLDRouteData *>(route->getProtocolData());
             ASSERT(routeData != nullptr);
             if(routeData->getLinkFail()==0&&routeData->getResidualRouteLifetime() <= simTime())
-                routeData->setResidualRouteLifetime(simTime()+50);
+                routeData->setResidualRouteLifetime(simTime()+1);
             if (routeData->getResidualRouteLifetime() <= simTime()) {
                 if (routeData->isActive()) {
                     EV_DETAIL << "Route to " << route->getDestinationAsGeneric() << " expired and set to inactive. It will be deleted after DELETE_PERIOD time" << endl;
@@ -1982,7 +2029,7 @@ void AODVLDRouting::expungeRoutes()
                     // before (current_time + 2 * NET_TRAVERSAL_TIME).
                     if (hasOngoingRouteDiscovery(route->getDestinationAsGeneric())) {
                         EV_DETAIL << "Route to " << route->getDestinationAsGeneric() << " expired and is inactive, but we are waiting for a RREP to this destination, so we extend its lifetime with 2 * NET_TRAVERSAL_TIME" << endl;
-                        routeData->setResidualRouteLifetime(simTime() + 2 * netTraversalTime+ netDiameter);
+                        routeData->setResidualRouteLifetime(simTime() + 1);
                     }
                     else {
                         EV_DETAIL << "Route to " << route->getDestinationAsGeneric() << " expired and is inactive and we are not expecting any RREP to this destination, so we delete this route" << endl;
@@ -2223,6 +2270,7 @@ void AODVLDRouting::deleteLastTrans(LastTransDel* delTimer){
                 delete it->second.second;
                 LastTransmittedRREQ.erase(it);
 
+
                 }
 
 }
@@ -2237,6 +2285,7 @@ AODVLDRouting::~AODVLDRouting()
     delete counterTimer;
     delete rrepAckTimer;
     delete blacklistTimer;
+
     cOwnedObject *Del=NULL;
     int OwnedSize=this->defaultListSize();
     for(int i=0;i<OwnedSize;i++){

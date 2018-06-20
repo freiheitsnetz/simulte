@@ -1283,10 +1283,8 @@ void AODVRoutingLTE::handleLinkBreakSendRERR(const L3Address& unreachableAddr)
     // broadcast
     EV_INFO << "Broadcasting Route Error message with TTL=1" << endl;
     sendAODVPacket(rerr, addressType->getBroadcastAddress(), 1, jitterPar->doubleValue());
-    simtime_t timestamp =simTime();
 
-    cTimestampedValue tmp1(timestamp, 1.0);
-    emit(numSentRERR,&tmp1);
+    emit(numSentRERR,1);
 }
 
 AODVRERR *AODVRoutingLTE::createRERR(const std::vector<UnreachableNode>& unreachableNodes)
@@ -1867,6 +1865,15 @@ AODVRoutingLTE::~AODVRoutingLTE()
     delete counterTimer;
     delete rrepAckTimer;
     delete blacklistTimer;
+    cOwnedObject *Del=NULL;
+    int OwnedSize=this->defaultListSize();
+    for(int i=0;i<OwnedSize;i++){
+            Del=this->defaultListGet(0);
+            this->drop(Del);
+            delete Del;
+    }
+
+
 }
 
 } // namespace inet
