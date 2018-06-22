@@ -120,6 +120,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     unsigned int localAddTTL = 0;
     unsigned int allowedHelloLoss = 0;
     simtime_t nodeTraversalTime;
+    simtime_t RLMaring;
     //L3Address multicastAddress;//for SIMULTE since LTE-A uses Multicast instead of Broadcast. Same address as in demo.xml
     cPar *jitterPar = nullptr;
     cPar *periodicJitter = nullptr;

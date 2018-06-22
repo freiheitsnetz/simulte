@@ -106,6 +106,7 @@ void AODVLDRouting::initialize(int stage)
         RREQinLastTransTimer= par("RREQinLastTransTimer");
         RREQTimerHopDependeny =par("RREQTimerHopDependeny").boolValue();
         DestinationAddress =L3AddressResolver().resolve(par("DestinationAddress").stringValue());
+        RLMaring=par("RLMaring");
 
 
         //statistics
@@ -300,7 +301,7 @@ INetfilter::IHook::Result AODVLDRouting::ensureRouteForDatagram(INetworkDatagram
         if (isActive && !route->getNextHopAsGeneric().isUnspecified()) {
             EV_INFO << "Active route found: " << route << endl;
             //CHECK IF CONNECTION IS REALLY THERE:
-            //To not overflood the network with route errors, send only route error each 10 VoiP packet
+
             std::map<cModule*,bool>* connectionVector=neighborModule->getConnectionVector();
             auto it= connectionVector->find(neighborModule->getAddressFromIP(route->getNextHopAsGeneric()));
             if(it!=connectionVector->end()){
@@ -1122,8 +1123,8 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
     //Compare
 
         if(previouslyTransmitted && currentBestExistend){
-            if(it->second.second->getResidualLinklifetime() < tmpRLL){
-                if(it2->second.second->getResidualLinklifetime()< tmpRLL){
+            if(it->second.second->getResidualLinklifetime()+RLMaring< tmpRLL){
+                if(it2->second.second->getResidualLinklifetime()+RLMaring< tmpRLL){
 
                     rreqAddInfo.setSourceAddr(sourceAddr);
                     rreqAddInfo.setPacketTTL(timeToLive);
@@ -1156,7 +1157,7 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
             }
         }
         else if(!previouslyTransmitted && currentBestExistend){
-                if(it2->second.second->getResidualLinklifetime()< tmpRLL){
+                if(it2->second.second->getResidualLinklifetime()+RLMaring< tmpRLL){
                     rreqAddInfo.setSourceAddr(sourceAddr);
                     rreqAddInfo.setPacketTTL(timeToLive);
                     /* Put RREQIdentifier and RREQ into currentBestRREQ map*/
@@ -1181,7 +1182,7 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
         }
 
         else if(previouslyTransmitted && !currentBestExistend){
-                if(it->second.second->getResidualLinklifetime()< tmpRLL){
+                if(it->second.second->getResidualLinklifetime()+RLMaring< tmpRLL){
                     rreqAddInfo.setSourceAddr(sourceAddr);
                     rreqAddInfo.setPacketTTL(timeToLive);
                     /* Put RREQIdentifier and RREQ into currentBestRREQ map*/
@@ -1396,10 +1397,10 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
     // check (ii) //TODO do we really need this? Solution: Only send a RREP back if the RRL of the route to destination is higher,
     // than the minRLL contained in RREQ. RRL in RREP is then set to min RLL in RREQ. So only if links of previous nodes are the bottleneck,
     // use existing node
-    if(getSelfIPAddress()!=rreq->getOriginatorAddr()){
+    /*if(getSelfIPAddress()!=rreq->getOriginatorAddr()){
 
     if (destRouteData && destRouteData->isActive() && destRouteData->hasValidDestNum() &&
-        destRouteData->getDestSeqNum() >= rreq->getDestSeqNum()&&destRouteData->getResidualRouteLifetime()>rreq->getResidualLinklifetime()+simTime())
+        destRouteData->getDestSeqNum() >= rreq->getDestSeqNum()&&destRouteData->getResidualRouteLifetime()+RLMaring+50 > rreq->getResidualLinklifetime()+simTime())
     {
         EV_INFO << "I am an intermediate node who has information about a route to " << rreq->getDestAddr() << endl;
 
@@ -1412,6 +1413,7 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
         }
 
         // create RREP
+        rreq->setResidualLinklifetime(destRouteData->getResidualRouteLifetime());
         AODVLDRREP *rrep = createRREP(rreq, destRoute, reverseRoute, it->second.first.getSourceAddr());
 
         // send to the originator
@@ -1432,7 +1434,7 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
 
         return;    // discard RREQ, in this case, we also do not forward it.
     }
-    }
+    }*/
 
     // If a node does not generate a RREP (following the processing rules in
     // section 6.6), and if the incoming IP header has TTL larger than 1,
@@ -1741,6 +1743,7 @@ void AODVLDRouting::handleRERR(AODVLDRERR *rerr, const L3Address& sourceAddr)
                     routeData->setDestSeqNum(rerr->getUnreachableNodes(j).seqNum);
                     routeData->setIsActive(false);    // it means invalid, see 3. AODVLD Terminology p.3. in RFC 3561
                     routeData->setLifeTime(simTime() + deletePeriod);
+                    routeData->setLinkFail(true);
 
                     routeData->setResidualRouteLifetime(simTime() + deletePeriod);
 
