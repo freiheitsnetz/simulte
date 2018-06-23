@@ -140,6 +140,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     simtime_t RREQinLastTransTimer;
 
     bool RREQTimerHopDependeny;
+    bool constRREQTimer;
     simtime_t RREP_Arrival_timestamp=0;
     simtime_t RREQ_Created_timestamp=0;
 

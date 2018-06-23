@@ -107,6 +107,7 @@ void AODVLDRouting::initialize(int stage)
         RREQTimerHopDependeny =par("RREQTimerHopDependeny").boolValue();
         DestinationAddress =L3AddressResolver().resolve(par("DestinationAddress").stringValue());
         RLMaring=par("RLMaring");
+        constRREQTimer=par("constRREQTimer").boolValue();
 
 
         //statistics
@@ -1196,13 +1197,23 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
                      WaitForRREQ* tempTimer =new WaitForRREQ("RREQCollectionTimer");
                      tempTimer->setOriginatorAddr(rreq->getOriginatorAddr());
                      tempTimer->setRreqID(rreq->getRreqId());
-
+                     if(!constRREQTimer){
                            if(RREQTimerHopDependeny)
                                   scheduleAt(simTime()+RREQCollectionTimeMin*rreq->getHopCount()+exponential(RREQCollectionTimeMean*rreq->getHopCount()),tempTimer);
                            else
                                scheduleAt(simTime()+RREQCollectionTimeMin+exponential(RREQCollectionTimeMean),tempTimer);
                            rreqcollectionTimer.push_back(tempTimer);
                            return;
+                     }
+                     else
+                     {
+                         if(RREQTimerHopDependeny)
+                                scheduleAt(simTime()+RREQCollectionTimeMin*rreq->getHopCount(),tempTimer);
+                         else
+                             scheduleAt(simTime()+RREQCollectionTimeMin,tempTimer);
+                         rreqcollectionTimer.push_back(tempTimer);
+                         return;
+                     }
 
                     }
                 else {
@@ -1226,12 +1237,23 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
                      tempTimer->setOriginatorAddr(rreq->getOriginatorAddr());
                      tempTimer->setRreqID(rreq->getRreqId());
 
+                     if(!constRREQTimer){
                            if(RREQTimerHopDependeny)
                                   scheduleAt(simTime()+RREQCollectionTimeMin*rreq->getHopCount()+exponential(RREQCollectionTimeMean*rreq->getHopCount()),tempTimer);
                            else
                                scheduleAt(simTime()+RREQCollectionTimeMin+exponential(RREQCollectionTimeMean),tempTimer);
                            rreqcollectionTimer.push_back(tempTimer);
                            return;
+                     }
+                     else
+                     {
+                         if(RREQTimerHopDependeny)
+                                scheduleAt(simTime()+RREQCollectionTimeMin*rreq->getHopCount(),tempTimer);
+                         else
+                             scheduleAt(simTime()+RREQCollectionTimeMin,tempTimer);
+                         rreqcollectionTimer.push_back(tempTimer);
+                         return;
+                     }
 
                 }
         else {

@@ -86,9 +86,10 @@ simple AODVLDRouting
         double nextHopWait @unit("s") = default(nodeTraversalTime + 0.01s); // timeout for a RREP-ACK
         double pathDiscoveryTime @unit("s") = default(2 * netTraversalTime); // buffer timeout for each broadcasted RREQ message
         double RREQCollectionTimeMin @unit("s") = default(0.01s); // Minumum time same RREQ is saved and exchanged to better RREQ until rebroadcst
-        double RREQCollectionTimeMean @unit("s") = default(0.05s); // Maximum time same RREQ is saved and exchanged to better RREQ until rebroadcst
+        double RREQCollectionTimeMean @unit("s") = default(0.05s); // Mean of exponential ditributed addition to  RREQCollectionTimeMin
         double RREQinLastTransTimer @unit("s") = default(3s); //Time when RREQ is thrown out of LastTransmittedBuffer
         bool RREQTimerHopDependeny = default(false);
+        bool constRREQTimer=default(true); //If true only RREQCollectionTimeMin is used as timer (no exponential addition)
         string DestinationAddress = default("10.0.3.3"); //Destination of VOIPpackets, to measure if route is there or not
         
         
