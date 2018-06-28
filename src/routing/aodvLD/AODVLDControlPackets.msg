@@ -67,6 +67,7 @@ class AODVLDRREQ extends AODVLDControlPacket
     L3Address originatorAddr;
     unsigned int originatorSeqNum;
     simtime_t residualLinklifetime;
+  
 }
 
 //

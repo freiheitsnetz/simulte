@@ -68,12 +68,15 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     private:
         L3Address sourceAddr;
         unsigned int packetTTL;
+        simtime_t bufferTimestamp;
     public:
         //RREQAdditionalInfo(L3Address sourceAddr,unsigned int packetTTL) : sourceAddr (sourceAddr),packetTTL (packetTTL) {};
         L3Address getSourceAddr()  {return sourceAddr;}
         unsigned int getPacketTTL()  {return packetTTL;}
+        simtime_t getBufferTimestamp() {return bufferTimestamp;}
         void setSourceAddr(L3Address sourceAddr){this->sourceAddr=sourceAddr;}
         void setPacketTTL(unsigned int packetTTL){this->packetTTL=packetTTL;}
+        void setBufferTimestamp(simtime_t ts) {this->bufferTimestamp=ts;}
 
     };
 
@@ -187,9 +190,9 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     cMessage *rrepAckTimer = nullptr;    // timer to wait for RREP-ACKs (RREP-ACK timeout)
     cMessage *blacklistTimer = nullptr;    // timer to clean the blacklist out
     cMessage *updateTimer = nullptr; // Statistics: Used for timetamp, if route is there or not to DestinationAddress
-    std::vector<WaitForRREQ *>rreqcollectionTimer;
+    //std::vector<WaitForRREQ *>rreqcollectionTimer;
 
-    std::vector<LastTransDel *>rreqkeepingTimer; // How long are rreq kept in lasttransmitted buffer
+    cMessage *rreqkeepingTimer=nullptr; // How long are rreq kept in lasttransmitted buffer
     int lengthColTimer=0;
     int lengthKeepTimer=0;
     int lengthBestBuffer=0;
@@ -254,7 +257,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     void handleWaitForRREP(WaitForRREP *rrepTimer);
     /*Handle best RREQ after timer has expired*/
     void handleRREQ(WaitForRREQ *rreqTimer);
-    void deleteLastTrans(LastTransDel* delTimer);
+    void deleteLastTrans();
 
     /* General functions to handle route errors */
     void sendRERRWhenNoRouteToForward(const L3Address& unreachableAddr);

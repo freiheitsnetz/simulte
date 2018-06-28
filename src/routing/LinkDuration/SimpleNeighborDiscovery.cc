@@ -85,7 +85,7 @@ void SimpleNeighborDiscovery::updateNodeDistanceEntries(){
     IMobility *selfMobility = check_and_cast<IMobility *>(self->getSubmodule("mobility"));
     Coord tempCoordOwn = selfMobility->getCurrentPosition();
 
-    for (std::vector<cModule*>::iterator it = otherAddressVector.begin(); it!=otherAddressVector.end(); ++it){
+    for (std::vector<cModule*>::iterator it = otherAddressVector.begin(); it!=otherAddressVector.end(); it++){
 
         cModule *host = *it;
         IMobility *otherMobility = check_and_cast<IMobility *>(host->getSubmodule("mobility"));
@@ -149,7 +149,7 @@ bool SimpleNeighborDiscovery::isInConnectionRange(int txRange, int nodeDistance)
 }
 void SimpleNeighborDiscovery::incrementLinklifetime(){
 
-    for(std::map<cModule*,bool>::iterator it= neighborConnection.begin();it!=neighborConnection.end();++it){
+    for(std::map<cModule*,bool>::iterator it= neighborConnection.begin();it!=neighborConnection.end();it++){
         if(it->second==1){
             //Just incrementing
             LinkTimeTable->setNeighborLinkTime(it->first,LinkTimeTable->getNeighborLinkTime(it->first)+1);
@@ -164,7 +164,7 @@ void SimpleNeighborDiscovery::incrementLinklifetime(){
 void SimpleNeighborDiscovery::setAddresstoIPMap(){
 
 
-    for(std::vector<cModule*>::iterator it= otherAddressVector.begin();it!=otherAddressVector.end();++it){
+    for(std::vector<cModule*>::iterator it= otherAddressVector.begin();it!=otherAddressVector.end();it++){
         IPv4RoutingTable* tempTable = check_and_cast<IPv4RoutingTable*>((*it)->getSubmodule("routingTable"));
         IPv4Address tempAddress = tempTable->getRouterId();
         addressToIP[(*it)]=tempAddress;
@@ -175,7 +175,7 @@ void SimpleNeighborDiscovery::setAddresstoIPMap(){
     }
 cModule* SimpleNeighborDiscovery::getAddressFromIP(L3Address IPaddress){
 
-    for(std::map<cModule*,L3Address>::iterator it= addressToIP.begin();it!=addressToIP.end();++it){
+    for(std::map<cModule*,L3Address>::iterator it= addressToIP.begin();it!=addressToIP.end();it++){
         if(it->second==IPaddress)
             return it->first;
 
@@ -230,7 +230,7 @@ simtime_t SimpleNeighborDiscovery::calcRealConnectionTimeout(cModule* neighbor){
 
 void SimpleNeighborDiscovery::setConnectionTimeoutVec(){
 
-    for(std::map<cModule*,bool>::iterator it = neighborConnection.begin(); it!=neighborConnection.end();++it){
+    for(std::map<cModule*,bool>::iterator it = neighborConnection.begin(); it!=neighborConnection.end();it++){
         if(it->second==1){
             realConnectionTimeout[it->first]=(calcRealConnectionTimeout(it->first));
         }
