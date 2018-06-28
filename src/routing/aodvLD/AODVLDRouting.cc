@@ -1495,6 +1495,7 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
         LastTransDel* lastTransDelTemp= new LastTransDel("RREQkeepingTimer");
         lastTransDelTemp->setOriginatorAddr(rreq->getOriginatorAddr());
         lastTransDelTemp->setRreqID(rreq->getRreqId());
+        rreqkeepingTimer.push_back(lastTransDelTemp);
         scheduleAt(simTime()+RREQinLastTransTimer,lastTransDelTemp);
         CurrentBestRREQ.erase(it);
 
