@@ -486,7 +486,7 @@ void AODVLDRouting::sendRREQ(AODVLDRREQ *rreq, const L3Address& destAddr, unsign
 
     // Each time, the timeout for receiving a RREP is RING_TRAVERSAL_TIME.
     //                                             original: timeToLive
-    simtime_t ringTraversalTime = 2.0 * nodeTraversalTime * (ttlStart + timeoutBuffer)+ttlStart*(RREQCollectionTimeMean+RREQCollectionTimeMin);
+    simtime_t ringTraversalTime = 2.0 * nodeTraversalTime * (timeToLive + timeoutBuffer)+timeToLive*(RREQCollectionTimeMean+RREQCollectionTimeMin)+3;
     scheduleAt(simTime() + ringTraversalTime, rrepTimerMsg);
 
     emit(numRREQsent,1);
@@ -767,11 +767,11 @@ void AODVLDRouting::handleRREP(AODVLDRREP *rrep, const L3Address& sourceAddr)
      * Since the older route is definitely worse than the new route, the minRLL is set too low,
      * which is not a problem and corrected by later appearing RREP
      */
-
-    if(rrep->getHopCount()>ttlStart){
+    //Only if ttlstart is equal to network size
+    /*if(rrep->getHopCount()>ttlStart){
         delete rrep;
         return;
-    }
+    }*/
     rrep->setHopCount(newHopCount);
 
     // Then the forward route for this destination is created if it does not
@@ -1037,10 +1037,11 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
         delete rreq;
         return;
     }
-    if(rreq->getHopCount()>ttlStart){
+    //Only if ttlStart is set to network size
+    /*if(rreq->getHopCount()>ttlStart){
         delete rreq;
         return;
-    }
+    }*/
     const RREQIdentifier  rreqIdentifier(rreq->getOriginatorAddr(), rreq->getRreqId());
     RREQIdentifierCompare compRREQID;
     RREQAdditionalInfo rreqAddInfo;
