@@ -35,7 +35,7 @@ import lte.stack.phy.LteNicUe;
 import lte.stack.phy.LteNicUeD2D;
 
 // 
-// User Equipment Module
+// Copy from Ue.ned with additional paramters needed for routing
 module ForwardingUe
 {
         parameters:

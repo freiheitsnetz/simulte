@@ -21,23 +21,7 @@ import lte.routing.LinkDuration.LinkDuration;
 import lte.routing.aodvLD.ForwardingUe;
 
 
-//
-// It models a ~WirelessHost extended with ~AODVRouting submodule.
-//
-// AODV is an on-demand MANET routing protocol. Each node
-// works similar to a 'router': they manage their own routing
-// tables, send request for routes and consult the IP layer via
-// Netfilter hooks for data forwarding.
-//
-// Scenerios where AODV routing is desired use this module as a
-// host module.
-//
-// For more info about AODVRouting, see the corresponding module:
-// ~AODVRouting and its C++ implementation with the same name.
-//
-// The AODV v.2 (known as DYMO) is also implemented: ~DYMO,
-// ~DYMORouter.
-//
+//Copy of UE with additional paramters. LinkDuration module is just needed for statistics here.
 
 module AODVUe extends ForwardingUe
 {

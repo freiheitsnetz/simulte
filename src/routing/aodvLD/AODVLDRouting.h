@@ -1,6 +1,6 @@
 //
 // Copyright (C) 2014 OpenSim Ltd.
-// Author: Benjamin Seregi
+// Author: Benjamin Seregi, John-Torben Reimers
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -38,6 +38,7 @@ namespace inet {
 /*
  * This class implements AODVLD routing protocol and Netfilter hooks
  * in the IP-layer required by this protocol.
+ * Changes were neccessary to combine this protocol with SimuLTE
  */
 
 class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public INetfilter::IHook, public cListener
@@ -190,7 +191,7 @@ class INET_API AODVLDRouting : public cSimpleModule, public ILifecycle, public I
     cMessage *rrepAckTimer = nullptr;    // timer to wait for RREP-ACKs (RREP-ACK timeout)
     cMessage *blacklistTimer = nullptr;    // timer to clean the blacklist out
     cMessage *updateTimer = nullptr; // Statistics: Used for timetamp, if route is there or not to DestinationAddress
-    //std::vector<WaitForRREQ *>rreqcollectionTimer;
+
 
     cMessage *rreqkeepingTimer=nullptr; // How long are rreq kept in lasttransmitted buffer
     int lengthColTimer=0;

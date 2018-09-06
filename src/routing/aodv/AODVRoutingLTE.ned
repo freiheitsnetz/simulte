@@ -1,6 +1,6 @@
 //
 // Copyright (C) 2014 OpenSim Ltd.
-// Author: Benjamin Seregi
+// Author: Benjamin Seregi, John-Torben Reimers
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -18,22 +18,7 @@
 
 package lte.routing.aodv;
 
-//
-// Ad hoc On-Demand Distance Vector Routing Protocol module.
-//
-// The Ad hoc On-Demand Distance Vector (AODV) routing protocol is
-// intended for use by mobile nodes in an ad hoc network. It offers
-// quick adaptation to dynamic link conditions, low processing and
-// memory overhead, low network utilization, and determines unicast
-// routes to destinations within the ad hoc network.
-//
-// This routing protocol communicates over UDP and used in ~AODVRouter
-// nodes as a routing submodule. ~AODVRouter is just a ~WirelessHost
-// extended with ~AODVRouting submodule.
-//
-// This implementation is based on RFC 3561. For more information, you may
-// refer to the following link: https://tools.ietf.org/html/rfc3561.html.
-//
+//Copy from AODVRouting with different parameters
 @namespace(inet);
 simple AODVRoutingLTE
 {

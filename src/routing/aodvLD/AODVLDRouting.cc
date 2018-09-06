@@ -1,6 +1,6 @@
 //
 // Copyright (C) 2014 OpenSim Ltd.
-// Author: Benjamin Seregi
+// Author: Benjamin Seregi, John-Torben Reimers
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -44,9 +44,7 @@
 #include "inet/linklayer/bmac/BMacFrame_m.h"
 #endif // ifdef WITH_BMAC
 
-//TODO includes
-//#ifdef WITH_LTE
-//#endif
+
 #include <LteAirFrame.h>
 #include "inet/networklayer/common/IPSocket.h"
 #include "inet/transportlayer/contract/udp/UDPControlInfo.h"
@@ -205,20 +203,7 @@ void AODVLDRouting::handleMessage(cMessage *msg)
 
         else if (msg ==updateTimer){
             std::string temp= DestinationAddress.str();
-            /*L3Address tmp = routingTable->getNextHopForDestination(DestinationAddress);
-            simtime_t timestamp=simTime();
-            scheduleAt(simTime() + 0.1, updateTimer);
-            if(tmp.isUnspecified()){
-            cTimestampedValue tmp(timestamp, 0.0);
-            emit(routeAvailability,&tmp);
-            }
-            else{
-            cTimestampedValue tmp(timestamp, 1.0);
-            emit(routeAvailability,&tmp);
-        }
-        */
-            /*lengthColTimer=rreqcollectionTimer.size();
-            lengthKeepTimer=rreqkeepingTimer.size();*/
+
             lengthBestBuffer=CurrentBestRREQ.size();
             lengthLastBuffer=LastTransmittedRREQ.size();
 
@@ -352,7 +337,7 @@ INetfilter::IHook::Result AODVLDRouting::ensureRouteForDatagram(INetworkDatagram
 
             if (!hasOngoingRouteDiscovery(destAddr)) {
 
-                //ONLY SOURCE MY INITIATE ROUTE DISCOVERY...It can be identified by having a destination address (Set in omnetpp.ini)
+                //ONLY SOURCE MAY INITIATE ROUTE DISCOVERY...It can be identified by having a destination address (Set in omnetpp.ini)
                 //Route repair is not implemented in AODV anyway
                     if(!DestinationAddress.isUnspecified()){
 
@@ -591,9 +576,10 @@ AODVLDRREQ *AODVLDRouting::createRREQ(const L3Address& destAddr)
     // In this way, when the node receives the packet again from its neighbors,
     // it will not reprocess and re-forward the packet.
 
-    /*RREQIdentifier rreqIdentifier(getSelfIPAddress(), rreqId);
-    rreqsArrivalTime[rreqIdentifier] = simTime();*/
     rreqPacket->setByteLength(24);
+
+    /*The input is the initial residual link lifetime and has to be higher, than any residual link lifetime that can occure,
+     * because the algorithm takes the lowest always*/
     rreqPacket->setResidualLinklifetime(1000000);
     return rreqPacket;
 }
@@ -652,7 +638,8 @@ AODVLDRREP *AODVLDRouting::createRREP(AODVLDRREQ *rreq, IRoute *destRoute, IRout
         rrep->setLifeTime(myRouteTimeout);
         rrep->setResidualRouteLifetime(rreq->getResidualLinklifetime()+simTime());
     }
-    //TODO For now: Don't allow an intermediate node to return a rrep
+    /*Function disabled: Allow an intermediate node to return a rrep (untested)*/
+
     /*else {    // intermediate node
               // it copies its known sequence number for the destination into
               // the Destination Sequence Number field in the RREP message.
@@ -767,11 +754,7 @@ void AODVLDRouting::handleRREP(AODVLDRREP *rrep, const L3Address& sourceAddr)
      * Since the older route is definitely worse than the new route, the minRLL is set too low,
      * which is not a problem and corrected by later appearing RREP
      */
-    //Only if ttlstart is equal to network size
-    /*if(rrep->getHopCount()>ttlStart){
-        delete rrep;
-        return;
-    }*/
+
     rrep->setHopCount(newHopCount);
 
     // Then the forward route for this destination is created if it does not
@@ -844,7 +827,6 @@ void AODVLDRouting::handleRREP(AODVLDRREP *rrep, const L3Address& sourceAddr)
             // (iv) the sequence numbers are the same, and the New Hop Count is
             //      smaller than the hop count in route table entry.
 
-            /*TODO Deactivate? same sequence number but smaller hop count is not the metric for this*/
             //CHANGE: METRIC is now residualRouteLifetime, which is the minRLL calculated from RREQ phase
             //Meaning: When same seq#: newResidualLinklifeTime must be higher than old to update route information
             else if (destSeqNum == destRouteData->getDestSeqNum() && (simTime()+newResidualRouteLifetime) > destRouteData->getResidualRouteLifetime()) {
@@ -936,22 +918,7 @@ void AODVLDRouting::handleRREP(AODVLDRREP *rrep, const L3Address& sourceAddr)
     else {
         if(destRouteData->getResidualRouteLifetime()<rrep->getResidualRouteLifetime()){
         updateRoutingTable(destRoute, sourceAddr, newHopCount, true, destSeqNum, true, simTime() + lifeTime, simTime() + newResidualRouteLifetime);
-        /*if(destRouteData->getResidualRouteLifetime()<=rrep->getResidualRouteLifetime()&&rrep->getOriginatorSeqNum()== sequenceNum){
 
-
-            RREP_Arrival_timestamp =simTime();
-            double interRREQRREPTime_timestamp= simTime().dbl()-RREQsent.dbl();
-            numHops= newHopCount;
-
-
-
-            cTimestampedValue tmp1(RREP_Arrival_timestamp, interRREQRREPTime_timestamp);
-            emit(interRREQRREPTime,&tmp1);
-            cTimestampedValue tmp2(RREP_Arrival_timestamp, (double)numHops);
-            emit(numFinalHops,&tmp2);
-            cTimestampedValue tmp3(RREP_Arrival_timestamp, (double)rrep->getResidualRouteLifetime().dbl());
-            emit(theoreticalRL,&tmp3);
-            }*/
         }
         if (hasOngoingRouteDiscovery(rrep->getDestAddr())) {
             EV_INFO << "The Route Reply has arrived for our Route Request to node " << rrep->getDestAddr() << endl;
@@ -1037,11 +1004,7 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
         delete rreq;
         return;
     }
-    //Only if ttlStart is set to network size
-    /*if(rreq->getHopCount()>ttlStart){
-        delete rreq;
-        return;
-    }*/
+
     const RREQIdentifier  rreqIdentifier(rreq->getOriginatorAddr(), rreq->getRreqId());
     RREQIdentifierCompare compRREQID;
     RREQAdditionalInfo rreqAddInfo;
@@ -1088,21 +1051,12 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
 
 
 
-
-    //auto checkRREQArrivalTime = rreqsArrivalTime.find(rreqIdentifier);
-
-
-    /*//Check if there was a RREQ with the same ID from same source in the last "path discorvery time"
-    //TODO Check if really needed
-    if (checkRREQArrivalTime != rreqsArrivalTime.end() && simTime() - checkRREQArrivalTime->second <= pathDiscoveryTime){*/
-
-
     bool previouslyTransmitted=0; //Did we send the same RREQ already?
     bool currentBestExistend=0; //Is there a RREQ about to be sent already?
     std::map<const RREQIdentifier,std::pair<RREQAdditionalInfo,AODVLDRREQ*>,RREQIdentifierCompare>::iterator it;
     std::map<const RREQIdentifier,std::pair<RREQAdditionalInfo,AODVLDRREQ*>,RREQIdentifierCompare>::iterator it2;
 
-    //New incoming RREQ has to have a lower RLL than same RREQ in both buffer. Only one entry can be found in each buffer
+    //New incoming RREQ has to have a higher RLL than same RREQ in both buffer. Only one entry can be found in each buffer
     for (auto i=LastTransmittedRREQ.begin(); i!=LastTransmittedRREQ.end();i++){
             if(i->first==rreqIdentifier){
 
@@ -1357,10 +1311,6 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
         int newSeqNum = std::max(routeSeqNum, rreqSeqNum);
 
 
-        // THIS BLOCK IS OLD (Of normal AODV)
-       // int newHopCount = rreq->getHopCount();    // Note: already incremented by 1.
-        //int routeHopCount = reverseRoute->getMetric();
-
 
 
         // The route is only updated if the new sequence number is either
@@ -1381,10 +1331,6 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
             updateRoutingTable(reverseRoute, it->second.first.getSourceAddr(), hopCount, true, newSeqNum, true, newLifeTime,simTime() +rreq->getResidualLinklifetime()+simTime());
         }
     }
-
-
-    /*Since the function (handleRREQ(...)) is only called when a better route has been determined, the routing table must be updated every time */
-    //updateRoutingTable(reverseRoute, it->second.first.getSourceAddr(), hopCount, true, newSeqNum, true, newLifeTime,simTime() +rreq->getResidualLinklifetime()+simTime());
 
 
     // A node generates a RREP if either:
@@ -1421,9 +1367,7 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
         return;    // discard RREQ, in this case, we do not forward it.
     }
 
-    // check (ii) //TODO do we really need this? Solution: Only send a RREP back if the RRL of the route to destination is higher,
-    // than the minRLL contained in RREQ. RRL in RREP is then set to min RLL in RREQ. So only if links of previous nodes are the bottleneck,
-    // use existing node
+    // check (ii) Disabled (unused and untested)
     /*if(getSelfIPAddress()!=rreq->getOriginatorAddr()){
 
     if (destRouteData && destRouteData->isActive() && destRouteData->hasValidDestNum() &&
@@ -1502,11 +1446,6 @@ void AODVLDRouting::prehandleRREQ(AODVLDRREQ *rreq, const L3Address& sourceAddr,
         LastTransmittedRREQ[tmpRREQidentifier]=tmpPair;
 
 
-        /*LastTransDel* lastTransDelTemp= new LastTransDel("RREQkeepingTimer");
-        lastTransDelTemp->setOriginatorAddr(rreq->getOriginatorAddr());
-        lastTransDelTemp->setRreqID(rreq->getRreqId());
-        rreqkeepingTimer.push_back(lastTransDelTemp);
-        scheduleAt(simTime()+RREQinLastTransTimer,lastTransDelTemp);*/
         CurrentBestRREQ.erase(it);
 
 
@@ -1548,7 +1487,7 @@ IRoute *AODVLDRouting::createRoute(const L3Address& destAddr, const L3Address& n
     newProtocolData->setDestSeqNum(destSeqNum);
     newProtocolData->setLinkFail(0);
 
-    InterfaceEntry *ifEntry = interfaceTable->getInterfaceByName("wlan");    // TODO: IMPLEMENT: multiple interfaces
+    InterfaceEntry *ifEntry = interfaceTable->getInterfaceByName("wlan");    // For SimuLTE "wlan" for inet "wlan0"
     if (ifEntry)
         newRoute->setInterface(ifEntry);
 
@@ -1573,15 +1512,13 @@ void AODVLDRouting::receiveSignal(cComponent *source, simsignal_t signalID, cObj
         //FOR LTE
         std::string name = source->getName();
 
-        /*std::ofstream myfile;
-        myfile.open ("Type.txt");
-        myfile << name;
-        myfile.close();
-        */
         EV_DETAIL << "Received link break signal" << endl;
         // XXX: This is a hack for supporting both IdealMac and Ieee80211Mac. etc
         cPacket *frame = check_and_cast<cPacket *>(obj);
         INetworkDatagram *datagram=nullptr;
+        /*
+         * Signal is supposed to come from just those following modules and means: Link is broken
+         */
         if(name=="SimpleNeighborDiscovery"||name=="ip2lte"||name=="aodvld"){
             datagram = check_and_cast<INetworkDatagram  *>(obj);
         }
@@ -1774,7 +1711,7 @@ void AODVLDRouting::handleRERR(AODVLDRERR *rerr, const L3Address& sourceAddr)
                     // ! and copied from the incoming RERR in case (iii) above.
 
                     routeData->setDestSeqNum(rerr->getUnreachableNodes(j).seqNum);
-                    routeData->setIsActive(false);    // it means invalid, see 3. AODVLD Terminology p.3. in RFC 3561
+                    routeData->setIsActive(false);    // it means invalid, see 3. AODV Terminology p.3. in RFC 3561
                     routeData->setLifeTime(simTime() + deletePeriod);
                     routeData->setLinkFail(true);
 
@@ -1934,18 +1871,7 @@ void AODVLDRouting::completeRouteDiscovery(const L3Address& target)
     ASSERT(waitRREPIter != waitForRREPTimers.end());
     cancelAndDelete(waitRREPIter->second);
     waitForRREPTimers.erase(waitRREPIter);
- /*   for(auto it=CurrentBestRREQ.begin();it!=CurrentBestRREQ.end();++it){
-       delete it->second.second;
-    }
 
-    for(auto it=LastTransmittedRREQ.begin();it!=LastTransmittedRREQ.end();++it){
-       delete it->second.second;
-    }
-
-    CurrentBestRREQ.clear();
-    LastTransmittedRREQ.clear();
-
-*/
 }
 void AODVLDRouting::sendGRREP(AODVLDRREP *grrep, const L3Address& destAddr, unsigned int timeToLive)
 {
@@ -2053,7 +1979,10 @@ void AODVLDRouting::handleHelloMessage(AODVLDRREP *helloMessage)
 }
 
 /*Change LifeTime to residualRouteLifetime*/
-//TODO Is LifeTime still really needed?
+/*
+ * This function only expunges routes if the residual link lifetime is equal to zero and a link break has been indicated
+ * To be improved.
+ */
 void AODVLDRouting::expungeRoutes()
 {
     for (int i = 0; i < routingTable->getNumRoutes(); i++) {
@@ -2311,6 +2240,8 @@ void AODVLDRouting::handleBlackListTimer()
         scheduleAt(nextTime, blacklistTimer);
 }
 
+/*Does only work with one source and one destination properly. Otherwise some RREQ leak here and lead to a memory leak*/
+/*Deletes RREQ in last transmission buffer after a certain time*/
 void AODVLDRouting::deleteLastTrans(){
 
     //const RREQIdentifier tmpRREQidentifier(delTimer->getOriginatorAddr(),delTimer->getRreqID());

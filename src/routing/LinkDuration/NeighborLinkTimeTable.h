@@ -1,4 +1,4 @@
-//
+// Author: John-Torben Reimers
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -23,19 +23,20 @@
 using namespace omnetpp;
 
 /*
- *A table to store Addresses of network nodes and respective link lifetimes.
+ *A table to store addresses of network nodes and respective current link lifetimes.
  * Functions are only called by residual link lifetime modul
  * or neighbordiscovery modules.
  * Since this modul does not know if a neighbor is still a neighbor,
  * the link lifetimes are incremented by neighbordiscovery modul.
+ * The functions are selfexplaining
  */
 class INET_API NeighborLinkTimeTable : public cSimpleModule
 {
   protected:
     void initialize();
     void handleMessage(cMessage *msg);
-    std::map <cModule*,int > NeighborLinkTimeMap; //First: ID Second:Linklifetime
-    cLongHistogram measuredLinkDurations; //collects linklifetimes when a link expires
+    std::map <cModule*,int > NeighborLinkTimeMap; //First: ID Second:Current Linklifetime
+    cLongHistogram measuredLinkDurations; //collects linklifetimes when a link expires (UNUSED)
     std::vector<int> measuredLinkDurationsVec; //same value as added to hist.
 
 

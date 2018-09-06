@@ -1,4 +1,4 @@
-//
+// Author: John-Torben Reimers
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -41,21 +41,18 @@ class INET_API SimpleNeighborDiscovery:  public cSimpleModule
     int transmissionRange;
     std::vector<cModule*> otherAddressVector; //Of network module
     cModule* ownAddress; //Of network module
-//    std::map<int,cModule*>IDsAddressMap;// Of network module
     std::map<cModule*,bool> neighborConnection; //Is there is connection to neighbor? <neighbor module address, flag>
     std::map<cModule*,int> nodeDistance; // Distance to any neighbor <neighbor module address, distance>
     std::map<cModule*,simtime_t>realConnectionTimeout; // Precalculated time when connection gets lost due to distance <neighbor module Address, time out time>
     std::map<cModule*,L3Address>addressToIP;// Map from memory address to IP address of neighbor <address of neighbor, IP address>
     int numHosts;
     NeighborLinkTimeTable *LinkTimeTable;
-    cMessage *update;
+    cMessage *update; //check if connection is there or not (by distance and transmission range)
     cMessage *sec; //time increment message
-    simtime_t updateInterval;
+    simtime_t updateInterval; //interval "update" is done
     L3Address ownIP;
     IPv4Datagram tmpdatagram;
 
-    //For queue deletion when connection fails
-    LteMacUeD2D* macModule;
 
     //statistics
 

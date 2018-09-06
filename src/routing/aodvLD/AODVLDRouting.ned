@@ -18,22 +18,7 @@
 
 package lte.routing.aodvLD;
 
-//
-// Ad hoc On-Demand Distance Vector Routing Protocol module.
-//
-// The Ad hoc On-Demand Distance Vector (AODV) routing protocol is
-// intended for use by mobile nodes in an ad hoc network. It offers
-// quick adaptation to dynamic link conditions, low processing and
-// memory overhead, low network utilization, and determines unicast
-// routes to destinations within the ad hoc network.
-//
-// This routing protocol communicates over UDP and used in ~AODVRouter
-// nodes as a routing submodule. ~AODVRouter is just a ~WirelessHost
-// extended with ~AODVRouting submodule.
-//
-// This implementation is based on RFC 3561. For more information, you may
-// refer to the following link: https://tools.ietf.org/html/rfc3561.html.
-//
+//Copy from AODVRouting with different parameters
 @namespace(inet);
 simple AODVLDRouting
 {
@@ -77,7 +62,7 @@ simple AODVLDRouting
         int ttlIncrement = default(2); // specifies the value by which the TTL will be incremented each time a RREQ is retransmitted
         int ttlThreshold = default(7); // the maximum value of TTL over which NET_DIAMETER value will be used to broadcast any RREQ
         int localAddTTL = default(2); // it is used by the formula which calculates the initial TTL of the RREQ for a local repair
-        double RLMaring @unit("s")=default(2s); //defining how much better a rreq has to be in terms of residual linklifetime, in order to be used
+        double RLMaring @unit("s")=default(2s); //defining how much better later rreqs have to be in terms of residual linklifetime, in order to be used
 
         double myRouteTimeout @unit("s") = default(2 * activeRouteTimeout); // the value of the lifetime field that a destination node places in RREPs
         double deletePeriod @unit("s") = default(5 * max(activeRouteTimeout, helloInterval)); // the time after which an expired route is deleted
@@ -88,15 +73,16 @@ simple AODVLDRouting
         double RREQCollectionTimeMin @unit("s") = default(0.01s); // Minumum time same RREQ is saved and exchanged to better RREQ until rebroadcst
         double RREQCollectionTimeMean @unit("s") = default(0.05s); // Mean of exponential ditributed addition to  RREQCollectionTimeMin
         double RREQinLastTransTimer @unit("s") = default(3s); //Time when RREQ is thrown out of LastTransmittedBuffer
-        bool RREQTimerHopDependeny = default(false);
+        bool RREQTimerHopDependeny = default(false); // if true: More number of hops of RREQ lead to higher RREQ waiting time (unfinished and untested)
         bool constRREQTimer=default(true); //If true only RREQCollectionTimeMin is used as timer (no exponential addition)
-        string DestinationAddress = default("10.0.3.3"); //Destination of VOIPpackets, to measure if route is there or not
+        string DestinationAddress = default("10.0.3.3"); //Destination of transmitted packets. To determine if results are to be measured
+        // "0.0.0.0" will lead to not measure results. Additionally prevents other nodes to start route discovery.
         
         
         
         @signal[numRREQsent];
         @statistic[numRREQsent](title="numRREQsent"; record=sum);
-        @signal[routeAvailability]; //Finds Route fails
+        @signal[routeAvailability]; //Periodically saves if route is present or not (Too large intervals will lead to oversee link failures)
         @statistic[routeAvailability](title="routeAvailability"; record=vector);
         @signal[interRREPRouteDiscoveryTime]; //From last RREP to next route discovery (Route Duration)
         @statistic[interRREPRouteDiscoveryTime](title="interRREPRouteDiscoveryTime"; record=vector);

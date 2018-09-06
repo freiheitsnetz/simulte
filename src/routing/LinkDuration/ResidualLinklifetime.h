@@ -1,4 +1,4 @@
-//
+// Author: John-Torben Reimers
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -32,6 +32,7 @@ using namespace inet;
  * to get the residual link lifetime
  * It needs a  NeighborLinkTimeTable modul to access the link lifetimes.
  * It needs a neighbordiscovery module for IP to ram address conversion.
+ * Detailed information of methods can be found in the corresponding .CC-File
  */
 class ResidualLinklifetime : public cSimpleModule
 {
@@ -44,15 +45,12 @@ class ResidualLinklifetime : public cSimpleModule
     virtual void handleMessage(cMessage *msg);
     cXMLElement* tempInputbin;
     cXMLElement* tempInputvalue;
-    int oor_counter_simttime=0;
-    int oor_counter_RLL=0;
-    int oor_counter_Dist=0;
-    int maxERLL;
+    int oor_counter_simttime=0; //For debugging
+    int oor_counter_RLL=0;//For debugging
+    int oor_counter_Dist=0;//For debugging
+    int maxERLL; //maximum value, the predicted residual link lifetime can be set to. By default 24 hours
 
-    std::map<int,double> InputLinkDist;//safe the read in LinkDistribution
-    std::vector<double>initialPDF;
-    std::vector<double>initialCDF;
-    std::vector<float>t_value;
+    std::map<int,double> InputLinkDist;//safe the read in LinkDistribution (Unused)
     NeighborLinkTimeTable* LinkTimeTable=nullptr;
     SimpleNeighborDiscovery* neighborModule=nullptr;
     CDF* cdfModule=nullptr;

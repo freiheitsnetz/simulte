@@ -1,6 +1,6 @@
 //
 // Copyright (C) 2014 OpenSim Ltd.
-// Author: Benjamin Seregi
+// Author: Benjamin Seregi, John-Torben Reimers
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -23,6 +23,7 @@
 #include "inet/networklayer/common/L3Address.h"
 #include "inet/common/INETDefs.h"
 
+/*Additional variables implemented with AODV/LD are explained  next to the variable*/
 namespace inet {
 
 class INET_API AODVLDRouteData : public cObject
@@ -34,9 +35,9 @@ class INET_API AODVLDRouteData : public cObject
     bool beingRepaired;
     bool validDestNum;
     unsigned int destSeqNum;
-    simtime_t residualRouteLifetime; //Expected expiration of route
-    simtime_t lifeTime;    // expiration or deletion time of the route
-    bool linkFail; //Distinguish between link fail or expiration of route
+    simtime_t residualRouteLifetime; //Expected expiration of route. Additionally used like "lifeTime" in AODV.
+    simtime_t lifeTime;    // expiration or deletion time of the route (not used anymore)
+    bool linkFail; //Distinguish between link fail or expiration of route. Is set to true if link break has occured
 
   public:
 
@@ -48,7 +49,7 @@ class INET_API AODVLDRouteData : public cObject
         validDestNum = true;
         lifeTime = SIMTIME_ZERO;
         destSeqNum = 0;
-        //minimumResidualLinklifetime = 0;//Todo wirklich NULL?
+
     }
 
     virtual ~AODVLDRouteData() {}

@@ -26,7 +26,7 @@ import inet.mobility.base.MovingMobilityBase;
 // off the wall at the same angle.
 //
 // @author Emin Ilker Cetinbas
-//EDIT: needed to get access to input angle. Rest is same as Linear Mobility
+//EDIT: needed to get access to input angle. Rest is same as "Linear Mobility". Author: John-Torben Reimers
 @namespace(inet);
 simple LinearMobilityExtended extends MovingMobilityBase
 {

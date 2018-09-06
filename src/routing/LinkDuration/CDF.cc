@@ -1,4 +1,4 @@
-//
+// Author: John-Torben Reimers
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -14,10 +14,7 @@
 // 
 
 #include "CDF.h"
-//For debugging
-/*#include <iostream>
-#include <fstream>
-*/
+
 Define_Module(CDF);
 
 void CDF::initialize()
@@ -40,14 +37,16 @@ void CDF::initialize()
 
 void CDF::handleMessage(cMessage *msg)
 {
-    // TODO - Generated method body
+    // Nothing to do here
 }
-/*Returns the CDF of the PDF with variable bin size which can be defined in omnet.ini*/
-/*Use own compLog in case of negative values. tau and t are always positiv*/
+
+/*Calculates the CDF of the PDF with variable bin size which can be defined in omnetpp.ini
+ *"initialCDF" is used for drawing a number out of PDF. Inversion of CDF is needed but complex to calculate.
+ *Therefore values of CDF(t) are calculated in calcCDF() to offer a mapping from CDF(t)->t.
+ *Use own compLog (Complex Logarithm) in case of negative values. tau and t are always positiv
+ */
 void CDF::calcCDF(){
 
-    /*std::ofstream myfile;
-    myfile.open ("CDF_Values.txt");*/
 for (double t=start*tau;t<=limit*tau;t=t+step*tau){
     t_values.push_back(t);
     std::complex<double> CDFtemp;
@@ -65,16 +64,12 @@ for (double t=start*tau;t<=limit*tau;t=t+step*tau){
 
     CDFtemp= 2/pow(M_PI,2)*(-dilog(-t,tau,precision)+dilog(t,tau,precision)+log(t)*(templog1-templog2));
     initialCDF.push_back(CDFtemp.real());
-   /* myfile << t;
-    myfile << ";";
-    myfile << tau;
-    myfile << ";";
-    myfile<< "\n";
-    */
     }
-//myfile.close();
+
 }
-/*Returns  t_value(Link Lifetime) to given uniform(0,1).Role a number out of the distribution*/
+/*Returns  t_value(Link Lifetime) to given uniform(0,1). Draw a number out of the distribution
+ * In other words: Since inversion of original CDF is not possible, this function maps
+ * CDF(t)->t, where CDF(t) are precalutclated values calculated in "CalcCFD())*/
 double CDF::getClosestT_value(double input){
 
     for (u_int i=0;i<initialCDF.size();i++){
@@ -92,7 +87,7 @@ double CDF::getClosestT_value(double input){
         else
             return (t_values[i+1]+t_values[i-1])/2;// Linear regression
         }
-    return t_values[initialCDF.size()-1]+tau; //In the case of no match add tau once to the highest value
+    return t_values[initialCDF.size()-1]+tau; //In the case of no match add tau once to the highest value (no higher values have been precalucated)
     }
 
 

@@ -1,4 +1,4 @@
-//
+// Author:S John-Torben Reimers
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -24,7 +24,8 @@
 using namespace omnetpp;
 
 /**
- * TODO - Generated class
+ * Precalulates CDF values (From Medina's PDF) and offers a map from CDF(t)->t (Inversion work around)
+ * Detailed information of methods can be found in the corresponding .CC-File
  */
 class CDF : public cSimpleModule
 {

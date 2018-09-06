@@ -1,4 +1,5 @@
 //
+// Author: John-Torben Reimers
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -15,9 +16,6 @@
 
 package lte.routing.LinkDuration;
 
-//
-// TODO auto-generated module
-//
 //There is a need for a central CDF for estimating the initial Link Lifetime. Otherwise every UE would have to do it on its own
 simple CDF
 {

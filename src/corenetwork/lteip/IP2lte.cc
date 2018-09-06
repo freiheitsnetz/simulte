@@ -160,14 +160,7 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
     EV << "IP2lte Multicast?" << tmpControl->getDestinationAddress().isMulticast() << endl;
     if(tmpControl->getDestinationAddress().isBroadcast()){
         destAddr.set("224.0.0.10");
-        /*DEBUGGING*/
-        //controlInfo->setApplication(0);
-       // controlInfo->setTraffic(1);
-        //transportPacket->setName("gaming");
-
     }
-
-
 
     else if(tmpControl->getDestinationAddress().isMulticast())
         destAddr.set("224.0.0.10");
@@ -187,11 +180,7 @@ void IP2lte::fromIpUe(IPv4Datagram * datagram)
 
     EV << "IP2lte Requested" << tmpControl->getSourceAddress().str() << endl;
     EV << "IP2lte Requested" << tmpControl->getDestinationAddress().str() << endl;
-    //debugging
-     //controlInfo->setApplication(3);
-     //controlInfo->setTraffic(4);
 
-   // transportPacket->setName("VoIP");
     }
     }
     //Change until here

@@ -873,7 +873,6 @@ void LteMacUeD2D::macHandleRac(cPacket* pkt)
         {
             bsrTriggered_ = true;
         //ADDED
-
         bsrD2DMulticastTriggered_=false;
         }
 

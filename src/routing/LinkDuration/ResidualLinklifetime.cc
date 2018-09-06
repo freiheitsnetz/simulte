@@ -37,7 +37,7 @@ void ResidualLinklifetime::initialize(int stage)
         /*Calculate distribution themselves: NOT IMPLEMENTED*/
         if(par("selfMode").boolValue()== true)
             mode=SELF;
-        /*xml input file for mapping*/
+        /*xml input file for mapping: NOT IMPLEMENTED*/
         else if(par("givenMode").boolValue()==true){
             mode=GIVEN;
             setDistbyInput();
@@ -55,7 +55,7 @@ void ResidualLinklifetime::initialize(int stage)
 
     }
         else
-            throw cRuntimeError("Mode must be 'selfMode' OR(!) 'givenMode'");
+            throw cRuntimeError("Mode must be 'functionMode'");
     }
 }
 
@@ -71,7 +71,7 @@ simtime_t ResidualLinklifetime::calcResidualLinklifetime(cModule* neighbor)
         case SELF: return calcRLLviaTable(neighbor); //Not implemented yet
         case GIVEN: return calcRLLviaInput(neighbor);//Not implemented yet
         case FUNCTION: return calcRLLviaFunction(neighbor);
-        default: throw cRuntimeError("Mode must be 'selfMode' OR(!) 'given'");
+        default: throw cRuntimeError("Mode must be 'functionMode'");
     }
 }
 //TODO->
@@ -88,7 +88,10 @@ int ResidualLinklifetime::calcRLLviaTable(cModule* neighbor){
 
 }
 /*From "Topology Characterization of High Density Airspace
-Aeronautical Ad Hoc Networks" by Daniel Medina, Felix Hoffmann, Serkan Ayaz, Munich,Germany*/
+Aeronautical Ad Hoc Networks" by Daniel Medina, Felix Hoffmann, Serkan Ayaz, Munich,Germany
+Calls the current link lifetime to use it as input for the CDF(t)
+Both are needed to predict the residual link lifetime. Formula can be found in the mentioned paper*/
+
 int ResidualLinklifetime::calcRLLviaFunction(cModule* neighbor){
 
     //TODO simplifications okay?
@@ -103,7 +106,7 @@ int ResidualLinklifetime::calcRLLviaFunction(cModule* neighbor){
     if(t<0){//t cannot be smaller than 0. if it happens: wrap around of int
         oor_counter_RLL++;
     }
-    if(tmpLL>maxERLL||tmpLL<0){ //Avoid simtime_t so reach to limit (By default 24 hours is returned)
+    if(tmpLL>maxERLL||tmpLL<0){ //Avoid simtime_t to reach limit (By default 24 hours is returned)
         oor_counter_simttime++;
         return maxERLL;
 
@@ -111,7 +114,7 @@ int ResidualLinklifetime::calcRLLviaFunction(cModule* neighbor){
     return tmpLL;
 
 }
-/*Untested*/
+/*Supposed to read an XML file as input distribution: Uncompleted and untested*/
 void ResidualLinklifetime::setDistbyInput(){
 
     cXMLElementList parameters =par("inputDist").xmlValue()->getElementsByTagName("param");
@@ -132,12 +135,14 @@ simtime_t ResidualLinklifetime::getResidualLinklifetime (inet::L3Address IPaddre
 
 }
 
+/*Returns the current link lifetime via given IP address. Only function which can be called from outside*/
 simtime_t ResidualLinklifetime::getMetrik (inet::L3Address IPaddress){
 
     return getResidualLinklifetime(IPaddress);
 
 }
-
+/*Once called at the beginning, such that the beginning current link lifetime is drawn out of the PDF
+ *  to precent that all current link lifetimes start at 0*/
 void ResidualLinklifetime::setInitialLLVector(){
 
 

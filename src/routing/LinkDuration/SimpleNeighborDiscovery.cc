@@ -1,4 +1,4 @@
-//
+// Author: John-Torben Reimers
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -39,7 +39,6 @@ void SimpleNeighborDiscovery::initialize(int stage)
     setAllUEsAddresses();
     updateNodeDistanceEntries();
     updateConnectionVector(stage);
-    //setConnectionTimeoutVec();
     WATCH_MAP(neighborConnection);
     WATCH_MAP(nodeDistance);
     WATCH_MAP(realConnectionTimeout);
@@ -51,7 +50,6 @@ void SimpleNeighborDiscovery::initialize(int stage)
 
     }
     if(stage == INITSTAGE_NETWORK_LAYER_3+1){
-      //  macModule = getModuleFromPar<LteMacUeD2D>(par("macModule"), this,1);
         setAddresstoIPMap();
         update= new cMessage("Update");
         sec= new cMessage("Second");
@@ -62,7 +60,9 @@ void SimpleNeighborDiscovery::initialize(int stage)
 
 
 }
-
+/*
+ * Only selfmessages are used. Update and increment have the same value by default (1s)
+ */
 void SimpleNeighborDiscovery::handleMessage(cMessage *msg)
 {
     if(msg==update){
@@ -78,6 +78,9 @@ void SimpleNeighborDiscovery::handleMessage(cMessage *msg)
 
 }
 
+/*
+ * Check whether nodes are in range or not and save it in the corresponding vector
+ */
 void SimpleNeighborDiscovery::updateNodeDistanceEntries(){
 
     nodeDistance.clear();
@@ -98,6 +101,9 @@ void SimpleNeighborDiscovery::updateNodeDistanceEntries(){
 }
 
 }
+/*
+ * Find all other ueD2D modules and save the module address
+ */
 void SimpleNeighborDiscovery::setAllUEsAddresses()
 {
     otherAddressVector.clear();
@@ -111,7 +117,10 @@ void SimpleNeighborDiscovery::setAllUEsAddresses()
 
     }
 }
-
+/*
+ * Updates "neighborConnection" according to the distance and the transmission range
+ * Lost connections lead to measuring the link lifetime and signalling the AODVLD module
+ */
 void SimpleNeighborDiscovery::updateConnectionVector(int stage){
     std::map<cModule*,bool> previousConnection=neighborConnection;
     neighborConnection.clear();
@@ -119,8 +128,7 @@ void SimpleNeighborDiscovery::updateConnectionVector(int stage){
         bool tempConnection=isInConnectionRange(transmissionRange, it->second);
         neighborConnection[it->first]=tempConnection;
         /*
-         * Lost connection must be documented in histogram
-         * previous connection must  have been 1
+         * Lost connection is documented to measure link lifetimes
          */
         if(tempConnection==0&&stage!=INITSTAGE_NETWORK_LAYER_3){
         std::map<cModule*,bool>::iterator iter= previousConnection.find(it->first);
@@ -135,18 +143,22 @@ void SimpleNeighborDiscovery::updateConnectionVector(int stage){
             IPv4Datagram* tmpdatagramptr=&tmpdatagram;
 
             emit(NF_LINK_BREAK,tmpdatagramptr);
-            /*
-            macModule->deleteQueues(0);
-            */
+
             }
         }
 
 
     }
 }
+/*
+ * Checks whether to aircraft are still in range.
+ */
 bool SimpleNeighborDiscovery::isInConnectionRange(int txRange, int nodeDistance){
     return txRange>=nodeDistance;
 }
+/*
+ * Increments the current link lifetime according to "neighborConnection"
+ */
 void SimpleNeighborDiscovery::incrementLinklifetime(){
 
     for(std::map<cModule*,bool>::iterator it= neighborConnection.begin();it!=neighborConnection.end();it++){
@@ -161,6 +173,8 @@ void SimpleNeighborDiscovery::incrementLinklifetime(){
 
     }
 }
+
+/*Fills the map "AddresstoIP"*/
 void SimpleNeighborDiscovery::setAddresstoIPMap(){
 
 
@@ -199,11 +213,14 @@ cModule* SimpleNeighborDiscovery::getAddressFromIP(L3Address IPaddress){
 
     }
 
+/*Provides the reference to the connection vector*/
 std::map<cModule*,bool>* SimpleNeighborDiscovery::getConnectionVector(){
 return &neighborConnection;
 }
 
-//Untested: Should calculate the connection timeout( When UEs are out of range)
+/*Linear and constant mobility can be used to precalculate when two aircraft are out of range (Unused and Untested)
+ *
+ */
 simtime_t SimpleNeighborDiscovery::calcRealConnectionTimeout(cModule* neighbor){
 
     std::map<cModule*,int>::iterator it=nodeDistance.find(neighbor);
@@ -227,6 +244,11 @@ simtime_t SimpleNeighborDiscovery::calcRealConnectionTimeout(cModule* neighbor){
     return conTimeout;
 
 }
+
+/*Setting  the vector of all values when the connection to neighbor really times out.
+ * Works in combination with the previous function "calcRealConnectionTimeout(cModule* neighbor)"
+ * Therefore also unused and untested
+ */
 
 void SimpleNeighborDiscovery::setConnectionTimeoutVec(){
 

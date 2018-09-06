@@ -29,6 +29,7 @@ namespace inet {
  *
  * @ingroup mobility
  * @author Emin Ilker Cetinbas
+ * Edit: Only method added to Linear Mobility is "getAngle()" which was neccessary to precalulate Link Lifetime. (unfinished and unused)
  */
 class INET_API LinearMobilityExtended : public MovingMobilityBase
 {
@@ -48,7 +49,7 @@ class INET_API LinearMobilityExtended : public MovingMobilityBase
 
   public:
     virtual double getMaxSpeed() const override { return speed; }
-    //AddedS
+    //Added
     double getAngle() { return angle; }
     LinearMobilityExtended();
 };
