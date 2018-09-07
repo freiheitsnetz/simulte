@@ -105,7 +105,7 @@ simple AODVLDRouting
         @statistic[ newSeqNum](title=" newSeqNum"; record=vector);
         @signal[theoreticalRL];
         @statistic[theoreticalRL](title=" theoreticalRL"; record=vector);
-        
+        @signal[NF_LINK_BREAK];
        
         
 
