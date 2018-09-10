@@ -5,7 +5,7 @@
         	<!-- Enable/disable shadowing -->       
             <parameter name="shadowing" type="bool" value="false"/>
              <!-- ADDED: Defined TxRange for ZERO_UNTIL_TX_RANGE scenario-->
-        	<parameter name="txRange" type="long" value= "1500000"/>
+        	<parameter name="txRange" type="long" value= "150000"/>
             <!-- Pathloss scenario from ITU -->   
             <!--parameter name="scenario" type="string" value="RURAL_MACROCELL"/-->
             <parameter name="scenario" type="string" value="ZERO_UNTIL_TX_RANGE"/>
