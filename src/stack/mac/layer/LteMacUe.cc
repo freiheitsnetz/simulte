@@ -21,7 +21,7 @@
 #include "LteBinder.h"
 #include "LtePhyBase.h"
 //Add for D2DMH
-#include "MACAddress.h"
+#include "inet/linklayer/common/MACAddress.h"
 
 Define_Module(LteMacUe);
 

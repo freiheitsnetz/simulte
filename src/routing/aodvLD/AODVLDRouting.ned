@@ -82,28 +82,28 @@ simple AODVLDRouting
         
         @signal[numRREQsent];
         @statistic[numRREQsent](title="numRREQsent"; record=sum);
-        @signal[routeAvailability]; //Periodically saves if route is present or not (Too large intervals will lead to oversee link failures)
+        @signal[routeAvailability]; //Periodically saves if route is present or not (Too large intervals will lead to oversee link failures --> recommended 10ms)
         @statistic[routeAvailability](title="routeAvailability"; record=vector);
         @signal[interRREPRouteDiscoveryTime]; //From last RREP to next route discovery (Route Duration)
         @statistic[interRREPRouteDiscoveryTime](title="interRREPRouteDiscoveryTime"; record=vector);
         
         @signal[interRREQRREPTime]; //Route Discovery Start - RREP arrive ( can occure multiple times for 1 RREQ)
         @statistic[interRREQRREPTime](title="interRREQRREPTime"; record=vector);
-        @signal[numFinalHops];//numHop of final routes
+        @signal[numFinalHops]; //numHop of final routes
         @statistic[numFinalHops](title="numFinalHops"; record=vector);
-        @signal[numRREQForwarded];
+        @signal[numRREQForwarded]; //number of forwared RREQ
         @statistic[numRREQForwarded](title="numRREQForwarded"; record=sum);
-        @signal[numSentRERR];//numHop of final routes
+        @signal[numSentRERR]; //number of own generated RERR which were sent out. 
         @statistic[numSentRERR](title="numSentRERR"; record=sum);
         
-        @signal[sentAODVLDpackets];
+        @signal[sentAODVLDpackets]; //includes all own and forwared packets (RREQ,RREP,RERR)
         @statistic[sentAODVLDpackets](title="sentAODVLDpackets"; record=sum);
         
-        @signal[numReceivedRERR];
+        @signal[numReceivedRERR]; //number of received RERR
         @statistic[numReceivedRERR](title="numReceivedRERR"; record=sum);
         @signal[ newSeqNum];
         @statistic[ newSeqNum](title=" newSeqNum"; record=vector);
-        @signal[theoreticalRL];
+        @signal[theoreticalRL]; //Route lifetime taken from min(eRLL) of all hops
         @statistic[theoreticalRL](title=" theoreticalRL"; record=vector);
   
        
