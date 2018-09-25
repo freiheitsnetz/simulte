@@ -105,7 +105,7 @@ simple AODVLDRouting
         @statistic[ newSeqNum](title=" newSeqNum"; record=vector);
         @signal[theoreticalRL]; //Route lifetime taken from min(eRLL) of all hops
         @statistic[theoreticalRL](title=" theoreticalRL"; record=vector);
-        
+  
        
         
 
